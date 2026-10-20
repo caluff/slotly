@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-19T21:46:48.516Z",
+  "generatedAt": "2026-10-20T03:07:48.888Z",
   "title": "Design System: Slotly",
   "extensions": {
     "colorMeta": {
@@ -39,6 +39,10 @@
       "white": {
         "role": "neutral",
         "displayName": "Blanco"
+      },
+      "destructive": {
+        "role": "error",
+        "displayName": "Error de validación"
       }
     },
     "typographyMeta": {
@@ -93,7 +97,7 @@
       "refersTo": "button-primary",
       "description": "Acceso principal a registro o dashboard.",
       "html": "<a class=\"ds-button-primary\" href=\"/sign-up\">Crear cuenta <span aria-hidden=\"true\">→</span></a>",
-      "css": ".ds-button-primary{display:inline-flex;min-height:3rem;align-items:center;justify-content:center;gap:.75rem;border-radius:.5rem;padding:.75rem 1.5rem;font-family:var(--font-geist-sans),sans-serif;font-size:.875rem;font-weight:600;line-height:1.25rem;text-decoration:none;transition:color 150ms cubic-bezier(.4,0,.2,1),background-color 150ms cubic-bezier(.4,0,.2,1),border-color 150ms cubic-bezier(.4,0,.2,1);}.ds-button-primary{background:var(--accent);color:#ffffff;}.ds-button-primary:hover{background:var(--accent-hover);}.ds-button-primary:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}@media(prefers-reduced-motion:reduce){.ds-button-primary{transition:none;}}"
+      "css": ".ds-button-primary{display:inline-flex;min-height:2.25rem;align-items:center;justify-content:center;gap:.5rem;border-radius:.375rem;padding:.375rem 1rem;font-family:var(--font-geist-sans),sans-serif;font-size:.875rem;font-weight:600;line-height:1.25rem;text-decoration:none;transition:color 150ms cubic-bezier(.4,0,.2,1),background-color 150ms cubic-bezier(.4,0,.2,1),border-color 150ms cubic-bezier(.4,0,.2,1);}.ds-button-primary{background:var(--accent);color:#ffffff;}.ds-button-primary:hover{background:var(--accent-hover);}.ds-button-primary:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}@media(prefers-reduced-motion:reduce){.ds-button-primary{transition:none;}}"
     },
     {
       "name": "Enlace de acción secundaria",
@@ -101,7 +105,7 @@
       "refersTo": "button-secondary",
       "description": "Acceso secundario al inicio de sesión.",
       "html": "<a class=\"ds-button-secondary\" href=\"/sign-in\">Iniciar sesión</a>",
-      "css": ".ds-button-secondary{display:inline-flex;min-height:3rem;align-items:center;justify-content:center;gap:.75rem;border-radius:.5rem;padding:.75rem 1.5rem;font-family:var(--font-geist-sans),sans-serif;font-size:.875rem;font-weight:600;line-height:1.25rem;text-decoration:none;transition:color 150ms cubic-bezier(.4,0,.2,1),background-color 150ms cubic-bezier(.4,0,.2,1),border-color 150ms cubic-bezier(.4,0,.2,1);}.ds-button-secondary{border:1px solid color-mix(in oklab,var(--accent) 25%,transparent);background:transparent;color:var(--foreground);}.ds-button-secondary:hover{background:color-mix(in oklab,var(--accent) 5%,transparent);}.ds-button-secondary:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}@media(prefers-reduced-motion:reduce){.ds-button-secondary{transition:none;}}"
+      "css": ".ds-button-secondary{display:inline-flex;min-height:2.25rem;align-items:center;justify-content:center;gap:.5rem;border-radius:.375rem;padding:.375rem 1rem;font-family:var(--font-geist-sans),sans-serif;font-size:.875rem;font-weight:600;line-height:1.25rem;text-decoration:none;transition:color 150ms cubic-bezier(.4,0,.2,1),background-color 150ms cubic-bezier(.4,0,.2,1),border-color 150ms cubic-bezier(.4,0,.2,1);}.ds-button-secondary{border:1px solid color-mix(in oklab,var(--accent) 25%,transparent);background:transparent;color:var(--foreground);}.ds-button-secondary:hover{background:color-mix(in oklab,var(--accent) 5%,transparent);}.ds-button-secondary:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}@media(prefers-reduced-motion:reduce){.ds-button-secondary{transition:none;}}"
     },
     {
       "name": "Enlace de texto",
@@ -116,7 +120,7 @@
       "refersTo": "account-panel",
       "description": "Panel de la portada antes de iniciar sesión.",
       "html": "<section class=\"ds-account-panel\" aria-labelledby=\"ds-account-heading\"><div class=\"ds-account-icon\" aria-hidden=\"true\"><svg width=\"26\" height=\"26\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"4\" y=\"5\" width=\"16\" height=\"16\" rx=\"3\"/><path d=\"M8 3v4m8-4v4M4 11h16m-12 5 2 2 5-4\"/></svg></div><h2 id=\"ds-account-heading\" class=\"ds-account-heading\">Tu tiempo, mejor organizado.</h2><p class=\"ds-account-description\">Crea tu cuenta en Slotly o inicia sesión para entrar a tu espacio.</p><div class=\"ds-account-actions\"><a class=\"ds-account-primary\" href=\"/sign-up\">Crear cuenta <span aria-hidden=\"true\">→</span></a><a class=\"ds-account-secondary\" href=\"/sign-in\">Iniciar sesión</a></div><p class=\"ds-account-note\">Todo empieza con tu cuenta.</p></section>",
-      "css": ".ds-account-panel{font-family:var(--font-geist-sans),sans-serif;border-radius:1rem;background:var(--surface);color:var(--foreground);padding:1.75rem;}.ds-account-icon{display:flex;width:3rem;height:3rem;margin-bottom:2.5rem;align-items:center;justify-content:center;border-radius:.75rem;background:var(--accent);color:#ffffff;}.ds-account-heading{margin:0;font-size:1.5rem;line-height:2rem;font-weight:600;letter-spacing:-.025em;text-wrap:balance;}.ds-account-description{margin:.75rem 0 0;font-size:1rem;line-height:1.75rem;color:var(--muted);}.ds-account-actions{display:flex;flex-direction:column;gap:.75rem;margin-top:2rem;}.ds-account-note{margin:1.5rem 0 0;font-size:.875rem;line-height:1.5rem;color:var(--muted);}.ds-account-primary{display:inline-flex;min-height:3rem;align-items:center;justify-content:center;gap:.75rem;border-radius:.5rem;padding:.75rem 1.5rem;font-family:var(--font-geist-sans),sans-serif;font-size:.875rem;font-weight:600;line-height:1.25rem;text-decoration:none;transition:color 150ms cubic-bezier(.4,0,.2,1),background-color 150ms cubic-bezier(.4,0,.2,1),border-color 150ms cubic-bezier(.4,0,.2,1);}.ds-account-primary{background:var(--accent);color:#ffffff;}.ds-account-primary:hover{background:var(--accent-hover);}.ds-account-primary:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}@media(prefers-reduced-motion:reduce){.ds-account-primary{transition:none;}}.ds-account-secondary{display:inline-flex;min-height:3rem;align-items:center;justify-content:center;gap:.75rem;border-radius:.5rem;padding:.75rem 1.5rem;font-family:var(--font-geist-sans),sans-serif;font-size:.875rem;font-weight:600;line-height:1.25rem;text-decoration:none;transition:color 150ms cubic-bezier(.4,0,.2,1),background-color 150ms cubic-bezier(.4,0,.2,1),border-color 150ms cubic-bezier(.4,0,.2,1);}.ds-account-secondary{border:1px solid color-mix(in oklab,var(--accent) 25%,transparent);background:transparent;color:var(--foreground);}.ds-account-secondary:hover{background:color-mix(in oklab,var(--accent) 5%,transparent);}.ds-account-secondary:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}@media(prefers-reduced-motion:reduce){.ds-account-secondary{transition:none;}}@media(min-width:40rem){.ds-account-panel{padding:2.5rem;}.ds-account-heading{font-size:1.875rem;line-height:2.25rem;}}@media(min-width:64rem){.ds-account-panel{padding-top:3rem;padding-bottom:3rem;}}"
+      "css": ".ds-account-panel{font-family:var(--font-geist-sans),sans-serif;border-radius:1rem;background:var(--surface);color:var(--foreground);padding:1.75rem;}.ds-account-icon{display:flex;width:3rem;height:3rem;margin-bottom:2.5rem;align-items:center;justify-content:center;border-radius:.75rem;background:var(--accent);color:#ffffff;}.ds-account-heading{margin:0;font-size:1.5rem;line-height:2rem;font-weight:600;letter-spacing:-.025em;text-wrap:balance;}.ds-account-description{margin:.75rem 0 0;font-size:1rem;line-height:1.75rem;color:var(--muted);}.ds-account-actions{display:flex;flex-direction:column;gap:.75rem;margin-top:2rem;}.ds-account-note{margin:1.5rem 0 0;font-size:.875rem;line-height:1.5rem;color:var(--muted);}.ds-account-primary{display:inline-flex;min-height:2.25rem;align-items:center;justify-content:center;gap:.5rem;border-radius:.375rem;padding:.375rem 1rem;font-family:var(--font-geist-sans),sans-serif;font-size:.875rem;font-weight:600;line-height:1.25rem;text-decoration:none;transition:color 150ms cubic-bezier(.4,0,.2,1),background-color 150ms cubic-bezier(.4,0,.2,1),border-color 150ms cubic-bezier(.4,0,.2,1);}.ds-account-primary{background:var(--accent);color:#ffffff;}.ds-account-primary:hover{background:var(--accent-hover);}.ds-account-primary:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}@media(prefers-reduced-motion:reduce){.ds-account-primary{transition:none;}}.ds-account-secondary{display:inline-flex;min-height:2.25rem;align-items:center;justify-content:center;gap:.5rem;border-radius:.375rem;padding:.375rem 1rem;font-family:var(--font-geist-sans),sans-serif;font-size:.875rem;font-weight:600;line-height:1.25rem;text-decoration:none;transition:color 150ms cubic-bezier(.4,0,.2,1),background-color 150ms cubic-bezier(.4,0,.2,1),border-color 150ms cubic-bezier(.4,0,.2,1);}.ds-account-secondary{border:1px solid color-mix(in oklab,var(--accent) 25%,transparent);background:transparent;color:var(--foreground);}.ds-account-secondary:hover{background:color-mix(in oklab,var(--accent) 5%,transparent);}.ds-account-secondary:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}@media(prefers-reduced-motion:reduce){.ds-account-secondary{transition:none;}}@media(min-width:40rem){.ds-account-panel{padding:2.5rem;}.ds-account-heading{font-size:1.875rem;line-height:2.25rem;}}@media(min-width:64rem){.ds-account-panel{padding-top:3rem;padding-bottom:3rem;}}"
     }
   ],
   "narrative": {
@@ -124,7 +128,8 @@
     "keyCharacteristics": [
       "Fondo claro y texto verde oscuro.",
       "Jerarquía tipográfica en Geist.",
-      "Acciones principales verdes y formularios oficiales de Clerk."
+      "Acciones principales verdes y formularios oficiales de Clerk.",
+      "Perfil con anatomía de shadcn/ui, controles de 36px y errores inline accesibles."
     ]
   }
 }

@@ -11,6 +11,7 @@ colors:
   line: "#d9e4da"
   selection: "#c7e6ca"
   white: "#ffffff"
+  destructive: "#9f2f2f"
 typography:
   display:
     fontFamily: "var(--font-geist-sans), sans-serif"
@@ -57,7 +58,7 @@ components:
     textColor: "{colors.white}"
     typography: "{typography.label}"
     rounded: "{rounded.app}"
-    padding: "0.75rem 1.5rem"
+    padding: "0.375rem 1rem"
   button-primary-hover:
     backgroundColor: "{colors.accent-hover}"
   button-secondary:
@@ -65,7 +66,12 @@ components:
     textColor: "{colors.foreground}"
     typography: "{typography.label}"
     rounded: "{rounded.app}"
-    padding: "0.75rem 1.5rem"
+    padding: "0.375rem 1rem"
+  form-control:
+    backgroundColor: "{colors.white}"
+    textColor: "{colors.foreground}"
+    rounded: "{rounded.app}"
+    padding: "0.375rem 0.75rem"
   account-panel:
     backgroundColor: "{colors.surface}"
     rounded: "{rounded.app}"
@@ -139,7 +145,7 @@ El favicon y los iconos de la aplicación usan solo el calendario, sin la palabr
 
 ### Enlaces de acción
 
-`button-primary` y `button-secondary` son enlaces de navegación con apariencia de botón. Comparten altura mínima (3rem), contenido centrado y separación interna (0.75rem).
+`button-primary` y `button-secondary` sirven para acciones y enlaces de navegación. Comparten altura mínima de 36px (2.25rem), relleno vertical de 6px, relleno horizontal de 16px y separación interna de 8px. Los campos y selectores propios reutilizan `form-control`, con la misma altura mínima de 36px, texto de 14px y relleno horizontal de 12px. La apariencia global de Clerk conserva esa altura y relleno vertical en sus campos y botones de formulario. Los controles de avatar y menú mantienen sus áreas de interacción de 44px.
 
 La acción secundaria tiene borde verde al 25% y, al pasar el cursor, fondo verde al 5%. Los cambios de color usan la transición existente (150ms), desactivada cuando se solicita movimiento reducido. Los enlaces de texto se subrayan al pasar el cursor.
 
@@ -162,4 +168,8 @@ Superficie verde clara con encabezado, descripción y acciones apiladas. El rell
 Usar los componentes oficiales `SignIn` y `SignUp` de Clerk, con la localización española existente. Ambos utilizan `authAppearance`, con el verde de acción, el texto principal y Geist. Los campos y sus estados internos pertenecen a Clerk.
 
 El login y el registro integran su componente oficial directamente en la columna, sin borde ni sombra de tarjeta. La marca, el formulario y el pie comparten alineación y un ancho máximo de (24rem). Los títulos se alinean a la izquierda y los distintos pasos conservan su comportamiento oficial. Los campos y botones tienen altura mínima (2.25rem), relleno vertical (0.375rem), radio compartido de 6px y Google aparece después del acceso por correo. Ambos usan la fotografía `public/login-workspace.png`, un espacio de trabajo con luz natural, madera y tonos salvia, con recorte `cover` y sin texto superpuesto. Es decorativa y queda fuera del árbol accesible.
+
+### Perfil del negocio
+
+El formulario utiliza etiquetas visibles, controles compactos y una única acción «Guardar perfil», sin párrafos introductorios ni textos de ayuda permanentes. Usa la anatomía oficial de shadcn/ui: `FieldGroup`, `Field`, `FieldLabel` y `FieldError`, con `Input`, `Button` y `NativeSelect`, adaptados al tema existente. Los errores de campo utilizan `destructive` (#9f2f2f), `data-invalid`, `aria-invalid` y un mensaje asociado mediante `aria-describedby`; el foco pasa al primer campo inválido después del envío. React Hook Form y Zod gestionan el estado y la validación. Los errores generales conservan los valores, y el estado de guardado permanece anunciado para lectores de pantalla. La zona horaria es un selector nativo cerrado, con opciones IANA generadas en servidor y UTC; inicia en `America/Montevideo`. En móvil el botón ocupa el ancho del formulario. Los aliases semánticos de shadcn apuntan a los colores de Slotly y conservan el significado anterior de `accent` y `muted`.
 

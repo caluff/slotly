@@ -2,6 +2,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { clerkLocalization } from "@/lib/clerk-localization";
+import { compactControlAppearance } from "@/components/auth-appearance";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -53,6 +54,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               borderRadius: "0.375rem",
             },
             elements: {
+              ...compactControlAppearance,
               cardBox: { borderRadius: "0.375rem" },
               card: { borderRadius: "0.375rem" },
               modalContent: { borderRadius: "0.375rem" },

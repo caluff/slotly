@@ -3,6 +3,14 @@ import type { ComponentProps } from "react";
 
 type AuthAppearance = NonNullable<ComponentProps<typeof SignIn>["appearance"]>;
 
+const compactControl = { minHeight: "2.25rem", paddingBlock: "0.375rem" };
+
+export const compactControlAppearance = {
+  formFieldInput: compactControl,
+  formButtonPrimary: compactControl,
+  socialButtonsBlockButton: compactControl,
+} satisfies NonNullable<AuthAppearance["elements"]>;
+
 export const authAppearance = {
   options: {
     socialButtonsPlacement: "bottom",
@@ -40,16 +48,14 @@ export const authAppearance = {
     headerSubtitle: { fontSize: "0.875rem", lineHeight: 1.7 },
     formFieldLabel: { fontSize: "0.875rem", fontWeight: 500 },
     formFieldInput: {
-      minHeight: "2.25rem",
-      paddingBlock: "0.375rem",
+      ...compactControl,
       background: "#ffffff",
       color: "#183c30",
       borderColor: "#d9e4da",
       boxShadow: "none",
     },
     formButtonPrimary: {
-      minHeight: "2.25rem",
-      paddingBlock: "0.375rem",
+      ...compactControl,
       background: "#176348",
       boxShadow: "none",
       fontSize: "0.875rem",
@@ -57,8 +63,7 @@ export const authAppearance = {
       "&:hover": { background: "#104b36" },
     },
     socialButtonsBlockButton: {
-      minHeight: "2.25rem",
-      paddingBlock: "0.375rem",
+      ...compactControl,
       background: "#ffffff",
       borderColor: "#d9e4da",
       boxShadow: "none",

@@ -1,34 +1,99 @@
 # Slotly
 
-Plataforma de citas y reservas para profesionales y negocios. Esta etapa implementa únicamente autenticación y un dashboard vacío.
+Plataforma de citas y reservas para profesionales y negocios. La etapa actual incluye autenticación con Clerk y creación y consulta del perfil del negocio con Convex: un negocio por cuenta, con un único propietario.
 
 ## Desarrollo
 
-Stack instalado: Next.js 16.4.2 (App Router), React 19.3, TypeScript, Tailwind CSS 4 y Clerk Next.js 7.9.17. Utiliza únicamente pnpm.
+Stack instalado: Next.js 16.4.2 (App Router), React 19.3, TypeScript, Tailwind CSS 4, Clerk Next.js 7.9.17 y Convex 1.47.0. Utiliza únicamente pnpm.
 
 ```sh
 pnpm install --frozen-lockfile
+```
+
+Configura tus claves de desarrollo de Clerk en `.env.local` siguiendo `.env.example`. Si ese archivo ya existe, conserva sus variables. Activa la integración de Convex en tu instancia de desarrollo de Clerk o crea una plantilla JWT llamada `convex` con el claim `"aud": "convex"` (duración predeterminada: 60 segundos). El `sub` lo genera Clerk; no debe sustituirse por el correo ni por metadatos del cliente.
+
+El proyecto de esta cuenta es [slotly, equipo daniel-caluff](https://dashboard.convex.dev/t/daniel-caluff/slotly). Su entorno activo es **dev/slotly**, un backend cloud de desarrollo en US East (N. Virginia), con nombre `determined-poodle-377`. No hay entorno de producción de Slotly.
+
+Si configuras el repositorio en otro equipo con acceso a esa cuenta, autentica la CLI y selecciona explícitamente el entorno existente. No vuelvas a crear el proyecto ni selecciones NEEDTHISS, que es ajeno a Slotly:
+
+```sh
+pnpm exec convex login
+pnpm exec convex login status
+pnpm exec convex deployment select daniel-caluff:slotly:dev/slotly
+```
+
+La selección escribe las variables de Convex en `.env.local`. Conserva las variables existentes de Clerk. No uses `CONVEX_AGENT_MODE=anonymous` para trabajar con este destino; si la tienes en la terminal, elimínala antes de continuar.
+
+Inicia la sincronización de funciones en una terminal:
+
+```sh
+pnpm convex:dev
+```
+
+`pnpm convex:dev` actualiza el esquema, las funciones y los tipos del entorno cloud seleccionado. Los datos permanecen en Convex aunque cierres esa terminal; el proceso sirve para sincronizar cambios durante el desarrollo. La app de Next.js sigue ejecutándose localmente.
+
+El emisor de Clerk ya está configurado en este backend. Para un entorno nuevo, configura su variable una sola vez usando la **Frontend API URL** de la misma instancia de desarrollo de Clerk:
+
+```sh
+pnpm exec convex env set CLERK_JWT_ISSUER_DOMAIN https://TU-INSTANCIA.clerk.accounts.dev --deployment daniel-caluff:slotly:dev/slotly
+```
+
+Espera a que Convex indique que las funciones están listas. Después inicia Next.js en otra terminal:
+
+```sh
 pnpm dev
 ```
 
 Abre [localhost:3000](http://localhost:3000).
 
+### Si falla la validación de instant UI durante el desarrollo
+
+El 19 de octubre de 2026 se reprodujo un error genérico de validación cuya causa era un módulo interno ausente del React Client Manifest. El servidor seguía abierto desde antes de instalar dependencias: solicitaba la ubicación anterior de Next.js en `.pnpm`, mientras los manifiestos contenían la ubicación actual. La versión seguía siendo 16.4.2.
+
+Si instalas dependencias o cambia la resolución de pnpm con `pnpm dev` abierto, detén ese proceso y vuelve a ejecutar `pnpm dev`; después recarga la pestaña. En este caso bastó ese reinicio, sin borrar cachés ni modificar componentes o configuración. No asumas que cualquier error con ese mensaje tiene la misma causa: abre su apartado **Caused by** en el overlay y comprueba el error concreto antes de actuar. La consola puede conservar mensajes anteriores; compara los nuevos después de la recarga.
+
+La corrección y las pruebas están registradas en `docs/PROJECT_CONTEXT.md`.
+
+### Respaldo local y migración
+
+La primera implementación utilizó un backend local anónimo, que no pertenecía a la cuenta y por eso no aparecía en su dashboard. Se conservan su base y configuración en `.convex/local/`, sin borrar datos. Antes de cambiar el destino se guardaron una exportación completa y una copia privada de `.env.local` en `.convex/backups/slotly-local-before-cloud-20261019/`. Esa carpeta está excluida de Git; contiene datos y configuración privados y no debe publicarse.
+
+Se migró únicamente el perfil real **slotly / America/Montevideo**, conservando `_id`, `_creationTime`, `ownerId`, `name` y `timeZone`. La importación añadió una fila a la tabla vacía de desarrollo, sin reemplazos ni eliminaciones. Los tres perfiles sintéticos quedaron solo en el respaldo y en la base local. El backend local se detuvo después de la migración, y la app se verificó contra cloud con la sesión real de Clerk.
+
+La evidencia, los comandos de creación e importación y los pendientes están en `docs/PROJECT_CONTEXT.md`. El respaldo permite recuperar el estado anterior; no se debe importar completo sobre cloud para probar la aplicación, porque también contiene datos sintéticos.
+
 ## Autenticación
 
 - `/`: portada pública; muestra la bienvenida y el menú oficial de cuenta cuando hay una sesión activa.
 - `/sign-in` y `/sign-up`: componentes oficiales de Clerk, con traducción al español. Clerk gestiona correo, contraseña, verificación y Google según la configuración de la instancia.
-- `/dashboard`: verifica la sesión en el servidor con `await auth.protect()` antes de consultar el usuario o renderizar contenido privado. El dashboard solo contiene una bienvenida y un espacio reservado.
+- `/dashboard`: verifica la sesión en el servidor con `await auth.protect()` antes de consultar el usuario o renderizar contenido privado. Después comprueba la autenticación con Convex y consulta el perfil del propietario actual.
 - `UserButton`: gestión de cuenta y cierre de sesión con regreso a `/`. La persistencia de sesión la gestiona Clerk; no se guardan tokens manualmente.
 
 Se reutilizan `ClerkProvider`, `proxy.ts` y `.env.local`, previamente configurados con la CLI. El proxy inicializa Clerk; la página aplica la protección. No se usa `createRouteMatcher`, deprecado en Clerk 7.
 
 Las variables existentes son `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`, `NEXT_PUBLIC_CLERK_SIGN_IN_URL`, `NEXT_PUBLIC_CLERK_SIGN_UP_URL` y las dos variables `NEXT_PUBLIC_CLERK_SIGN_*_FALLBACK_REDIRECT_URL`. No compartas ni publiques sus valores. `.env.local` permanece excluido de Git.
 
-Después de iniciar sesión o completar el registro, Clerk envía al usuario a `/dashboard` mediante `signInFallbackRedirectUrl` y `signUpFallbackRedirectUrl` en `ClerkProvider`. Esos valores tienen prioridad sobre los fallbacks de `.env.local`, que no se modifica. Si existe un destino explícito en `redirect_url`, Clerk lo conserva; no se fuerza una redirección que lo reemplace. Se aplica a los componentes oficiales tanto para correo como para Google. La disponibilidad de Google depende de la conexión habilitada en Clerk; no requiere un flujo OAuth propio.
+Después de iniciar sesión o completar el registro, Clerk envía al usuario a `/dashboard` mediante `signInFallbackRedirectUrl` y `signUpFallbackRedirectUrl` en `ClerkProvider`. Esos valores tienen prioridad sobre los fallbacks de `.env.local`; las variables de Clerk se conservaron al cambiar las variables de Convex. Si existe un destino explícito en `redirect_url`, Clerk lo conserva; no se fuerza una redirección que lo reemplace. Se aplica a los componentes oficiales tanto para correo como para Google. La disponibilidad de Google depende de la conexión habilitada en Clerk; no requiere un flujo OAuth propio.
 
 Cache Components ya está habilitado. Las lecturas de sesión se ejecutan dentro de `Suspense`, sin caché compartida de usuarios. Una redirección durante streaming puede conservar HTTP 200: comprueba el destino y la ausencia de contenido privado, además del estado HTTP.
 
-Los componentes de página y estructura son Server Components. Los controles interactivos los aporta Clerk. No se añadió shadcn/ui porque en esta etapa los enlaces y los formularios de Clerk cubren la interfaz sin dependencias de componentes adicionales.
+Las páginas y la estructura conservan sus Server Components. El perfil y el formulario son Client Components, con el proveedor oficial `ConvexProviderWithClerk` dentro del proveedor existente de Clerk y limitado al dashboard. El formulario utiliza componentes reales de shadcn/ui adaptados al tema de Slotly, React Hook Form y Zod.
+
+## Perfil del negocio
+
+`convex/schema.ts` define `businesses` con `ownerId`, `name`, `timeZone` e índice `by_ownerId`. Los identificadores y la fecha de creación son los campos de sistema de Convex. `ownerId` es el `subject` de la identidad verificada por el único emisor de Clerk configurado; nunca se acepta como argumento del cliente.
+
+- `getMyBusiness`: requiere autenticación; devuelve solo el perfil de la cuenta actual, o `null` cuando esa cuenta aún no tiene negocio. No expone `ownerId`.
+- `createMyBusiness`: requiere autenticación y valida argumentos, nombre de 1 a 100 caracteres tras recortar espacios y zona IANA reconocida por `Intl.DateTimeFormat`. Rechaza offsets numéricos. Consulta el índice y crea en la misma transacción; cualquier segundo envío se rechaza sin modificar el perfil existente.
+- La interfaz diferencia comprobación de sesión, consulta pendiente (`undefined`), ausencia de negocio (`null`), guardado, perfil persistido y errores. Los errores de guardado conservan los campos.
+
+`components/business-profile-form.tsx` usa `Controller` con `FieldGroup`, `Field`, `FieldLabel` y `FieldError`, además de `Input`, `Button` y un `NativeSelect` cerrado. Los controles conservan 36px de altura y radio de 6px. No hay descripciones auxiliares permanentes. React Hook Form gestiona valores, errores y envío; `zodResolver` aplica el esquema de `lib/business-profile-schema.ts`: nombre recortado de 1 a 100 caracteres y zona IANA incluida en las opciones permitidas. Los errores de validación quedan asociados a su campo y reciben foco; los errores generales de sesión, duplicado o red se anuncian sin borrar los valores. El envío queda bloqueado durante la petición y, tras el éxito, hasta que la consulta reactiva sustituye el formulario.
+
+`components.json` configura shadcn sin regenerar el CSS global. Los componentes de `components/ui/` se incorporaron mediante la CLI oficial y se adaptaron a las clases y colores existentes; los aliases de tema añadidos no cambian el significado de `accent` ni de `muted`. Las dependencias `cn`, `class-variance-authority`, `radix-ui` y `lucide-react` soportan los componentes oficiales. Para incorporar otro componente, usa `pnpm dlx shadcn@4.22.1 add <componente>` y revisa sus cambios antes de extender el tema.
+
+La validación de Zod mejora la interacción del cliente; los controles de autenticación, propietario, valores y duplicados siguen ejecutándose independientemente en Convex. `pnpm test` ejecuta pruebas en memoria del esquema y de las funciones de backend; no escribe en el despliegue cloud. No ejecutes `test:local` contra ese destino.
+
+No hay edición ni eliminación del negocio, Organizations, sincronización de usuarios, webhooks ni tablas de sesiones. La protección de `/dashboard` no reemplaza la autenticación propia de cada función de Convex.
 
 ## Archivos de esta etapa
 
@@ -61,10 +126,15 @@ Next.js genera las etiquetas de iconos y manifiesto mediante sus convenciones de
 ```sh
 pnpm typecheck
 pnpm lint
+pnpm test
 pnpm build
 ```
 
 Para servir la compilación: `pnpm start`.
+
+`pnpm test` ejecuta 30 casos en memoria: 18 del backend con Vitest y `convex-test` (autenticación, validación, propietarios separados, argumentos manipulados y duplicados) y 12 del esquema Zod del formulario (nombre normalizado, límites y zona permitida). Las zonas inventadas se comprueban en los tests de esquema y backend; los del esquema comprueban además que la zona pertenezca a la lista de opciones. Las identidades son simuladas; estas pruebas no escriben datos remotos ni comprueban la firma de Clerk o el motor real de concurrencia.
+
+La comprobación inicial `pnpm test:local` verificó esas invariantes contra el backend **local**, incluyendo diez solicitudes HTTP simultáneas mediante clientes separados y un token falso. Usa identidades administrativas sintéticas y deja dos perfiles de prueba con propietarios `slotly_test_...` en la base local por ejecución. No usa sesiones de Clerk ni equivale a una prueba de login; se niega a ejecutarse fuera de `http://127.0.0.1:3210`. Las credenciales administrativas se leen del archivo local excluido de Git y no se imprimen. Con la configuración cloud actual, este script no es parte del arranque ni debe ejecutarse contra el perfil real. `pnpm test` sigue siendo la comprobación automática habitual, aislada de los datos remotos.
 
 ## Prueba manual con una cuenta real
 
@@ -76,4 +146,15 @@ Para servir la compilación: `pnpm start`.
 6. Inicia sesión con correo y contraseña y comprueba que llegas directamente a `/dashboard`, incluso al comenzar en `/sign-in` sin un destino previo. Si existe un destino protegido explícito, comprueba que se conserva.
 7. Prueba Google si está habilitado en Clerk. Completa personalmente las credenciales y verificaciones de Google.
 
-No se incluyen Convex, negocios, citas, calendarios, pagos ni notificaciones.
+Para el Reto 02, con una cuenta real:
+
+1. Espera la comprobación de acceso y consulta: el formulario solo debe aparecer cuando se confirme que no hay negocio.
+2. Intenta un nombre solo con espacios. Debe aparecer un error asociado al nombre y mantenerse el formulario sin crear un negocio. Las zonas inventadas o fuera de las opciones se verifican mediante los tests descritos en «Comprobaciones»; el selector cerrado no admite escritura libre.
+3. Guarda un nombre real y una zona como `America/Montevideo`; debe aparecer el perfil guardado.
+4. Recarga y verifica que vuelve el mismo perfil. Cierra sesión, vuelve a entrar y repite la comprobación.
+5. En otra cuenta, confirma que no aparece el perfil anterior y que puede crear el suyo. Regresa a la primera cuenta y confirma que conserva su negocio.
+6. Sin sesión, `/dashboard` debe seguir llevando a `/sign-in`. Las llamadas directas de Convex sin token deben rechazarse.
+
+La evidencia ejecutada y los casos pendientes se registran en `docs/PROJECT_CONTEXT.md`. No se incluyen servicios, disponibilidad, citas, calendarios, pagos ni notificaciones.
+
+Documentación de referencia: [Convex con Clerk](https://docs.convex.dev/auth/clerk) y [runtime de Convex](https://docs.convex.dev/functions/runtimes).
