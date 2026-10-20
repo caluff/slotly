@@ -17,4 +17,14 @@ export default defineSchema({
     businessId: v.id("businesses"),
     days: v.array(weeklyScheduleDay),
   }).index("by_businessId", ["businessId"]),
+  appointments: defineTable({
+    businessId: v.id("businesses"),
+    serviceId: v.id("services"),
+    serviceName: v.string(),
+    clientName: v.string(),
+    date: v.string(),
+    start: v.number(),
+    end: v.number(),
+    status: v.literal("confirmed"),
+  }).index("by_businessId_and_date", ["businessId", "date"]),
 });

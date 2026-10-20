@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:local": "node --env-file=.env.local scripts/test-businesses-local.mjs",
+    "test:appointments:engine": "node scripts/test-appointments-engine.mjs",
     "convex:dev": "convex dev",
     "typecheck": "next typegen && tsc --noEmit"
   },

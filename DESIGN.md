@@ -181,3 +181,9 @@ El toast reutiliza Geist con texto de (14px), fondo `surface`, texto `foreground
 
 La región de notificaciones se anuncia mediante `aria-live="polite"`, con el nombre «Notificaciones» y el atajo nativo `Alt+T`. Mostrar el éxito no toma el foco: el formulario se limpia y devuelve el foco a «Nombre del servicio», preparado para crear otro servicio. Se mantiene un único anuncio accesible de la confirmación.
 
+### Citas privadas
+
+La sección «Citas» reutiliza los filtros de servicio y fecha, seguidos de `NativeSelect` para elegir un intervalo disponible y `Input` para el nombre del cliente. Mantiene `Field`, React Hook Form, Zod, controles de 36px y radio de 6px. Los filtros quedan deshabilitados mientras se confirma, y los envíos rápidos comparten un bloqueo inmediato del formulario. El nombre y el horario se conservan ante errores; si el intervalo deja de estar disponible, se identifica en el selector y el error se asocia al campo, con foco para elegir otro. Las actualizaciones de disponibilidad conservan el borrador.
+
+El éxito real emite únicamente «Cita confirmada» en el Toaster existente, limpia nombre/horario y devuelve el foco al selector. El listado de la fecha incluye todos los servicios, ordena por inicio y muestra cliente, servicio, estado confirmado e inicio/fin en la zona IANA del negocio. Usa la misma lista con divisores y filas que se adaptan al ancho móvil; no incorpora otro calendario ni un sistema visual nuevo.
+

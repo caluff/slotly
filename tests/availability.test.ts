@@ -108,9 +108,9 @@ describe("consulta privada de opciones", () => {
   test("acción rechaza sin sesión y sin negocio; query interna también", async () => {
     const { t, serviceId, args } = await setup();
     await expect(t.action(api.availability.getMyAvailability, args)).rejects.toThrow("UNAUTHENTICATED");
-    await expect(t.query(internal.availability.getSource, { serviceId })).rejects.toThrow("UNAUTHENTICATED");
+    await expect(t.query(internal.availability.getSource, { serviceId, date })).rejects.toThrow("UNAUTHENTICATED");
     await expect(t.withIdentity(bob).action(api.availability.getMyAvailability, args)).rejects.toThrow("BUSINESS_NOT_FOUND");
-    await expect(t.withIdentity(bob).query(internal.availability.getSource, { serviceId })).rejects.toThrow("BUSINESS_NOT_FOUND");
+    await expect(t.withIdentity(bob).query(internal.availability.getSource, { serviceId, date })).rejects.toThrow("BUSINESS_NOT_FOUND");
   });
   test("estados sin configurar, cerrado y abierto; lectura no modifica los documentos", async () => {
     const { t, owner, args } = await setup();
@@ -132,7 +132,7 @@ describe("consulta privada de opciones", () => {
     const foreignId = await other.mutation(api.services.createMyService, { name: "Ajeno", durationMinutes: 46 });
     await expect(owner.action(api.availability.getMyAvailability, { ...args, serviceId: foreignId })).rejects.toThrow("SERVICE_NOT_FOUND");
     await expect(other.action(api.availability.getMyAvailability, args)).rejects.toThrow("SERVICE_NOT_FOUND");
-    await expect(owner.query(internal.availability.getSource, { serviceId: foreignId })).rejects.toThrow("SERVICE_NOT_FOUND");
+    await expect(owner.query(internal.availability.getSource, { serviceId: foreignId, date })).rejects.toThrow("SERVICE_NOT_FOUND");
     await t.run((ctx) => ctx.db.delete("services", foreignId));
     await expect(other.action(api.availability.getMyAvailability, { ...args, serviceId: foreignId })).rejects.toThrow("SERVICE_NOT_FOUND");
   });
