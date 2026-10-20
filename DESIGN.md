@@ -173,3 +173,11 @@ El login y el registro integran su componente oficial directamente en la columna
 
 El formulario utiliza etiquetas visibles, controles compactos y una única acción «Guardar perfil», sin párrafos introductorios ni textos de ayuda permanentes. Usa la anatomía oficial de shadcn/ui: `FieldGroup`, `Field`, `FieldLabel` y `FieldError`, con `Input`, `Button` y `NativeSelect`, adaptados al tema existente. Los errores de campo utilizan `destructive` (#9f2f2f), `data-invalid`, `aria-invalid` y un mensaje asociado mediante `aria-describedby`; el foco pasa al primer campo inválido después del envío. React Hook Form y Zod gestionan el estado y la validación. Los errores generales conservan los valores, y el estado de guardado permanece anunciado para lectores de pantalla. La zona horaria es un selector nativo cerrado, con opciones IANA generadas en servidor y UTC; inicia en `America/Montevideo`. En móvil el botón ocupa el ancho del formulario. Los aliases semánticos de shadcn apuntan a los colores de Slotly y conservan el significado anterior de `accent` y `muted`.
 
+### Confirmaciones por toast
+
+La creación de un servicio se confirma con «Servicio creado» mediante Sonner y el wrapper de shadcn/ui adaptado al tema claro. Hay un único `Toaster` en el layout raíz. La confirmación se emite solo después de que el guardado termine correctamente; no se duplica con un mensaje de éxito dentro del formulario. Los errores permanecen en `FieldError` y el estado de guardado conserva su anuncio exclusivo para lectores de pantalla.
+
+El toast reutiliza Geist con texto de (14px), fondo `surface`, texto `foreground`, borde fino `line`, radio compartido de (6px) y ninguna sombra. El icono de éxito es `CircleCheck` de Lucide, decorativo, de (16px) y color `accent`. Conserva la posición nativa de Sonner en la esquina inferior derecha, con márgenes móviles de (16px) y duración base de (4000ms).
+
+La región de notificaciones se anuncia mediante `aria-live="polite"`, con el nombre «Notificaciones» y el atajo nativo `Alt+T`. Mostrar el éxito no toma el foco: el formulario se limpia y devuelve el foco a «Nombre del servicio», preparado para crear otro servicio. Se mantiene un único anuncio accesible de la confirmación.
+

@@ -9,6 +9,7 @@
  */
 
 import type * as businesses from "../businesses.js";
+import type * as services from "../services.js";
 
 import type {
   ApiFromModules,
@@ -18,6 +19,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   businesses: typeof businesses;
+  services: typeof services;
 }>;
 
 /**

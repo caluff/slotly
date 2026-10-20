@@ -16,9 +16,9 @@ Gestiona tus citas de forma sencilla. El proyecto se desarrolla en etapas peque�
 
 ## Capabilities and Constraints
 
-La etapa actual incluye portada, registro e inicio de sesión oficiales de Clerk, menú de cuenta y dashboard protegido con creación y consulta del perfil del negocio en Convex. Un negocio por cuenta, con un único propietario, nombre y zona horaria IANA. Correo y Google dependen de la configuración de Clerk. Next.js 16 App Router, React 19, TypeScript, Tailwind CSS 4 y pnpm. Usar shadcn/ui cuando aporte valor.
+La etapa actual incluye portada, registro e inicio de sesión oficiales de Clerk, menú de cuenta y dashboard protegido con creación y consulta del perfil del negocio y sus servicios en Convex. Un negocio por cuenta, con un único propietario, nombre y zona horaria IANA; varios servicios por negocio, cada uno con nombre y duración en minutos enteros positivos. Correo y Google dependen de la configuración de Clerk. Next.js 16 App Router, React 19, TypeScript, Tailwind CSS 4 y pnpm. Los formularios reutilizan shadcn/ui, React Hook Form y Zod.
 
-No implementar edición o eliminación del negocio, empleados, invitaciones, roles, múltiples negocios, servicios, disponibilidad, citas, calendarios, pagos ni notificaciones hasta que el usuario solicite otra etapa. No simular usuarios en la aplicación ni crear autenticación propia. Conservar la configuración existente y los secretos en el servidor. Las pruebas automatizadas usan identidades sintéticas y se distinguen de las pruebas reales con Clerk.
+No implementar edición o eliminación del negocio o sus servicios, precios, empleados, invitaciones, roles, múltiples negocios, disponibilidad, citas, calendarios, pagos ni notificaciones por correo u otros canales externos hasta que el usuario solicite otra etapa. La confirmación de creación de servicios mediante toast sí forma parte de la interfaz actual. No simular usuarios en la aplicación ni crear autenticación propia. Conservar la configuración existente y los secretos en el servidor. Las pruebas automatizadas usan identidades sintéticas y se distinguen de las pruebas reales con Clerk.
 
 ## Brand Commitments
 

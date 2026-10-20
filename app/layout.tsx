@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { clerkLocalization } from "@/lib/clerk-localization";
 import { compactControlAppearance } from "@/components/auth-appearance";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -111,6 +112,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           {children}
         </ClerkProvider>
+        <Toaster />
       </body>
     </html>
   );

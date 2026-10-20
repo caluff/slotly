@@ -1,6 +1,6 @@
 # Slotly
 
-Plataforma de citas y reservas para profesionales y negocios. La etapa actual incluye autenticación con Clerk y creación y consulta del perfil del negocio con Convex: un negocio por cuenta, con un único propietario.
+Plataforma de citas y reservas para profesionales y negocios. La etapa actual incluye autenticación con Clerk y creación y consulta del perfil del negocio y sus servicios con Convex: un negocio por cuenta, con un único propietario y varios servicios.
 
 ## Desarrollo
 
@@ -95,6 +95,19 @@ La validación de Zod mejora la interacción del cliente; los controles de auten
 
 No hay edición ni eliminación del negocio, Organizations, sincronización de usuarios, webhooks ni tablas de sesiones. La protección de `/dashboard` no reemplaza la autenticación propia de cada función de Convex.
 
+## Servicios del negocio (Reto 03)
+
+`services` relaciona cada servicio con `businesses` mediante `businessId` e índice `by_businessId`. Guarda solo esa relación, `name`, `durationMinutes` y los campos de sistema de Convex.
+
+- `createMyService` y `listMyServices` verifican la identidad de Clerk y resuelven su negocio por el índice de propietario en cada operación. Rechazan peticiones sin sesión o sin negocio; no aceptan `businessId` ni propietario como argumentos.
+- El backend recorta el nombre y exige de 1 a 100 caracteres. La duración debe ser un entero positivo seguro (`1` a `Number.MAX_SAFE_INTEGER`); no se añaden precios ni otras reglas de agenda.
+- El dashboard añade «Servicios» solo al encontrar el negocio. Usa una consulta reactiva paginada (20 filas iniciales y «Cargar más servicios»), con los más recientes primero y estado vacío. El servidor limita cada página solicitada a 50 elementos y limita las lecturas.
+- `ServiceForm` reutiliza shadcn/ui, React Hook Form y Zod. Distingue texto editable y valor numérico validado, asocia los errores a los campos y conserva valores ante fallos. Bloquea envíos rápidos mientras hay una petición pendiente; tras el éxito limpia y enfoca el nombre para crear otro servicio y muestra un único toast «Servicio creado», sin mensaje inline duplicado. El contenedor global de Sonner sigue el patrón de shadcn/ui, con tema claro y tokens de Slotly; los errores permanecen en el formulario. No se exige unicidad del nombre ni se añade deduplicación entre creaciones intencionales.
+
+El Reto 03 queda cerrado funcionalmente en desarrollo. El usuario confirmó la creación de dos servicios y su persistencia tras recarga, las validaciones negativas sin crear servicios inválidos, la redirección a `/sign-in` sin sesión y la recuperación del perfil y los servicios al volver a entrar. También confirmó el perfil intacto, el aislamiento entre dos cuentas reales y un único toast de éxito sin mensaje junto al botón.
+
+Estas pruebas fueron ejecutadas y reportadas por el usuario. Las comprobaciones de UI sintética del agente usaron respuestas locales sin escrituras remotas; las pruebas en memoria conservan sus límites sobre JWT y concurrencia indicados en «Comprobaciones». El cierre no acredita producción. No hay edición ni eliminación de servicios, precios, pagos, disponibilidad ni citas.
+
 ## Archivos de esta etapa
 
 - `app/page.tsx`: portada con estado real de sesión.
@@ -132,7 +145,7 @@ pnpm build
 
 Para servir la compilación: `pnpm start`.
 
-`pnpm test` ejecuta 30 casos en memoria: 18 del backend con Vitest y `convex-test` (autenticación, validación, propietarios separados, argumentos manipulados y duplicados) y 12 del esquema Zod del formulario (nombre normalizado, límites y zona permitida). Las zonas inventadas se comprueban en los tests de esquema y backend; los del esquema comprueban además que la zona pertenezca a la lista de opciones. Las identidades son simuladas; estas pruebas no escriben datos remotos ni comprueban la firma de Clerk o el motor real de concurrencia.
+`pnpm test` ejecuta 75 casos en memoria: los 30 previos del negocio y 45 de servicios (26 de esquema/funciones Convex y 19 del esquema Zod). Comprueban autenticación, ausencia de negocio, relaciones, tipos, límites, nombre normalizado, propietarios separados, solicitudes manipuladas, cursor ajeno y paginación. Las zonas inventadas se comprueban en los tests del negocio; el esquema del formulario comprueba además que la zona pertenezca a las opciones. Las identidades son simuladas; estas pruebas no escriben datos remotos ni comprueban la firma de Clerk o el motor real de concurrencia.
 
 La comprobación inicial `pnpm test:local` verificó esas invariantes contra el backend **local**, incluyendo diez solicitudes HTTP simultáneas mediante clientes separados y un token falso. Usa identidades administrativas sintéticas y deja dos perfiles de prueba con propietarios `slotly_test_...` en la base local por ejecución. No usa sesiones de Clerk ni equivale a una prueba de login; se niega a ejecutarse fuera de `http://127.0.0.1:3210`. Las credenciales administrativas se leen del archivo local excluido de Git y no se imprimen. Con la configuración cloud actual, este script no es parte del arranque ni debe ejecutarse contra el perfil real. `pnpm test` sigue siendo la comprobación automática habitual, aislada de los datos remotos.
 
@@ -155,6 +168,14 @@ Para el Reto 02, con una cuenta real:
 5. En otra cuenta, confirma que no aparece el perfil anterior y que puede crear el suyo. Regresa a la primera cuenta y confirma que conserva su negocio.
 6. Sin sesión, `/dashboard` debe seguir llevando a `/sign-in`. Las llamadas directas de Convex sin token deben rechazarse.
 
-La evidencia ejecutada y los casos pendientes se registran en `docs/PROJECT_CONTEXT.md`. No se incluyen servicios, disponibilidad, citas, calendarios, pagos ni notificaciones.
+Para el Reto 03, sin crear datos descartables en cuentas reales:
+
+1. Con un negocio existente, comprueba el estado vacío y crea varios servicios que quieras conservar, con distintas duraciones positivas. Deben aparecer en su lista.
+2. Nombre vacío o con espacios y duración vacía, cero, negativa o fraccionaria deben mostrar errores de campo sin guardar.
+3. Recarga y vuelve a iniciar sesión: deben recuperarse los mismos servicios y el mismo perfil.
+4. Con la segunda cuenta, comprueba que la lista es independiente y crea sus propios servicios. Al volver a la primera, cada lista debe seguir separada.
+5. Comprueba la continuidad del perfil, cierre de sesión y redirección de `/dashboard` a `/sign-in`. El rechazo de peticiones manipuladas y sin negocio se prueba en memoria; las llamadas cloud sin sesión se verificaron sin crear datos.
+
+La evidencia ejecutada y los casos pendientes se registran en `docs/PROJECT_CONTEXT.md`. No se incluyen disponibilidad, citas, calendarios, pagos ni notificaciones por correo u otros canales externos. La confirmación de UI mediante el toast de éxito sí forma parte del alcance actual.
 
 Documentación de referencia: [Convex con Clerk](https://docs.convex.dev/auth/clerk) y [runtime de Convex](https://docs.convex.dev/functions/runtimes).

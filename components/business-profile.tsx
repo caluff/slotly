@@ -2,6 +2,7 @@
 
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { BusinessProfileForm } from "@/components/business-profile-form";
+import { BusinessServices } from "@/components/business-services";
 import Link from "next/link";
 import { api } from "@/convex/_generated/api";
 
@@ -35,6 +36,7 @@ function AuthenticatedBusinessProfile({ timeZones }: BusinessProfileProps) {
   }
 
   return (
+    <>
     <section aria-labelledby="business-heading" className="mt-10 max-w-2xl border-t border-line pt-8 sm:mt-12">
       {business === null ? (
         <CreateBusinessForm timeZones={timeZones} />
@@ -55,6 +57,8 @@ function AuthenticatedBusinessProfile({ timeZones }: BusinessProfileProps) {
         </>
       )}
     </section>
+    {business !== null && <BusinessServices key={business._id} />}
+    </>
   );
 }
 

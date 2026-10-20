@@ -1,8 +1,8 @@
 # Contexto de Slotly
 
-Última revisión del repositorio: **19 de octubre de 2026** (America/Montevideo).
+Última revisión del repositorio: **20 de octubre de 2026** (America/Montevideo).
 
-Última actualización documental: **20 de octubre de 2026** (America/Montevideo). El **Reto 02 queda cerrado funcionalmente en desarrollo**, con la confirmación del usuario sobre creación, persistencia y aislamiento entre dos cuentas reales. La evidencia y sus límites se detallan al final de este documento.
+Última actualización documental: **20 de octubre de 2026** (America/Montevideo). Los **Retos 02 y 03 quedan cerrados funcionalmente en desarrollo**, con las pruebas reales reportadas por el usuario. El usuario autorizó posteriormente revisar el diff, hacer commit y push del Reto 03 a GitHub; el resultado de la publicación se verifica y comunica en el chat de planificación. La evidencia y sus límites se registran al final.
 
 ## Propósito
 
@@ -32,9 +32,9 @@ Las instrucciones permanentes para agentes están en `AGENTS.md`. Este documento
 | React 19 | `react` y `react-dom` declarados en **19.3.0**; React instalado en esa versión. |
 | TypeScript | Dependencia `^5`; configuración estricta en `tsconfig.json`. |
 | Tailwind CSS 4 | Dependencias `tailwindcss` y `@tailwindcss/turbopack` declaradas en `^4`; importación, tema y estilos en `app/globals.css`. |
-| shadcn/ui | Elegido para el stack; no hay `components.json` ni componentes de shadcn/ui en la aplicación revisada. Aún no incorporado. |
+| shadcn/ui y formularios | Integrados: `components.json`, primitivas en `components/ui/`, React Hook Form **7.90.0**, Zod **4.6.7** y resolvers **5.9.2**. Se reutilizan en perfil y servicios. |
 | Clerk | `@clerk/nextjs` instalado en **7.9.17** (declarado como `^7.9.17`) y `@clerk/localizations` en **4.23.0**. Integración presente en el código. |
-| Convex | **1.47.0**. Reto 02 cerrado funcionalmente en desarrollo; destino activo cloud `daniel-caluff:slotly:dev/slotly`, con Clerk como emisor JWT y perfil en `businesses`. Backend local inicial conservado como respaldo. |
+| Convex | **1.47.0**. Destino activo cloud `daniel-caluff:slotly:dev/slotly`, con Clerk como emisor JWT, perfil en `businesses` y servicios en `services`. Retos 02 y 03 cerrados funcionalmente en desarrollo. Backend local inicial conservado como respaldo. |
 | pnpm | `packageManager` declara **pnpm@12.11.2**; existen `pnpm-lock.yaml` y `pnpm-workspace.yaml`. |
 
 `next.config.ts` tiene habilitados Cache Components, Partial Prefetching y `experimental.agentFeedback`. Las lecturas de autenticación están dentro de límites `Suspense`. El bloque administrado por Next.js en `AGENTS.md` debe conservarse, y se deben leer las guías pertinentes de `node_modules/next/dist/docs/` antes de escribir código.
@@ -442,3 +442,80 @@ El **Reto 02 queda cerrado funcionalmente en el entorno de desarrollo**, dentro 
 - **Pruebas automatizadas previamente ejecutadas:** 30 pruebas en memoria, 18 del backend y 12 del esquema del formulario, además de las comprobaciones de lint, tipos y build ya registradas. No se volvieron a ejecutar para este cierre documental.
 
 El cierre corresponde exclusivamente a desarrollo; no acredita un despliegue ni una validación de producción, ni resuelve por inferencia los casos específicos de registro y acceso del Reto 01 que carezcan de evidencia propia. Esta actualización solo reconcilia el documento con las confirmaciones del usuario: no introduce otra funcionalidad o etapa, ni cambia código, configuración o datos, ni realiza commit o push.
+
+## Reto 03: creación y listado de servicios
+
+Implementado el **20 de octubre de 2026** en el chat de implementación, con el alcance aprobado en planificación. Al comenzar, el árbol estaba limpio y HEAD era `21de8b0625b67ce02d37e164ef2164eaa4637d58` (Reto 02). La implementación inicial no añadió dependencias; el refinamiento de notificaciones posterior incorpora Sonner, como se registra más abajo. No se modificaron autenticación, variables, configuración de Clerk, funciones del negocio o respaldos privados.
+
+### Decisiones e implementación
+
+- `convex/schema.ts` añade `services`: `businessId: v.id("businesses")`, `name: v.string()`, `durationMinutes: v.number()` e índice `by_businessId`. Solo se añaden los campos de sistema de Convex; relación de un negocio a varios servicios, sin precios, edición o eliminación.
+- `convex/services.ts` expone únicamente `createMyService` y `listMyServices`, ambas con validadores de argumentos y retorno. Cada operación obtiene la identidad verificada, resuelve el negocio por `by_ownerId` y rechaza `UNAUTHENTICATED` o `BUSINESS_NOT_FOUND`. El cliente no puede elegir propietario ni negocio; tampoco se confía en correos ni metadatos del formulario.
+- La mutación recorta el nombre y exige de 1 a 100 caracteres, coherente con el perfil existente. Exige duración entera positiva representable de forma segura, hasta `Number.MAX_SAFE_INTEGER`; rechaza fracciones, NaN, infinitos y enteros inseguros. La tabla valida la estructura y los tipos; estas restricciones de valores se ejecutan en la función, independientemente de Zod.
+- La consulta usa `by_businessId`, orden descendente por creación y paginación. El cliente solicita 20 filas por vez; el servidor limita el tamaño solicitado a 50 y acota lecturas por página. «Cargar más servicios» evita truncar silenciosamente la lista o leer toda la tabla.
+- `components/business-profile.tsx` conserva sus estados y el perfil, y monta los servicios solo cuando encuentra el negocio. `components/business-services.tsx` conecta la query reactiva y la mutación con `ServicesPanel`; el panel permite probar carga, vacío, listado y paginación con datos sintéticos aislados.
+- `components/service-form.tsx` reutiliza Controller, Field, FieldLabel, FieldError, Input y Button, React Hook Form y zodResolver. `lib/service-schema.ts` separa el texto editable de minutos y el número de salida; evita convertir vacío a cero o redondear una fracción de texto antes de validarla. Los errores están en español, asociados con `aria-describedby` y `aria-invalid`; los errores de campo reciben foco después de rehabilitar los controles.
+- Un bloqueo síncrono cubre clics rápidos antes del render de `disabled`; se anuncian guardado y resultado. Los fallos conservan los valores y permiten reintentar; solo el éxito vacía los campos y enfoca el nombre para otra creación. Se permiten servicios con nombres repetidos: no se añadió una regla de unicidad ni idempotencia entre creaciones intencionales.
+- El formulario y la lista heredan el diseño compacto verde, ancho máximo de la sección del negocio, controles de 36px, radio de 6px y adaptación móvil. No se añadieron descripciones permanentes, nuevas primitivas ni identidad visual.
+
+### Evidencia ejecutada y límites
+
+| Comprobación | Resultado y alcance |
+| --- | --- |
+| `pnpm test` | **75 casos correctos**: 30 previos y 45 nuevos. Los nuevos cubren esquema de tabla, Zod, normalización/límites, varios servicios, nueva identidad simulada de la misma cuenta, ausencia de sesión o negocio, argumentos manipulados, aislamiento con el mismo correo, cursor ajeno y paginación sin omisiones/duplicados. Todo en memoria, sin escrituras remotas. |
+| Generación y sincronización Convex | `pnpm exec convex codegen --typecheck enable` y `pnpm exec convex dev --once --typecheck enable` correctos. CLI confirmó `[Development] daniel-caluff:slotly:dev/slotly`, deployment `determined-poodle-377`. No se creó otro proyecto ni se desplegó a producción. |
+| HTTP real a Convex sin sesión | Consulta y creación rechazadas con `UNAUTHENTICATED`; no se crearon documentos. No se usaron identidades administrativas sintéticas en cloud. |
+| Dashboard real, solo lectura | La sesión existente recuperó el perfil `slotly / America/Montevideo` y mostró Servicios con estado vacío. No se guardaron servicios ni se alteraron los negocios reales. |
+| Prueba real reportada por el usuario | El 20 de octubre de 2026 confirmó desde planificación: «Sí, creé dos servicios y después de recargar siguen apareciendo con sus nombres y duraciones correctos. El perfil del negocio sigue intacto». Quedan superadas la creación de varios servicios, su persistencia tras recarga y la continuidad del perfil en esa cuenta. La ejecución corresponde al usuario, no al agente. Esta confirmación inicial por sí sola no acreditaba nuevo inicio de sesión ni aislamiento entre dos cuentas; esos casos se confirmaron después, como se registra a continuación. |
+| HTTP a `/dashboard` sin cookies | Incluye redirección a `/sign-in`, sin zona horaria privada ni formulario de servicios en la respuesta. No equivale a una prueba completa de cierre de sesión. |
+| UI con respuestas locales sintéticas | Vacío y espacios; duración cero, negativa, fraccionaria e insegura sin callback; errores de nombre y duración del backend con foco; errores de red, sesión y negocio con valores conservados; doble clic con un intento pendiente; fallo y reintento; éxito limpia/foco; tres servicios en memoria; estados de carga y cargar más. Sin cliente Convex ni escrituras remotas. |
+| Responsive y accesibilidad | Fixture a 1440×1000 y 390×844; controles de 36px y radio 6px, sin desbordamiento horizontal incluso con nombre de 100 caracteres y duración máxima. Capturas del dashboard real a tamaño de escritorio y móvil. Detector de los tres componentes sin hallazgos; consola del fixture sin errores. |
+
+Las capturas de lista y error, el dashboard vacío y `checks.json` están fuera del repositorio, en `C:/Users/dcalu/.codex/visualizations/2026/10/20/01a15a3f-0dd7-7611-8080-361f071e8c8d/services/`. La ruta temporal `service-check` y su página se retiraron antes de las comprobaciones finales. El entorno emite avisos experimentales de Node sobre localStorage; las comprobaciones ejecutadas terminan correctamente.
+
+Tras retirar el fixture, **`pnpm lint`, `pnpm typecheck` y `pnpm build` correctos**. El build solo incluye las rutas existentes de portada, dashboard, login, registro, iconos y manifiesto; no incluye `service-check`. `git diff --check` también termina correctamente. No se modificaron los scripts ni la configuración de Next.js.
+
+La revisión visual independiente comprobó las seis capturas y no encontró correcciones materiales de interfaz. Su único hallazgo de persistencia documental fue actualizar `PRODUCT.md` al alcance del reto; se corrigió y un pase de veredicto puntuó esa corrección como **resuelta** (`ship` a ese alcance). El pase documental contrastó componentes, tokens y capturas con el sistema existente y confirmó que esta extensión no requiere cambiar `DESIGN.md` ni `.impeccable/design.json`; no se introdujeron nuevos tokens ni assets raster. Tras el build se recargó el dashboard real: recuperó el perfil, mostró servicios vacíos y no emitió nuevos errores de consola.
+
+### Validaciones reales completadas por el usuario en planificación
+
+Después de la entrega, el **20 de octubre de 2026**, el usuario comunicó estas confirmaciones adicionales. Son pruebas ejecutadas y reportadas por el usuario; el agente registra la evidencia sin atribuirse su ejecución.
+
+1. **Validaciones negativas:** «Sí, las validaciones funcionan: rechaza el nombre vacío o con espacios y las duraciones inválidas sin crear servicios. Los dos existentes siguen intactos». El conjunto solicitado comprendía nombre vacío o con espacios y duración vacía, `0`, `-5` y `1.5`; se registra su confirmación de ese conjunto, sin extenderla a otros valores.
+2. **Protección y nueva sesión:** «Sí, sin sesión me redirige a /sign-in y, al volver a entrar con la misma cuenta, recupero el perfil y los dos servicios correctamente». Quedan confirmadas la redirección sin sesión y la recuperación del perfil y los servicios al volver a autenticarse.
+3. **Aislamiento y toast real:** «Sí, cada cuenta conserva sus propios servicios sin mezclarlos y el toast aparece una sola vez, sin el mensaje junto al botón». Quedan confirmadas la separación entre dos cuentas reales y la confirmación de éxito en una creación real.
+
+Estas pruebas resuelven los pendientes funcionales de la entrega, junto con la creación y persistencia tras recarga ya comunicadas. Las solicitudes manipuladas conservan su evidencia automatizada en memoria; no se atribuyen a pruebas reales del usuario. La evidencia sintética por sí sola no acredita JWT reales, persistencia cloud tras nuevas sesiones ni concurrencia del motor remoto. No se ejecutó `pnpm test:local` ni se crearon negocios o servicios de prueba en cuentas reales por parte del agente.
+
+### Refinamiento autorizado: confirmación mediante toast
+
+El 20 de octubre de 2026, después de comunicar la creación de dos servicios y su persistencia tras recarga con el perfil intacto, el usuario pidió: «cuando se crea un servicio quiero que salga un toast en vez de poner al lado del button "Servicio creado"».
+
+- Se consultaron las fuentes oficiales vigentes de [shadcn/ui Sonner](https://ui.shadcn.com/docs/components/sonner) y [Sonner](https://sonner.emilkowal.ski/) mediante Context7. Se incorporó **Sonner 2.0.8** con `pnpm add sonner`. No se añadió `next-themes`: Slotly tiene tema claro fijo y no necesita un proveedor de temas para esta notificación.
+- `components/ui/sonner.tsx` adapta el wrapper oficial: una región de notificaciones con anuncio `polite`, etiqueta «Notificaciones», Geist, superficie verde clara, texto verde oscuro, icono de éxito y radio de 6px. Se usa un único `Toaster` en `app/layout.tsx`, independiente de Clerk. No se modificó configuración de autenticación ni backend.
+- `ServiceForm` llama a `toast.success("Servicio creado")` solo después de que `onCreate` termine correctamente. Se retiraron el estado `saved` y el texto de éxito junto al botón. El formulario conserva exclusivamente el anuncio accesible de guardado; no duplica el anuncio de éxito del toast. Se mantienen limpieza, foco, bloqueo síncrono, listado reactivo, valores ante fallos y errores asociados a los campos.
+- Antes de instalar se inspeccionaron los procesos y se detuvo únicamente el servidor Next.js del proyecto y sus procesos hijos. Se reinició con `pnpm dev` tras la instalación, conservando sesiones, variables, datos y cachés.
+
+Verificación sintética ejecutada con los mismos `ServiceForm` y `ServicesPanel`, callbacks locales y el único Toaster del layout: no hay toast por formulario vacío o nombre de espacios, ni por errores de red, `INVALID_NAME`, `INVALID_DURATION`, `UNAUTHENTICATED` o `BUSINESS_NOT_FOUND`. Esos fallos conservan valores. El doble clic durante una espera genera un solo intento, sin toast antes de resolver; un fallo diferido permite reintentar; el éxito limpia y enfoca el nombre y genera una sola notificación, con una sola región viva que contiene el mensaje y ningún éxito dentro del formulario.
+
+Las capturas de éxito a 1440×1000 y 390×844 comprueban Geist, radio de 6px y ausencia de desbordamiento móvil. Se estabilizó la animación para las capturas con una preferencia temporal de movimiento reducido y se restauró después. La consola del fixture no emitió errores y el detector de los tres archivos de UI devolvió cero hallazgos. La ruta temporal `toast-check` se retiró antes de la comprobación final; sus datos eran locales y no se realizaron escrituras remotas.
+
+La evidencia de esta continuación está fuera del repositorio, en `C:/Users/dcalu/.codex/visualizations/2026/10/20/01a15a3f-0dd7-7611-8080-361f071e8c8d/services-toast/` (`desktop-success.png`, `mobile-success.png` y `checks.json`). Tras retirar el fixture pasaron **`pnpm test` (75 casos), `pnpm lint`, `pnpm typecheck` y `pnpm build`**; el build no incluye `toast-check`. La revisión independiente del refinamiento devolvió **`ship`**, sin correcciones materiales. La navegación real portada → dashboard recuperó el perfil y los dos servicios ya creados por el usuario, sin errores nuevos de consola: comprobación de lectura del agente, sin ejecutar otra creación ni cerrar sesión.
+
+El usuario confirmó después las validaciones negativas reales, el nuevo inicio de sesión y el aislamiento entre dos cuentas, según el apartado anterior. También confirmó en una creación real que el toast aparece una sola vez y que ya no hay mensaje junto al botón. Quedan resueltos esos pendientes; no se añadieron tests que solo reflejen la sustitución visual ni se hicieron commit/push.
+
+## Cierre funcional del Reto 03 en desarrollo
+
+El **20 de octubre de 2026**, las confirmaciones del usuario desde planificación completan los criterios funcionales acordados: creación y consulta de varios servicios con sus nombres y duraciones, persistencia tras recarga y nueva sesión, validación de campos sin crear servicios inválidos, continuidad del perfil y de la protección de acceso, y aislamiento entre dos cuentas reales. También queda validado el refinamiento del toast durante una creación real.
+
+El **Reto 03 queda cerrado funcionalmente en desarrollo**, dentro del alcance aprobado de crear y listar servicios del negocio de la cuenta actual, con nombre y duración en minutos enteros positivos. La evidencia se mantiene separada:
+
+- **Pruebas reales ejecutadas y reportadas por el usuario:** las cuatro confirmaciones registradas, incluida la creación de dos servicios, recarga, validaciones negativas, salida y nuevo acceso, separación entre cuentas y toast único sin mensaje inline. El agente documenta su reporte.
+- **Pruebas de UI del agente con respuestas sintéticas:** validaciones, errores, conservación de valores, bloqueo de envíos, foco y notificación descritos en la implementación y el refinamiento. No equivalen a escrituras con cuentas reales.
+- **Comprobaciones automatizadas previamente ejecutadas:** 75 pruebas en memoria y `pnpm lint`, `pnpm typecheck` y `pnpm build` correctos. **No se volvieron a ejecutar para este cierre documental**; solo se verificó el diff de esta actualización.
+
+El cierre corresponde exclusivamente a desarrollo: no acredita producción ni funcionalidades fuera del reto, y conserva los límites históricos de las comprobaciones anteriores. El cierre documental anterior no autorizaba publicar y modificó únicamente `docs/PROJECT_CONTEXT.md`; esa restricción correspondía a aquella petición.
+
+Posteriormente, el **20 de octubre de 2026**, el usuario autorizó expresamente: «Perfecto, revisa el diff y, si está todo correcto, haz el commit y sube el reto 03 a GitHub». Esta autorización permite revisar, hacer commit y push del Reto 03. El resultado de la publicación se verifica y comunica en el chat de planificación.
+
+Esta reconciliación se limita a `README.md`, `PRODUCT.md` y este documento. Solo se revisó su diff: no se ejecutaron pruebas ni se modificaron código, configuración o datos, y no se hizo commit o push en este ajuste documental.
