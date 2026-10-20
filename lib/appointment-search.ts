@@ -1,37 +1,71 @@
 import { isLocalDate } from "./local-date";
+import { shiftLocalDate } from "./agenda-date";
 
 export const appointmentPeriods = ["todas", "proximas", "pasadas"] as const;
 export type AppointmentPeriod = typeof appointmentPeriods[number];
 export type AppointmentFilters = { client: string; service: string; period: AppointmentPeriod; from: string; until: string };
 export const emptyAppointmentFilters: AppointmentFilters = { client: "", service: "", period: "todas", from: "", until: "" };
+export const agendaPeriods = ["hoy", "todas", "proximas", "pasadas", "personalizado"] as const;
+export type AgendaPeriod = typeof agendaPeriods[number];
+export type AgendaFilters = Omit<AppointmentFilters, "period"> & { period: AgendaPeriod };
 
 export function normalizeClientSearch(value: string) {
   return value.normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase("es").trim().replace(/\s+/g, " ");
 }
 
 export function appointmentFilterError(filters: AppointmentFilters): string | null {
-  if (!appointmentPeriods.includes(filters.period)) return "El período del enlace no es válido. Elige otro o limpia los filtros.";
+  if (!appointmentPeriods.includes(filters.period)) return "El período del enlace no es válido. Elige otro y vuelve a buscar.";
   if (filters.client.length > 100 || /[\p{Cc}\p{Cf}]/u.test(filters.client)) return "El nombre de búsqueda admite hasta 100 caracteres, sin caracteres de control.";
   if ((filters.from && !isLocalDate(filters.from)) || (filters.until && !isLocalDate(filters.until))) return "Desde y Hasta deben ser fechas reales entre los años 0001 y 9999.";
   if (filters.from && filters.until && filters.from > filters.until) return "Desde debe ser anterior o igual a Hasta.";
   return null;
 }
 
-export function readAppointmentFilters(params: Pick<URLSearchParams, "get">): AppointmentFilters {
-  return { client: params.get("cliente") ?? "", service: params.get("servicio") ?? "",
-    period: (params.get("periodo") ?? "todas") as AppointmentPeriod,
-    from: params.get("desde") ?? "", until: params.get("hasta") ?? "" };
+// Presets own their visible bounds. Editing either date turns them into a
+// custom range, so an invisible period never narrows an explicit range.
+export function appointmentPeriodDates(period: AgendaPeriod, today: string, current = { from: "", until: "" }) {
+  if (period === "hoy") return { from: today, until: today };
+  if (period === "proximas") return { from: today, until: "" };
+  if (period === "pasadas") return { from: "", until: shiftLocalDate(today, -1) ?? "" };
+  if (period === "personalizado") return { from: current.from, until: current.until };
+  return { from: "", until: "" };
 }
 
-export function appointmentSearchHref(params: { toString(): string }, filters?: AppointmentFilters, mode: "dia" | "listado" = "listado", date?: string) {
+export function readAppointmentFilters(params: Pick<URLSearchParams, "get">, today: string): AgendaFilters {
+  const requested = params.get("periodo");
+  let period = (requested ?? "hoy") as AgendaPeriod;
+  let dates = { from: params.get("desde") ?? "", until: params.get("hasta") ?? "" };
+  if (requested && !agendaPeriods.includes(period)) {
+    // Keep invalid links visible to validation rather than silently widening.
+  } else if (dates.from || dates.until) period = "personalizado";
+  else if (!requested && params.get("modo") === "listado") period = "todas";
+  else if (!requested && params.get("fecha")) {
+    period = "personalizado";
+    dates = { from: params.get("fecha")!, until: params.get("fecha")! };
+  }
+  return { client: params.get("cliente") ?? "", service: params.get("servicio") ?? "", period,
+    ...appointmentPeriodDates(period, today, dates) };
+}
+
+export function appointmentQueryFilters(filters: AgendaFilters, today: string): AppointmentFilters {
+  return { ...filters, period: filters.period === "hoy" || filters.period === "personalizado" ? "todas" : filters.period,
+    ...appointmentPeriodDates(filters.period, today, filters) };
+}
+
+export function agendaFilterError(filters: AgendaFilters): string | null {
+  if (!agendaPeriods.includes(filters.period)) return "El período del enlace no es válido. Elige otro y vuelve a buscar.";
+  if (filters.period === "personalizado" && !filters.from && !filters.until) return "Elige al menos una fecha para el período Personalizado.";
+  return appointmentFilterError({ ...filters, period: "todas" });
+}
+
+export function appointmentSearchHref(params: { toString(): string }, filters: AgendaFilters) {
   const next = new URLSearchParams(params.toString());
   next.delete("vista");
-  if (mode === "listado") next.set("modo", "listado"); else next.delete("modo");
-  if (date) next.set("fecha", date);
-  if (filters) {
-    for (const [key, value] of [["cliente", filters.client.trim()], ["servicio", filters.service], ["periodo", filters.period === "todas" ? "" : filters.period], ["desde", filters.from], ["hasta", filters.until]]) {
-      if (value) next.set(key, value); else next.delete(key);
-    }
+  next.delete("modo");
+  next.delete("fecha");
+  for (const [key, value] of [["cliente", filters.client.trim()], ["servicio", filters.service], ["periodo", filters.period === "hoy" ? "" : filters.period],
+    ["desde", filters.period === "personalizado" ? filters.from : ""], ["hasta", filters.period === "personalizado" ? filters.until : ""]]) {
+    if (value) next.set(key, value); else next.delete(key);
   }
   return `/dashboard${next.size ? `?${next}` : ""}`;
 }

@@ -3,7 +3,7 @@
 import { useAction, useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import type { FunctionReturnType } from "convex/server";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -16,11 +16,10 @@ import { WorkspaceLink } from "@/components/dashboard-workspace";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { AppointmentForm } from "@/components/appointment-form";
-import { AppointmentList, type Appointments } from "@/components/appointment-list";
 import { AppointmentSearch } from "@/components/appointment-search";
-import { appointmentSearchHref, emptyAppointmentFilters, readAppointmentFilters } from "@/lib/appointment-search";
+import { appointmentSearchHref, appointmentQueryFilters, readAppointmentFilters } from "@/lib/appointment-search";
 import { isLocalDate } from "@/lib/local-date";
-import { formatLocalDate, shiftLocalDate, todayInZone } from "@/lib/agenda-date";
+import { formatLocalDate, todayInZone } from "@/lib/agenda-date";
 
 type Availability = FunctionReturnType<typeof api.availability.getMyAvailability>;
 type Service = { _id: Id<"services">; name: string; durationMinutes: number };
@@ -41,38 +40,37 @@ function useToday(timeZone: string) {
   return todayInZone(timeZone, now);
 }
 
-export function BusinessAvailability({ timeZone, enabled = true, active = true }: { timeZone: string; enabled?: boolean; active?: boolean }) {
+export function BusinessAvailability({ businessName, timeZone, enabled = true, active = true }: { businessName: string; timeZone: string; enabled?: boolean; active?: boolean }) {
   const params = useSearchParams();
   const today = useToday(timeZone);
-  const requested = params.get("fecha");
-  const date = requested && isLocalDate(requested) ? requested : today;
-  const mode = params.get("modo") === "listado" ? "listado" : "dia";
-  const filters = readAppointmentFilters(params);
+  const filters = readAppointmentFilters(params, today);
+  const bounds = appointmentQueryFilters(filters, today);
+  const singleDay = bounds.from === bounds.until && isLocalDate(bounds.from) ? bounds.from : "";
+  const dayHref = (date: string) => appointmentSearchHref(params, { ...filters, period: "personalizado", from: date, until: date });
   const navigate = (href: string) => window.history.pushState(null, "", href);
   const { results, status, loadMore } = usePaginatedQuery(api.services.listMyServices, enabled ? {} : "skip", { initialNumItems: 20 });
   const schedule = useQuery(api.weeklySchedule.getMyWeeklySchedule, enabled ? {} : "skip");
   const consult = useAction(api.availability.getMyAvailability);
   const create = useMutation(api.appointments.createMyAppointment);
-  const appointments = useQuery(api.appointments.listMyAppointments, enabled ? { date } : "skip");
-  return <AvailabilityPanel services={results} loading={status === "LoadingFirstPage" || schedule === undefined}
-    timeZone={timeZone} today={today} date={date} invalidDate={!!requested && !isLocalDate(requested)}
-    onSelectDate={(value) => navigate(appointmentSearchHref(params, undefined, "dia", value))}
-    mode={mode} onChangeMode={(value) => navigate(appointmentSearchHref(params, undefined, value))}
-    search={<AppointmentSearch filters={filters} today={today} timeZone={timeZone} enabled={enabled && active && mode === "listado"}
+  // Retain the existing reactive invalidation for availability in the panel.
+  const appointments = useQuery(api.appointments.listMyAppointments, enabled ? { date: singleDay || today } : "skip");
+  return <AvailabilityPanel businessName={businessName} services={results} loading={status === "LoadingFirstPage" || schedule === undefined}
+    timeZone={timeZone} initialDate={singleDay} onSelectDate={(value) => navigate(dayHref(value))}
+    agenda={<AppointmentSearch filters={filters} today={today} timeZone={timeZone} enabled={enabled && active}
       services={results} moreServices={status === "CanLoadMore" || status === "LoadingMore"} loadingServices={status === "LoadingMore"}
       onLoadServices={() => loadMore(20)} onSearch={(values) => navigate(appointmentSearchHref(params, values))}
-      onClear={() => navigate(appointmentSearchHref(params, emptyAppointmentFilters))} dayHref={(value) => appointmentSearchHref(params, undefined, "dia", value)} />}
-    onConsult={consult} onCreate={create} appointments={appointments} scheduleMissing={schedule === null}
+      dayHref={dayHref} />}
+    onConsult={consult} onCreate={create} scheduleMissing={schedule === null}
     revision={JSON.stringify([results, schedule, appointments, timeZone])}
     active={active && enabled} more={status === "CanLoadMore" || status === "LoadingMore"}
     loadingMore={status === "LoadingMore"} onLoadMore={() => loadMore(20)} />;
 }
 
-export function AvailabilityPanel({ services, loading, timeZone, today, date, invalidDate = false, onConsult, onCreate, onSelectDate, appointments, revision = "", more = false, loadingMore = false, onLoadMore, scheduleMissing = false, active = true, mode = "dia", onChangeMode, search }: {
-  services: Service[]; loading: boolean; timeZone: string; today: string; date: string; invalidDate?: boolean; onConsult: Consult; revision?: string;
-  onCreate: Create; onSelectDate: (date: string) => void; appointments?: Appointments; scheduleMissing?: boolean;
+export function AvailabilityPanel({ businessName, services, loading, timeZone, initialDate, onConsult, onCreate, onSelectDate, revision = "", more = false, loadingMore = false, onLoadMore, scheduleMissing = false, active = true, agenda }: {
+  businessName: string; services: Service[]; loading: boolean; timeZone: string; initialDate: string; onConsult: Consult; revision?: string;
+  onCreate: Create; onSelectDate: (date: string) => void; scheduleMissing?: boolean;
   more?: boolean; loadingMore?: boolean; onLoadMore?: () => void; active?: boolean;
-  mode?: "dia" | "listado"; onChangeMode?: (mode: "dia" | "listado") => void; search?: ReactNode;
+  agenda: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [draftDate, setDraftDate] = useState<string | null>(null);
@@ -83,30 +81,14 @@ export function AvailabilityPanel({ services, loading, timeZone, today, date, in
   const [attempt, setAttempt] = useState(0);
   const trigger = useRef<HTMLButtonElement>(null);
   const selection = useMemo(() => serviceId && draftDate && isLocalDate(draftDate) ? { serviceId: serviceId as Id<"services">, date: draftDate } : null, [serviceId, draftDate]);
-  const previous = shiftLocalDate(date, -1);
-  const next = shiftLocalDate(date, 1);
-  function start() { if (draftDate === null) setDraftDate(mode === "dia" ? date : ""); setAttempt((value) => value + 1); setOpen(true); }
+  function start() { if (draftDate === null) setDraftDate(initialDate); setAttempt((value) => value + 1); setOpen(true); }
 
   return <>
-    <div className="flex flex-wrap items-start justify-between gap-5">
-      <div><h1 tabIndex={-1} className="workspace-title">Agenda</h1><p className="workspace-description">Consulta tu día o encuentra una cita por su cliente.</p></div>
+    <h1 tabIndex={-1} className="sr-only">Agenda</h1>
+    <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+      <p className="text-sm font-medium text-muted wrap-anywhere">{businessName}</p>
       <Button ref={trigger} onClick={start} aria-expanded={open} aria-controls="new-appointment"><Plus aria-hidden="true" />Nueva cita</Button>
     </div>
-    {onChangeMode && <div role="group" aria-label="Forma de consultar Agenda" className="my-6 flex flex-wrap gap-2">
-      <Button variant={mode === "dia" ? "default" : "outline"} aria-pressed={mode === "dia"} onClick={() => onChangeMode("dia")}>Día</Button>
-      <Button variant={mode === "listado" ? "default" : "outline"} aria-pressed={mode === "listado"} onClick={() => onChangeMode("listado")}>Buscar citas</Button>
-    </div>}
-    <div hidden={mode !== "dia"} className="my-7 flex flex-wrap items-center justify-between gap-4 border-y border-line py-4">
-      <div><p className="font-semibold first-letter:uppercase">{formatLocalDate(date)}</p><p className="mt-1 text-xs text-muted wrap-anywhere">{date === today ? "Hoy · " : ""}{timeZone}</p></div>
-      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-        <Button variant="outline" size="icon" aria-label="Día anterior" disabled={!previous} onClick={() => previous && onSelectDate(previous)}><ChevronLeft aria-hidden="true" /></Button>
-        <label className="sr-only" htmlFor="agenda-date">Fecha de la agenda</label>
-        <Input id="agenda-date" type="date" min="0001-01-01" max="9999-12-31" value={date} onChange={(event) => { if (isLocalDate(event.target.value)) onSelectDate(event.target.value); }} className="min-w-0 w-40 flex-1 sm:flex-none" />
-        <Button variant="outline" size="icon" aria-label="Día siguiente" disabled={!next} onClick={() => next && onSelectDate(next)}><ChevronRight aria-hidden="true" /></Button>
-        <Button variant="ghost" onClick={() => onSelectDate(today)}>Hoy</Button>
-      </div>
-    </div>
-    {invalidDate && mode === "dia" && <p role="alert" className="mb-5 text-sm text-destructive">La fecha del enlace no es válida. Mostramos hoy; puedes elegir otra fecha.</p>}
     {!loading && services.length === 0 && <p className="mb-6 rounded-md bg-surface p-4 text-sm leading-6">Para crear tu primera cita, <WorkspaceLink view="servicios">añade un servicio</WorkspaceLink> y <WorkspaceLink view="horario">define tu horario</WorkspaceLink>. Puedes consultar cualquier día de la agenda.</p>}
     {!loading && services.length > 0 && scheduleMissing && <p className="mb-6 rounded-md bg-surface p-4 text-sm leading-6"><WorkspaceLink view="horario">Configura el horario de atención</WorkspaceLink> para habilitar las opciones de tus servicios.</p>}
     <div className={open ? "workspace-grid" : ""}>
@@ -126,12 +108,11 @@ export function AvailabilityPanel({ services, loading, timeZone, today, date, in
           </Field>
         </fieldset>
         <p id="appointment-zone" className="mt-2 text-xs text-muted wrap-anywhere">Hora local · {timeZone}</p>
-        {isLocalDate(draftDate) && (mode === "listado" || draftDate !== date) && <p className="mt-3 text-sm leading-6 text-muted">Este borrador es para el {formatLocalDate(draftDate)}. <button type="button" className="text-link text-accent" onClick={() => onSelectDate(draftDate)}>Ver ese día en la agenda</button></p>}
+        {isLocalDate(draftDate) && draftDate !== initialDate && <p className="mt-3 text-sm leading-6 text-muted">Este borrador es para el {formatLocalDate(draftDate)}. <button type="button" className="text-link text-accent" onClick={() => onSelectDate(draftDate)}>Ver ese día en la agenda</button></p>}
         <AvailabilityResults selection={selection} onConsult={onConsult} onCreate={async (values) => { const result = await onCreate(values); setSelectionDirty(false); return result; }} revision={`${revision}:${attempt}:${active}`} onSaving={setSaving} active={open && active} />
         <p className="mt-5 border-t border-line pt-4 text-xs leading-5 text-muted">El borrador se conserva al cerrar el panel o cambiar de vista. Una cita ocupa ese horario para todos tus servicios.</p>
       </ContextPanel>}
-      <div className="workspace-list"><div hidden={mode !== "dia"}><AppointmentList date={date} timeZone={timeZone} appointments={appointments} /></div>
-        <div hidden={mode !== "listado"}>{search}</div></div>
+      <div className="workspace-list">{agenda}</div>
     </div>
   </>;
 }

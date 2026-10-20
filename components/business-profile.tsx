@@ -53,9 +53,9 @@ function AuthenticatedBusinessProfile({ timeZones, enabled }: { timeZones: strin
   </section>;
 
   return <div key={business._id}>
-    <p className="mb-5 text-sm font-medium text-muted wrap-anywhere">{business.name}</p>
+    <p hidden={active === "agenda"} className="mb-5 text-sm font-medium text-muted wrap-anywhere">{business.name}</p>
     {/* Keep each view mounted: back/forward and navigation preserve unsaved work. */}
-    <section hidden={active !== "agenda"} aria-label="Agenda"><BusinessAvailability timeZone={business.timeZone} enabled={enabled} active={active === "agenda"} /></section>
+    <section hidden={active !== "agenda"} aria-label="Agenda"><BusinessAvailability businessName={business.name} timeZone={business.timeZone} enabled={enabled} active={active === "agenda"} /></section>
     <section hidden={active !== "servicios"} aria-label="Servicios"><BusinessServices enabled={enabled} /></section>
     <section hidden={active !== "horario"} aria-label="Horario"><BusinessWeeklySchedule timeZone={business.timeZone} enabled={enabled} /></section>
     <section hidden={active !== "negocio"} aria-labelledby="business-heading">

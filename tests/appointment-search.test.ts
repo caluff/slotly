@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import type { FunctionArgs } from "convex/server";
 import { api } from "../convex/_generated/api";
 import schema from "../convex/schema";
-import { appointmentDateBounds, appointmentFilterError, appointmentSearchHref, emptyAppointmentFilters, normalizeClientSearch, readAppointmentFilters } from "../lib/appointment-search";
+import { agendaFilterError, appointmentDateBounds, appointmentFilterError, appointmentPeriodDates, appointmentQueryFilters, appointmentSearchHref, emptyAppointmentFilters, normalizeClientSearch, readAppointmentFilters } from "../lib/appointment-search";
 import { todayInZone } from "../lib/agenda-date";
 
 const modules = import.meta.glob("../convex/**/*.ts");
@@ -58,6 +58,22 @@ describe("consulta amplia de citas (solo memoria)", () => {
     expect((await search({ period: "pasadas", referenceDate: "2026-10-21" })).page.map((r) => r.date)).toEqual(["2026-10-19", "2026-10-20"]);
     expect((await search({ period: "pasadas", referenceDate: today, until: "2026-10-18" })).page).toEqual([]);
     expect((await search({ period: "proximas", referenceDate: today, until: "2026-10-19" })).isDone).toBe(true);
+  });
+  test("Hoy usa la consulta existente, cambia al cruzar medianoche y respeta la zona (fixtures en memoria)", async () => {
+    const { seed, search } = await setup();
+    for (const date of ["2026-10-19", "2026-10-20", "2026-10-21"]) await seed(date);
+    for (const [zone, instant, expected] of [
+      ["America/Montevideo", "2026-10-21T02:59:59Z", "2026-10-20"],
+      ["America/Montevideo", "2026-10-21T03:00:00Z", "2026-10-21"],
+      ["Asia/Tokyo", "2026-10-21T02:59:59Z", "2026-10-21"],
+    ]) {
+      const today = todayInZone(zone, Date.parse(instant));
+      const filters = readAppointmentFilters(new URLSearchParams(), today);
+      const query = appointmentQueryFilters(filters, today);
+      expect(filters).toMatchObject({ period: "hoy", from: expected, until: expected });
+      expect(query.period).toBe("todas");
+      expect((await search({ period: query.period, from: query.from, until: query.until })).page.map((r) => r.date)).toEqual([expected]);
+    }
   });
   test("recorre más de una página, incluso páginas sin coincidencias, sin duplicados ni omisiones", async () => {
     const { seed, search } = await setup();
@@ -120,24 +136,65 @@ describe("consulta amplia de citas (solo memoria)", () => {
 });
 
 describe("filtros, enlaces y límites civiles", () => {
-  test("combina/limpia sin perder el día diario y Ver día no filtra el listado", () => {
-    const params = new URLSearchParams("fecha=1999-01-01&vista=servicios");
-    const filters = { ...emptyAppointmentFilters, client: "José", service: "synthetic", from: "2030-01-01", period: "proximas" as const };
+  const today = "2026-10-20";
+  test("Hoy es el valor predeterminado dinámico; Todas queda explícito y sin límites", () => {
+    const current = readAppointmentFilters(new URLSearchParams(), today);
+    expect(current).toEqual({ ...emptyAppointmentFilters, period: "hoy", from: today, until: today });
+    expect(appointmentSearchHref(new URLSearchParams(), current)).toBe("/dashboard");
+    const all = { ...emptyAppointmentFilters };
+    const href = new URL(appointmentSearchHref(new URLSearchParams(), all), "https://synthetic.test");
+    expect(href.searchParams.get("periodo")).toBe("todas");
+    expect(readAppointmentFilters(href.searchParams, today)).toEqual(all);
+  });
+  test("filtros y Ver día representan un solo listado y retiran fecha/modo anteriores", () => {
+    const params = new URLSearchParams("fecha=1999-01-01&modo=listado&vista=servicios");
+    const filters = { ...emptyAppointmentFilters, client: "José", service: "synthetic", from: "2030-01-01", period: "personalizado" as const };
     const url = new URL(appointmentSearchHref(params, filters), "https://synthetic.test");
-    expect(url.searchParams.get("fecha")).toBe("1999-01-01"); expect(url.searchParams.get("vista")).toBeNull();
-    expect(readAppointmentFilters(url.searchParams)).toEqual(filters);
-    const daily = new URL(appointmentSearchHref(url.searchParams, undefined, "dia", "2030-01-07"), url);
-    expect(daily.searchParams.get("modo")).toBeNull(); expect(daily.searchParams.get("fecha")).toBe("2030-01-07");
-    expect(readAppointmentFilters(daily.searchParams)).toEqual(filters);
-    const clear = new URL(appointmentSearchHref(daily.searchParams, emptyAppointmentFilters), url);
-    expect(readAppointmentFilters(clear.searchParams)).toEqual(emptyAppointmentFilters);
-    expect(clear.searchParams.get("fecha")).toBe("2030-01-07");
+    expect(url.searchParams.get("fecha")).toBeNull(); expect(url.searchParams.get("modo")).toBeNull(); expect(url.searchParams.get("vista")).toBeNull();
+    expect(readAppointmentFilters(url.searchParams, today)).toEqual(filters);
+    const daily = new URL(appointmentSearchHref(url.searchParams, { ...filters, from: "2030-01-07", until: "2030-01-07" }), url);
+    const selected = readAppointmentFilters(daily.searchParams, today);
+    expect(selected).toEqual({ ...filters, from: "2030-01-07", until: "2030-01-07" });
+    expect(appointmentQueryFilters(selected, today)).toEqual({ ...selected, period: "todas" });
+  });
+  test.each([
+    ["hoy", { from: today, until: today }],
+    ["todas", { from: "", until: "" }],
+    ["proximas", { from: today, until: "" }],
+    ["pasadas", { from: "", until: "2026-10-19" }],
+  ] as const)("el período %s sincroniza sus límites y la URL no congela fechas derivadas", (period, dates) => {
+    expect(appointmentPeriodDates(period, today, { from: "1999-01-01", until: "2099-01-01" })).toEqual(dates);
+    const href = new URL(appointmentSearchHref(new URLSearchParams("desde=1999-01-01&hasta=2099-01-01"), { ...emptyAppointmentFilters, period, ...dates }), "https://synthetic.test");
+    expect(href.searchParams.has("desde")).toBe(false); expect(href.searchParams.has("hasta")).toBe(false);
+    expect(readAppointmentFilters(href.searchParams, today)).toEqual({ ...emptyAppointmentFilters, period, ...dates });
+  });
+  test("un rango explícito tiene prioridad y no hereda intersecciones ocultas de Hoy/Próximas", () => {
+    for (const period of ["hoy", "proximas", "pasadas", "todas"]) {
+      const custom = readAppointmentFilters(new URLSearchParams(`periodo=${period}&desde=1999-01-01&hasta=1999-01-01`), today);
+      expect(custom.period).toBe("personalizado");
+      expect(agendaFilterError(custom)).toBeNull();
+      expect(appointmentQueryFilters(custom, today)).toEqual({ ...emptyAppointmentFilters, from: "1999-01-01", until: "1999-01-01" });
+    }
+  });
+  test("los enlaces anteriores se traducen a filtros sin reconstruir modos", () => {
+    expect(readAppointmentFilters(new URLSearchParams("fecha=1999-01-01"), today)).toEqual({ ...emptyAppointmentFilters, period: "personalizado", from: "1999-01-01", until: "1999-01-01" });
+    expect(readAppointmentFilters(new URLSearchParams("modo=listado&fecha=1999-01-01"), today)).toEqual(emptyAppointmentFilters);
+    expect(readAppointmentFilters(new URLSearchParams("modo=listado&periodo=proximas&fecha=1999-01-01"), today)).toEqual({ ...emptyAppointmentFilters, period: "proximas", from: today, until: "" });
+    expect(agendaFilterError(readAppointmentFilters(new URLSearchParams("fecha=2026-02-30"), today))).toBeTruthy();
+  });
+  test("rango personalizado valida límites inclusivos, extremos abiertos, vacío e inversión", () => {
+    const custom = { ...emptyAppointmentFilters, period: "personalizado" as const, from: "2026-10-26", until: "2026-10-26" };
+    expect(agendaFilterError(custom)).toBeNull();
+    expect(agendaFilterError({ ...custom, until: "" })).toBeNull();
+    expect(agendaFilterError({ ...custom, from: "" })).toBeNull();
+    expect(agendaFilterError({ ...custom, from: "", until: "" })).toContain("al menos una fecha");
+    expect(agendaFilterError({ ...custom, until: "2026-10-25" })).toContain("anterior o igual");
   });
   test("fechas extremas, límites inclusivo/exclusivo y enlaces inválidos", () => {
     expect(appointmentDateBounds({ ...emptyAppointmentFilters, period: "pasadas" }, "0001-01-01")).toEqual({ from: "", until: "", before: "0001-01-01", empty: false });
     expect(appointmentDateBounds({ ...emptyAppointmentFilters, period: "proximas", until: "2000-01-01" }, "2030-01-01").empty).toBe(true);
     expect(appointmentFilterError({ ...emptyAppointmentFilters, from: "9999-12-31", until: "9999-12-31" })).toBeNull();
-    expect(appointmentFilterError(readAppointmentFilters(new URLSearchParams("periodo=inventado")))).toBeTruthy();
+    expect(agendaFilterError(readAppointmentFilters(new URLSearchParams("periodo=inventado"), today))).toBeTruthy();
     expect(normalizeClientSearch("  JOSE\u0301   Muñoz ")).toBe("jose munoz");
   });
 });

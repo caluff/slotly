@@ -38,4 +38,12 @@ describe("Agenda: calendario local y enlaces", () => {
       expect(href.searchParams.get("vista")).toBe(view === "agenda" ? null : view);
     }
   });
+  it("conserva los filtros unificados entre vistas sin introducir fecha ni modo", () => {
+    const source = new URLSearchParams("cliente=Ana&servicio=sintetico&periodo=personalizado&desde=2026-10-26&hasta=2026-10-26");
+    for (const view of ["agenda", "servicios", "horario", "negocio"] as const) {
+      const href = new URL(dashboardHref(view, null, source), "https://synthetic.test");
+      for (const [key, value] of source) expect(href.searchParams.get(key)).toBe(value);
+      expect(href.searchParams.has("fecha")).toBe(false); expect(href.searchParams.has("modo")).toBe(false);
+    }
+  });
 });
