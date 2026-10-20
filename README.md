@@ -1,6 +1,6 @@
 # Slotly
 
-Plataforma de citas y reservas para profesionales y negocios. La etapa actual incluye autenticación con Clerk, creación y consulta del perfil del negocio y sus servicios, y configuración del horario semanal de atención con Convex: un negocio por cuenta, con un único propietario y varios servicios.
+Plataforma de citas y reservas para profesionales y negocios. La etapa actual incluye autenticación con Clerk, perfil del negocio y sus servicios, horario semanal de atención y consulta privada de opciones de inicio y fin con Convex: un negocio por cuenta, con un único propietario y varios servicios.
 
 ## Desarrollo
 
@@ -121,6 +121,20 @@ Estas pruebas fueron ejecutadas y reportadas por el usuario. Las comprobaciones 
 
 No incluye múltiples tramos, excepciones, vacaciones/festivos, huecos, turnos concretos, reservas, agenda pública ni sincronización externa. No cambia el negocio ni los servicios.
 
+## Consulta de opciones de horario (Reto 05)
+
+En el dashboard se eligen un servicio propio y una fecha real `AAAA-MM-DD`. Convex obtiene por identidad el negocio, verifica que el servicio le pertenezca y deriva los resultados del horario semanal y su zona IANA. No recibe propietario, negocio, duración, zona ni reloj del cliente. No guarda huecos ni crea reservas.
+
+Los comienzos avanzan 15 minutos desde la apertura, incluso si no está alineada al cuarto de hora. La duración determina el fin: 09:00–10:00 y 30 minutos producen 09:00–09:30, 09:15–09:45 y 09:30–10:00. El cierre exacto es válido; los comienzos pasados y finales posteriores quedan fuera. Se diferencian falta de servicios, semana sin guardar, semana/día cerrado y ausencia de opciones que quepan.
+
+La acción de lectura usa el reloj del servidor, sin caché temporal ni `Date.now()` en una query. La UI actualiza cada 30 segundos y al recuperar foco/visibilidad o conexión; retira las opciones al vencer usando tiempo monotónico desde la respuesta, independientemente del reloj o zona del navegador. Editar los filtros oculta el resultado anterior. No hay toast de consulta.
+
+`@js-temporal/polyfill` **0.5.1**, solo en el backend, permite rechazar horas inexistentes o repetidas sin desplazar ni elegir un offset implícito. La política acotada omite esos extremos y opciones que cruzan un cambio de offset; si apertura o cierre son ambiguos/inexistentes, no ofrece opciones para ese día y lo explica. La duración conserva minutos reales. El bucle tiene como máximo 96 candidatos y descarta duraciones excesivas antes de sumar timestamps.
+
+La evidencia automatizada, de navegador real y de UI sintética se registra por separado en `docs/PROJECT_CONTEXT.md`. No incluye ocupación, reservas, agenda pública, excepciones ni etapas posteriores.
+
+El **Reto 05 queda cerrado funcionalmente en desarrollo** tras la revisión estática del código y de las evidencias por el chat de planificación, sin nuevas pruebas ni confirmaciones manuales del usuario. Se conservan los límites documentados: aislamiento del nuevo endpoint y DST verificados en memoria o fixture, y segunda cuenta real no abierta en este reto. El usuario autorizó revisar el diff y, si es correcto, hacer commit y push; el resultado se verificará y comunicará en planificación.
+
 ## Archivos de esta etapa
 
 - `app/page.tsx`: portada con estado real de sesión.
@@ -158,7 +172,7 @@ pnpm build
 
 Para servir la compilación: `pnpm start`.
 
-`pnpm test` ejecuta 131 casos en memoria: los 75 previos del negocio y servicios, y 56 del horario semanal (31 de funciones Convex y 25 de Zod). Comprueban autenticación, ausencia de negocio, relaciones, tipos, límites, nombres normalizados, propietarios separados, solicitudes manipuladas y paginación; para horarios, ausencia frente a semana cerrada, consulta desde otra identidad de sesión sintética, horas locales, actualización del mismo documento sin duplicados y rechazo atómico de semanas inválidas, conservando perfil y servicios. Las zonas inventadas se comprueban en los tests del negocio; el esquema del formulario comprueba además que la zona pertenezca a las opciones. Las identidades son simuladas; estas pruebas no escriben datos remotos ni comprueban la firma de Clerk o el motor real de concurrencia.
+`pnpm test` ejecuta 177 casos en memoria: los 131 previos y 46 nuevos del Reto 05. Los nuevos cubren generación, reloj controlado, fechas, DST, autorización y argumentos manipulados; los anteriores comprenden 75 del negocio y servicios y 56 del horario semanal (31 de funciones Convex y 25 de Zod). Comprueban autenticación, ausencia de negocio, relaciones, tipos, límites, nombres normalizados, propietarios separados, solicitudes manipuladas y paginación; para horarios, ausencia frente a semana cerrada, consulta desde otra identidad de sesión sintética, horas locales, actualización del mismo documento sin duplicados y rechazo atómico de semanas inválidas, conservando perfil y servicios. Las zonas inventadas se comprueban en los tests del negocio; el esquema del formulario comprueba además que la zona pertenezca a las opciones. Las identidades son simuladas; estas pruebas no escriben datos remotos ni comprueban la firma de Clerk o el motor real de concurrencia.
 
 La comprobación inicial `pnpm test:local` verificó esas invariantes contra el backend **local**, incluyendo diez solicitudes HTTP simultáneas mediante clientes separados y un token falso. Usa identidades administrativas sintéticas y deja dos perfiles de prueba con propietarios `slotly_test_...` en la base local por ejecución. No usa sesiones de Clerk ni equivale a una prueba de login; se niega a ejecutarse fuera de `http://127.0.0.1:3210`. Las credenciales administrativas se leen del archivo local excluido de Git y no se imprimen. Con la configuración cloud actual, este script no es parte del arranque ni debe ejecutarse contra el perfil real. `pnpm test` sigue siendo la comprobación automática habitual, aislada de los datos remotos.
 
@@ -196,6 +210,8 @@ Para el Reto 04, con horarios propios que quieras conservar:
 3. Día abierto sin ambas horas, horas iguales o cierre anterior a apertura: errores asociados y con foco, sin alterar la semana guardada. Una semana con los siete días cerrados sí debe guardarse y recuperarse como configuración existente.
 4. Comprueba la separación de horarios entre dos cuentas y la continuidad de sus perfiles y servicios. Sin sesión, `/dashboard` sigue redirigiendo a `/sign-in`.
 
-La evidencia ejecutada y los casos pendientes se registran en `docs/PROJECT_CONTEXT.md`. No se incluyen huecos de disponibilidad, citas, reservas, calendarios externos, pagos ni notificaciones por correo u otros canales externos. La confirmación de UI mediante el toast de éxito sí forma parte del alcance actual.
+Para el Reto 05, las pruebas reales son de lectura: consultar un día abierto con los servicios existentes, comprobar paso de 15 minutos y duración, probar día cerrado y fecha pasada y repetir con otra zona del navegador. Usar los tests en memoria para escenarios que exigirían cambiar datos reales. No crear servicios ni modificar horarios para facilitar estas pruebas.
+
+La evidencia ejecutada y los casos pendientes se registran en `docs/PROJECT_CONTEXT.md`. No se incluyen citas, reservas, comprobación de ocupación, calendarios externos, pagos ni notificaciones por correo u otros canales externos. La confirmación de UI mediante toast se mantiene para las escrituras existentes.
 
 Documentación de referencia: [Convex con Clerk](https://docs.convex.dev/auth/clerk) y [runtime de Convex](https://docs.convex.dev/functions/runtimes).

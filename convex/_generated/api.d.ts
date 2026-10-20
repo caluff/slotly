@@ -8,7 +8,9 @@
  * @module
  */
 
+import type * as availability from "../availability.js";
 import type * as businesses from "../businesses.js";
+import type * as lib_availability from "../lib/availability.js";
 import type * as services from "../services.js";
 import type * as weeklySchedule from "../weeklySchedule.js";
 import type * as weeklyScheduleValidators from "../weeklyScheduleValidators.js";
@@ -20,7 +22,9 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  availability: typeof availability;
   businesses: typeof businesses;
+  "lib/availability": typeof lib_availability;
   services: typeof services;
   weeklySchedule: typeof weeklySchedule;
   weeklyScheduleValidators: typeof weeklyScheduleValidators;
