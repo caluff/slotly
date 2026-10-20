@@ -1,20 +1,26 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction, useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import type { FunctionReturnType } from "convex/server";
-import { useEffect, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
+import { ContextPanel } from "@/components/context-panel";
+import { useDraftWarning } from "@/components/use-draft-warning";
+import { WorkspaceLink } from "@/components/dashboard-workspace";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { availabilitySchema, type AvailabilityValues } from "@/lib/availability-schema";
 import { AppointmentForm } from "@/components/appointment-form";
 import { AppointmentList, type Appointments } from "@/components/appointment-list";
+import { AppointmentSearch } from "@/components/appointment-search";
+import { appointmentSearchHref, emptyAppointmentFilters, readAppointmentFilters } from "@/lib/appointment-search";
+import { isLocalDate } from "@/lib/local-date";
+import { formatLocalDate, shiftLocalDate, todayInZone } from "@/lib/agenda-date";
 
 type Availability = FunctionReturnType<typeof api.availability.getMyAvailability>;
 type Service = { _id: Id<"services">; name: string; durationMinutes: number };
@@ -22,156 +28,172 @@ type Selection = { serviceId: Id<"services">; date: string };
 type Consult = (values: Selection) => Promise<Availability>;
 type Create = (values: Selection & { start: number; clientName: string }) => Promise<unknown>;
 
-export function BusinessAvailability({ timeZone }: { timeZone: string }) {
-  const [date, setDate] = useState<string | null>(null);
-  const { results, status, loadMore } = usePaginatedQuery(api.services.listMyServices, {}, { initialNumItems: 20 });
-  const schedule = useQuery(api.weeklySchedule.getMyWeeklySchedule, {});
+function useToday(timeZone: string) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const update = () => setNow(Date.now());
+    const interval = window.setInterval(update, 30_000);
+    window.addEventListener("focus", update);
+    window.addEventListener("online", update);
+    document.addEventListener("visibilitychange", update);
+    return () => { window.clearInterval(interval); window.removeEventListener("focus", update); window.removeEventListener("online", update); document.removeEventListener("visibilitychange", update); };
+  }, []);
+  return todayInZone(timeZone, now);
+}
+
+export function BusinessAvailability({ timeZone, enabled = true, active = true }: { timeZone: string; enabled?: boolean; active?: boolean }) {
+  const params = useSearchParams();
+  const today = useToday(timeZone);
+  const requested = params.get("fecha");
+  const date = requested && isLocalDate(requested) ? requested : today;
+  const mode = params.get("modo") === "listado" ? "listado" : "dia";
+  const filters = readAppointmentFilters(params);
+  const navigate = (href: string) => window.history.pushState(null, "", href);
+  const { results, status, loadMore } = usePaginatedQuery(api.services.listMyServices, enabled ? {} : "skip", { initialNumItems: 20 });
+  const schedule = useQuery(api.weeklySchedule.getMyWeeklySchedule, enabled ? {} : "skip");
   const consult = useAction(api.availability.getMyAvailability);
   const create = useMutation(api.appointments.createMyAppointment);
-  const appointments = useQuery(api.appointments.listMyAppointments, date ? { date } : "skip");
+  const appointments = useQuery(api.appointments.listMyAppointments, enabled ? { date } : "skip");
   return <AvailabilityPanel services={results} loading={status === "LoadingFirstPage" || schedule === undefined}
-    timeZone={timeZone} onConsult={consult} onCreate={create} onSelectDate={setDate} appointments={appointments}
-    revision={JSON.stringify([results, schedule, appointments])}
-    more={status === "CanLoadMore" || status === "LoadingMore"}
+    timeZone={timeZone} today={today} date={date} invalidDate={!!requested && !isLocalDate(requested)}
+    onSelectDate={(value) => navigate(appointmentSearchHref(params, undefined, "dia", value))}
+    mode={mode} onChangeMode={(value) => navigate(appointmentSearchHref(params, undefined, value))}
+    search={<AppointmentSearch filters={filters} today={today} timeZone={timeZone} enabled={enabled && active && mode === "listado"}
+      services={results} moreServices={status === "CanLoadMore" || status === "LoadingMore"} loadingServices={status === "LoadingMore"}
+      onLoadServices={() => loadMore(20)} onSearch={(values) => navigate(appointmentSearchHref(params, values))}
+      onClear={() => navigate(appointmentSearchHref(params, emptyAppointmentFilters))} dayHref={(value) => appointmentSearchHref(params, undefined, "dia", value)} />}
+    onConsult={consult} onCreate={create} appointments={appointments} scheduleMissing={schedule === null}
+    revision={JSON.stringify([results, schedule, appointments, timeZone])}
+    active={active && enabled} more={status === "CanLoadMore" || status === "LoadingMore"}
     loadingMore={status === "LoadingMore"} onLoadMore={() => loadMore(20)} />;
 }
 
-// Separating the read callback also permits UI checks without cloud writes.
-export function AvailabilityPanel({ services, loading, timeZone, onConsult, onCreate, onSelectDate, appointments, revision = "", more = false, loadingMore = false, onLoadMore }: {
-  services: Service[]; loading: boolean; timeZone: string; onConsult: Consult; revision?: string;
-  onCreate: Create; onSelectDate?: (date: string | null) => void; appointments?: Appointments;
-  more?: boolean; loadingMore?: boolean; onLoadMore?: () => void;
+export function AvailabilityPanel({ services, loading, timeZone, today, date, invalidDate = false, onConsult, onCreate, onSelectDate, appointments, revision = "", more = false, loadingMore = false, onLoadMore, scheduleMissing = false, active = true, mode = "dia", onChangeMode, search }: {
+  services: Service[]; loading: boolean; timeZone: string; today: string; date: string; invalidDate?: boolean; onConsult: Consult; revision?: string;
+  onCreate: Create; onSelectDate: (date: string) => void; appointments?: Appointments; scheduleMissing?: boolean;
+  more?: boolean; loadingMore?: boolean; onLoadMore?: () => void; active?: boolean;
+  mode?: "dia" | "listado"; onChangeMode?: (mode: "dia" | "listado") => void; search?: ReactNode;
 }) {
-  const form = useForm<AvailabilityValues>({ resolver: zodResolver(availabilitySchema), defaultValues: { serviceId: "", date: "" } });
-  const [selection, setSelection] = useState<Selection | null>(null);
-  const [attempt, setAttempt] = useState(0);
+  const [open, setOpen] = useState(false);
+  const [draftDate, setDraftDate] = useState<string | null>(null);
+  const [serviceId, setServiceId] = useState("");
   const [saving, setSaving] = useState(false);
-  const { errors } = form.formState;
+  const [selectionDirty, setSelectionDirty] = useState(false);
+  useDraftWarning(selectionDirty || saving);
+  const [attempt, setAttempt] = useState(0);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const selection = useMemo(() => serviceId && draftDate && isLocalDate(draftDate) ? { serviceId: serviceId as Id<"services">, date: draftDate } : null, [serviceId, draftDate]);
+  const previous = shiftLocalDate(date, -1);
+  const next = shiftLocalDate(date, 1);
+  function start() { if (draftDate === null) setDraftDate(mode === "dia" ? date : ""); setAttempt((value) => value + 1); setOpen(true); }
 
-  function submit(values: AvailabilityValues) {
-    setSelection({ serviceId: values.serviceId as Id<"services">, date: values.date });
-    setAttempt((value) => value + 1);
-    onSelectDate?.(values.date);
-  }
-
-  return (
-    <section aria-labelledby="availability-heading" className="mt-10 max-w-2xl border-t border-line pt-8">
-      <h2 id="availability-heading" className="text-2xl font-semibold tracking-tight">Citas</h2>
-      <p className="mt-2 text-sm text-muted">Hora local: <span className="wrap-anywhere">{timeZone}</span></p>
-      <p className="mt-2 text-sm leading-6 text-muted">Elige un servicio y una fecha. La agenda es compartida: una cita ocupa ese horario para todos tus servicios.</p>
-      <div className="mt-6">
-        {loading ? <p role="status" className="text-sm text-muted">Cargando servicios y configuración…</p>
-          : services.length === 0 ? <p role="status" className="rounded-md bg-surface p-5 text-sm text-muted">Todavía no tienes servicios. Crea uno para consultar sus opciones.</p>
-            : <>
-              <form aria-label="Consultar opciones de horario" noValidate onSubmit={form.handleSubmit(submit)} onChange={() => { setSelection(null); onSelectDate?.(null); }}>
-                <fieldset disabled={saving}>
-                <legend className="sr-only">Servicio y fecha</legend>
-                <FieldGroup className="gap-5">
-                  <div className="grid min-w-0 gap-5 sm:grid-cols-[minmax(0,1fr)_12rem]">
-                    <Controller name="serviceId" control={form.control} render={({ field, fieldState }) => (
-                      <Field data-invalid={fieldState.invalid} className="min-w-0 gap-2 [&>[data-slot=native-select-wrapper]]:w-full">
-                        <FieldLabel htmlFor="availability-service" className="font-semibold">Servicio</FieldLabel>
-                        <NativeSelect {...field} id="availability-service" required className="w-full"
-                          aria-invalid={fieldState.invalid} aria-describedby={fieldState.invalid ? "availability-service-error" : undefined}>
-                          <option value="">Elige un servicio</option>
-                          {services.map((service) => <option key={service._id} value={service._id}>{service.name} · {service.durationMinutes} min</option>)}
-                        </NativeSelect>
-                        {fieldState.invalid && <FieldError id="availability-service-error" errors={[errors.serviceId]} />}
-                      </Field>
-                    )} />
-                    <Controller name="date" control={form.control} render={({ field, fieldState }) => (
-                      <Field data-invalid={fieldState.invalid} className="min-w-0 gap-2">
-                        <FieldLabel htmlFor="availability-date" className="font-semibold">Fecha</FieldLabel>
-                        <Input {...field} id="availability-date" type="date" min="0001-01-01" max="9999-12-31" required
-                          className="min-w-0" aria-invalid={fieldState.invalid}
-                          aria-describedby={fieldState.invalid ? "availability-date-error" : undefined} />
-                        {fieldState.invalid && <FieldError id="availability-date-error" errors={[errors.date]} />}
-                      </Field>
-                    )} />
-                  </div>
-                  {more && <Button type="button" variant="outline" disabled={loadingMore} onClick={onLoadMore} className="w-full sm:w-auto sm:self-start">
-                    {loadingMore ? "Cargando servicios…" : "Cargar más servicios"}
-                  </Button>}
-                  <Button type="submit" className="w-full sm:w-auto sm:self-start">Consultar opciones</Button>
-                </FieldGroup>
-                </fieldset>
-              </form>
-              {selection && <>
-                <AvailabilityResults key={attempt} selection={selection} onConsult={onConsult} onCreate={onCreate} revision={revision} onSaving={setSaving} />
-                <AppointmentList date={selection.date} timeZone={timeZone} appointments={appointments} />
-              </>}
-            </>}
+  return <>
+    <div className="flex flex-wrap items-start justify-between gap-5">
+      <div><h1 tabIndex={-1} className="workspace-title">Agenda</h1><p className="workspace-description">Consulta tu día o encuentra una cita por su cliente.</p></div>
+      <Button ref={trigger} onClick={start} aria-expanded={open} aria-controls="new-appointment"><Plus aria-hidden="true" />Nueva cita</Button>
+    </div>
+    {onChangeMode && <div role="group" aria-label="Forma de consultar Agenda" className="my-6 flex flex-wrap gap-2">
+      <Button variant={mode === "dia" ? "default" : "outline"} aria-pressed={mode === "dia"} onClick={() => onChangeMode("dia")}>Día</Button>
+      <Button variant={mode === "listado" ? "default" : "outline"} aria-pressed={mode === "listado"} onClick={() => onChangeMode("listado")}>Buscar citas</Button>
+    </div>}
+    <div hidden={mode !== "dia"} className="my-7 flex flex-wrap items-center justify-between gap-4 border-y border-line py-4">
+      <div><p className="font-semibold first-letter:uppercase">{formatLocalDate(date)}</p><p className="mt-1 text-xs text-muted wrap-anywhere">{date === today ? "Hoy · " : ""}{timeZone}</p></div>
+      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+        <Button variant="outline" size="icon" aria-label="Día anterior" disabled={!previous} onClick={() => previous && onSelectDate(previous)}><ChevronLeft aria-hidden="true" /></Button>
+        <label className="sr-only" htmlFor="agenda-date">Fecha de la agenda</label>
+        <Input id="agenda-date" type="date" min="0001-01-01" max="9999-12-31" value={date} onChange={(event) => { if (isLocalDate(event.target.value)) onSelectDate(event.target.value); }} className="min-w-0 w-40 flex-1 sm:flex-none" />
+        <Button variant="outline" size="icon" aria-label="Día siguiente" disabled={!next} onClick={() => next && onSelectDate(next)}><ChevronRight aria-hidden="true" /></Button>
+        <Button variant="ghost" onClick={() => onSelectDate(today)}>Hoy</Button>
       </div>
-    </section>
-  );
+    </div>
+    {invalidDate && mode === "dia" && <p role="alert" className="mb-5 text-sm text-destructive">La fecha del enlace no es válida. Mostramos hoy; puedes elegir otra fecha.</p>}
+    {!loading && services.length === 0 && <p className="mb-6 rounded-md bg-surface p-4 text-sm leading-6">Para crear tu primera cita, <WorkspaceLink view="servicios">añade un servicio</WorkspaceLink> y <WorkspaceLink view="horario">define tu horario</WorkspaceLink>. Puedes consultar cualquier día de la agenda.</p>}
+    {!loading && services.length > 0 && scheduleMissing && <p className="mb-6 rounded-md bg-surface p-4 text-sm leading-6"><WorkspaceLink view="horario">Configura el horario de atención</WorkspaceLink> para habilitar las opciones de tus servicios.</p>}
+    <div className={open ? "workspace-grid" : ""}>
+      {draftDate !== null && <ContextPanel id="new-appointment" title="Nueva cita" open={open} onClose={() => setOpen(false)} busy={saving} trigger={trigger}>
+        <fieldset disabled={saving} className="space-y-5">
+          <legend className="sr-only">Servicio y fecha de la nueva cita</legend>
+          <Field className="gap-2"><FieldLabel htmlFor="availability-service">Servicio</FieldLabel>
+            <NativeSelect id="availability-service" value={serviceId} onChange={(event) => { setServiceId(event.target.value); setSelectionDirty(true); }} className="w-full">
+              <option value="">Elige un servicio</option>
+              {services.map((service) => <option key={service._id} value={service._id}>{service.name} · {service.durationMinutes} min</option>)}
+            </NativeSelect>
+          </Field>
+          {more && <Button type="button" variant="outline" disabled={loadingMore} onClick={onLoadMore}>{loadingMore ? "Cargando…" : "Cargar más servicios"}</Button>}
+          {!loading && services.length === 0 && <p className="text-sm leading-6 text-muted">Necesitas <WorkspaceLink view="servicios">crear un servicio</WorkspaceLink> antes de confirmar una cita.</p>}
+          <Field className="gap-2"><FieldLabel htmlFor="availability-date">Fecha de la cita</FieldLabel>
+            <Input id="availability-date" type="date" min="0001-01-01" max="9999-12-31" value={draftDate} onChange={(event) => { setDraftDate(event.target.value); setSelectionDirty(true); }} aria-invalid={draftDate !== "" && !isLocalDate(draftDate)} aria-describedby="appointment-zone" />
+          </Field>
+        </fieldset>
+        <p id="appointment-zone" className="mt-2 text-xs text-muted wrap-anywhere">Hora local · {timeZone}</p>
+        {isLocalDate(draftDate) && (mode === "listado" || draftDate !== date) && <p className="mt-3 text-sm leading-6 text-muted">Este borrador es para el {formatLocalDate(draftDate)}. <button type="button" className="text-link text-accent" onClick={() => onSelectDate(draftDate)}>Ver ese día en la agenda</button></p>}
+        <AvailabilityResults selection={selection} onConsult={onConsult} onCreate={async (values) => { const result = await onCreate(values); setSelectionDirty(false); return result; }} revision={`${revision}:${attempt}:${active}`} onSaving={setSaving} active={open && active} />
+        <p className="mt-5 border-t border-line pt-4 text-xs leading-5 text-muted">El borrador se conserva al cerrar el panel o cambiar de vista. Una cita ocupa ese horario para todos tus servicios.</p>
+      </ContextPanel>}
+      <div className="workspace-list"><div hidden={mode !== "dia"}><AppointmentList date={date} timeZone={timeZone} appointments={appointments} /></div>
+        <div hidden={mode !== "listado"}>{search}</div></div>
+    </div>
+  </>;
 }
 
 const messages = {
-  unconfigured: "Todavía no has guardado un horario semanal. Configúralo para consultar opciones.",
-  week_closed: "La semana está configurada con todos los días cerrados.",
-  day_closed: "El negocio está cerrado en esta fecha.",
-  past_date: "Esta fecha ya pasó en la zona horaria del negocio.",
-  empty: "No hay horarios libres futuros que permitan completar el servicio dentro de la jornada.",
-  time_change: "La apertura o el cierre coincide con una hora inexistente o repetida por un cambio de hora. No se generan opciones para esta fecha.",
+  unconfigured: "Todavía no has guardado un horario semanal. Configúralo en Horario.",
+  week_closed: "Tu semana está configurada con todos los días cerrados. Puedes cambiarla en Horario.",
+  day_closed: "El negocio está cerrado en esta fecha. Elige otro día.",
+  past_date: "Esta fecha ya pasó en la zona horaria del negocio. Elige otra fecha.",
+  empty: "No hay horarios libres futuros para completar este servicio. Prueba otra fecha.",
+  time_change: "La apertura o el cierre coincide con un cambio de hora. Elige otra fecha para consultar opciones.",
 };
-
 function readError(cause: unknown) {
   const code = cause instanceof ConvexError ? cause.data?.code : undefined;
   if (code === "UNAUTHENTICATED") return "Tu sesión dejó de estar disponible. Vuelve a iniciar sesión.";
   if (code === "BUSINESS_NOT_FOUND") return "Tu cuenta no tiene un negocio asociado. Recarga y crea su perfil.";
   if (code === "SERVICE_NOT_FOUND") return "El servicio no está disponible en tu negocio. Elige otro servicio.";
-  if (code === "INVALID_DATE") return "La fecha no es válida. Elige una fecha real con formato AAAA-MM-DD.";
-  return "No pudimos consultar las opciones. Comprueba tu conexión y vuelve a consultar; se conservan los campos.";
+  if (code === "INVALID_DATE") return "La fecha no es válida. Elige una fecha real.";
+  return "No pudimos cargar los horarios. Comprueba tu conexión y reintenta; conservamos el borrador.";
 }
 
-function AvailabilityResults({ selection, onConsult, onCreate, revision, onSaving }: {
-  selection: Selection; onConsult: Consult; onCreate: Create; revision: string; onSaving: (saving: boolean) => void;
+function AvailabilityResults({ selection, onConsult, onCreate, revision, onSaving, active }: {
+  selection: Selection | null; onConsult: Consult; onCreate: Create; revision: string; onSaving: (saving: boolean) => void; active: boolean;
 }) {
-  const [snapshot, setSnapshot] = useState<{ data: Availability; sent: number; revision: string; refresh: number } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [snapshot, setSnapshot] = useState<{ data: Availability; sent: number; revision: string; refresh: number; key: string } | null>(null);
+  const [failure, setFailure] = useState<{ message: string; key: string; revision: string; refresh: number } | null>(null);
   const [clock, setClock] = useState(0);
   const [refreshVersion, setRefresh] = useState(0);
-
+  const key = selection ? `${selection.serviceId}:${selection.date}` : "";
   useEffect(() => {
-    let active = true;
+    if (!selection || !active) return;
+    let live = true;
     let request = 0;
     async function refresh() {
       if (document.visibilityState === "hidden") return;
       const current = ++request;
       const sent = performance.now();
       try {
-        const data = await onConsult(selection);
-        if (active && current === request) {
+        const data = await onConsult(selection!);
+        if (live && current === request) {
           setClock(data.generatedAt + performance.now() - sent);
-          setSnapshot({ data, sent, revision, refresh: refreshVersion });
-          setError(null);
+          setSnapshot({ data, sent, revision, refresh: refreshVersion, key });
+          setFailure(null);
         }
       } catch (cause) {
-        if (active && current === request) { setSnapshot(null); setError(readError(cause)); }
+        if (live && current === request) { setSnapshot(null); setFailure({ message: readError(cause), key, revision, refresh: refreshVersion }); }
       }
     }
     function resume() { if (document.visibilityState !== "hidden") { setSnapshot(null); void refresh(); } }
-    function offline() { request++; setSnapshot(null); setError(readError(null)); }
+    function offline() { request++; setSnapshot(null); setFailure({ message: readError(null), key, revision, refresh: refreshVersion }); }
     void refresh();
     const interval = window.setInterval(() => void refresh(), 30_000);
-    window.addEventListener("focus", resume);
-    window.addEventListener("online", resume);
-    window.addEventListener("offline", offline);
+    window.addEventListener("focus", resume); window.addEventListener("online", resume); window.addEventListener("offline", offline);
     document.addEventListener("visibilitychange", resume);
     return () => {
-      active = false;
-      window.clearInterval(interval);
-      window.removeEventListener("focus", resume);
-      window.removeEventListener("online", resume);
-      window.removeEventListener("offline", offline);
+      live = false; window.clearInterval(interval);
+      window.removeEventListener("focus", resume); window.removeEventListener("online", resume); window.removeEventListener("offline", offline);
       document.removeEventListener("visibilitychange", resume);
     };
-  }, [selection, onConsult, revision, refreshVersion]);
-
-  // The server clock plus monotonic elapsed time ignores a wrong browser clock.
-  // Including the entire round trip is conservative: it can hide a boundary
-  // option slightly early, but network latency cannot keep a past option visible.
-  const ready = snapshot !== null && snapshot.revision === revision && snapshot.refresh === refreshVersion;
+  }, [selection, onConsult, revision, refreshVersion, active, key]);
+  const error = failure?.key === key && failure.revision === revision && failure.refresh === refreshVersion ? failure.message : null;
+  const ready = active && !!selection && snapshot !== null && snapshot.key === key && snapshot.revision === revision && snapshot.refresh === refreshVersion;
   const slots = ready ? snapshot.data.slots.filter((slot) => slot.start > clock) : [];
   const nextStart = slots[0]?.start;
   useEffect(() => {
@@ -180,21 +202,15 @@ function AvailabilityResults({ selection, onConsult, onCreate, revision, onSavin
     const timer = window.setTimeout(() => setClock(snapshot.data.generatedAt + performance.now() - snapshot.sent), Math.min(Math.max(delay, 1), 2_147_483_647));
     return () => window.clearTimeout(timer);
   }, [snapshot, nextStart, clock]);
-
-  return (
-    <div className="mt-6" aria-busy={!ready && !error}>
-      {error ? <p role="alert" className="text-sm text-destructive">{error}</p>
-        : !ready ? <p role="status" className="text-sm text-muted">Consultando opciones…</p>
-          : <>
-            <h3 className="wrap-anywhere font-semibold">{snapshot.data.service.name} · {snapshot.data.date}</h3>
-            <p role="status" className="mt-2 text-sm text-muted">{slots.length ? `${slots.length} ${slots.length === 1 ? "opción" : "opciones"}. Se actualizan cada 30 segundos.`
-              : snapshot.data.status === "available" ? messages.empty : messages[snapshot.data.status]}</p>
-            {snapshot.data.omittedForTimeChange && <p className="mt-3 text-sm leading-6 text-muted">Se omiten opciones que cruzan un cambio de hora o usan horas inexistentes o repetidas.</p>}
-          </>}
-      <AppointmentForm slots={slots} ready={ready && !error}
-        isFuture={(start) => snapshot !== null && start > snapshot.data.generatedAt + performance.now() - snapshot.sent}
-        onCreate={(values) => onCreate({ ...selection, ...values })}
-        onRefresh={() => setRefresh((value) => value + 1)} onSaving={onSaving} />
-    </div>
-  );
+  return <div className="mt-5">
+    {!selection ? <p role="status" className="text-sm leading-6 text-muted">Elige un servicio y una fecha válida para ver los horarios disponibles.</p>
+      : error ? <div><p role="alert" className="text-sm leading-6 text-destructive">{error}</p><Button type="button" variant="outline" className="mt-3" onClick={() => setRefresh((value) => value + 1)}>Reintentar horarios</Button></div>
+        : !ready ? <p role="status" className="text-sm text-muted">Cargando horarios disponibles…</p>
+          : <><p role="status" className="text-sm leading-6 text-muted">{slots.length ? `${slots.length} ${slots.length === 1 ? "horario disponible" : "horarios disponibles"}` : snapshot.data.status === "available" ? messages.empty : messages[snapshot.data.status]}</p>
+            {snapshot.data.omittedForTimeChange && <p className="mt-2 text-xs leading-5 text-muted">Se omiten las horas ambiguas o inexistentes por cambios de hora.</p>}</>}
+    <AppointmentForm slots={slots} ready={ready && !error}
+      isFuture={(start) => snapshot !== null && start > snapshot.data.generatedAt + performance.now() - snapshot.sent}
+      onCreate={(values) => selection ? onCreate({ ...selection, ...values }) : Promise.reject(new Error("Missing selection"))}
+      onRefresh={() => setRefresh((value) => value + 1)} onSaving={onSaving} />
+  </div>;
 }

@@ -8,6 +8,7 @@ import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { appointmentSchema, type AppointmentFormValues, type AppointmentValues } from "@/lib/appointment-schema";
+import { useDraftWarning } from "@/components/use-draft-warning";
 
 type Props = {
   slots: { start: number; startTime: string; endTime: string }[];
@@ -23,7 +24,10 @@ export function AppointmentForm({ slots, ready, isFuture, onCreate, onRefresh, o
     resolver: zodResolver(appointmentSchema), defaultValues: { start: "", clientName: "" }, shouldFocusError: false,
   });
   const { isSubmitting, submitCount, errors } = form.formState;
+  useDraftWarning(form.formState.isDirty || isSubmitting);
   const selected = useWatch({ control: form.control, name: "start" });
+  const clientName = useWatch({ control: form.control, name: "clientName" });
+  const valid = appointmentSchema.safeParse({ start: selected, clientName }).success;
   const lock = useRef(false);
   const focus = useRef<keyof AppointmentFormValues | null>(null);
   const { setFocus } = form;
@@ -102,7 +106,7 @@ export function AppointmentForm({ slots, ready, isFuture, onCreate, onRefresh, o
             </Field>
           )} />
           {errors.root?.server && <FieldError errors={[errors.root.server]} />}
-          <Button type="submit" disabled={isSubmitting || !ready || slots.length === 0} className="w-full sm:w-auto sm:self-start">
+          <Button type="submit" disabled={isSubmitting || !ready || !valid || !slots.some((slot) => String(slot.start) === selected)} className="w-full">
             {isSubmitting ? "Confirmando cita…" : "Confirmar cita"}
           </Button>
           <p role="status" className="sr-only">{isSubmitting ? "Confirmando la cita." : ""}</p>

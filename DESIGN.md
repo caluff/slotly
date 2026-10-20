@@ -47,9 +47,13 @@ rounded:
   app: "0.375rem"
 spacing:
   "3": "0.75rem"
+  "4": "1rem"
+  "5": "1.25rem"
   "6": "1.5rem"
   "7": "1.75rem"
+  "8": "2rem"
   "10": "2.5rem"
+  "11": "2.75rem"
   "12": "3rem"
   "20": "5rem"
 components:
@@ -76,19 +80,38 @@ components:
     backgroundColor: "{colors.surface}"
     rounded: "{rounded.app}"
     padding: "1.75rem"
+  workspace-action:
+    backgroundColor: "{colors.accent}"
+    textColor: "{colors.white}"
+    typography: "{typography.label}"
+    rounded: "{rounded.app}"
+    height: "2.25rem"
+  workspace-header-row:
+    backgroundColor: "{colors.white}"
+    height: "4rem"
+  context-panel:
+    backgroundColor: "{colors.white}"
+    textColor: "{colors.foreground}"
+    rounded: "{rounded.app}"
+    padding: "1.25rem"
+  weekly-state-select:
+    rounded: "{rounded.app}"
+    height: "2.25rem"
+    width: "8rem"
 ---
 
 # Design System: Slotly
 
 ## Overview
 
-Interfaz clara, sencilla y profesional, con acentos verdes. Esta documentación captura la implementación visual de la etapa 1.
+Interfaz clara, sencilla y profesional, con acentos verdes. La portada y la autenticación conservan su presentación existente; el espacio privado usa una composición más amplia para consultar y gestionar el día.
 
 **Key Characteristics:**
 
 - Fondo claro y texto verde oscuro.
 - Jerarquía tipográfica en Geist.
 - Acciones principales verdes y formularios oficiales de Clerk.
+- Espacio privado con cuatro vistas, listas con separadores y formularios bajo demanda.
 
 ## Colors
 
@@ -96,9 +119,9 @@ Los valores del frontmatter son normativos y proceden de la hoja global y de la 
 
 ### Primary
 
-- `accent`: acciones principales, énfasis del título y foco visible.
+- `accent`: acciones principales, navegación activa, confirmaciones, énfasis de la portada y foco visible.
 - `accent-hover`: fondo de la acción principal al pasar el cursor.
-- `surface`: fondo verde claro del panel de cuenta.
+- `surface`: fondo verde claro del panel de cuenta y de avisos, cargas y estados de interacción del espacio privado.
 - `selection`: fondo de la selección de texto, con `foreground` como texto.
 
 ### Neutral
@@ -107,27 +130,36 @@ Los valores del frontmatter son normativos y proceden de la hoja global y de la 
 - `foreground`: texto principal.
 - `muted`: descripciones, notas y pie.
 - `line`: separadores de cabecera y pie.
-- `white`: texto de la acción principal y fondo configurado para Clerk.
+- `white`: texto de la acción principal, cabecera privada, paneles contextuales y fondo configurado para Clerk.
+- `destructive`: bordes y mensajes de error en formularios.
 
 ## Typography
 
 Geist es la fuente de la interfaz, mediante la variable existente y su respaldo sans-serif. Geist Mono está cargada, sin un papel visual usado en estas pantallas.
 
-El frontmatter recoge la escala base: display para el título principal, title para los encabezados de sección y autenticación, lead para la introducción, body para descripciones y label para las acciones.
+El frontmatter recoge la escala base: display para el título de portada, title para encabezados de sección, auth-title para autenticación, lead para la introducción, body para descripciones y label para las acciones.
 
 El título principal crece en `sm` (3.75rem) y en `lg` (4.5rem); el encabezado del panel crece en `sm` (1.875rem). Las notas usan texto pequeño (0.875rem) con interlineado amplio (1.5rem); el pie usa texto menor (0.75rem) con interlineado (1.25rem). Los enlaces de texto tienen peso medio (500).
 
+En el espacio privado, el título de cada vista usa el tamaño base de title (1.5rem), aumenta en `sm` (1.875rem) y conserva peso seminegrita (600) y espaciado cerrado. Los títulos de panel y estados vacíos usan (1.125rem); las descripciones, etiquetas y listas usan principalmente (0.875rem). La navegación móvil usa (0.75rem) y aumenta en `md` (0.875rem). Las horas y duraciones usan cifras tabulares.
+
 ## Layout
 
-El contenedor compartido está centrado, ocupa el ancho disponible y tiene el máximo existente `max-w-6xl` (72rem). Sus márgenes interiores horizontales son (1.5rem), y aumentan en `sm` (2.5rem). La estructura ocupa al menos la altura de la ventana, con cabecera, contenido flexible y pie.
+La portada conserva su contenedor centrado de (72rem), con márgenes interiores horizontales de (1.5rem), que aumentan en `sm` (2.5rem). Su estructura ocupa al menos la altura de la ventana, con cabecera, contenido flexible y pie.
 
 La portada tiene una columna en móvil. En `lg` pasa a dos columnas, con proporción (1.2fr / 1fr), separación (5rem) y texto a la izquierda del panel. Antes de ese punto la separación es (3rem). Las acciones del panel permanecen apiladas.
 
-Los puntos de cambio utilizados son `sm` (40rem) y `lg` (64rem). El login y el registro comparten `AuthShell`: un panel de dos columnas iguales desde `lg`, con formulario a la izquierda y una fotografía grande a la derecha. Su ancho máximo es (72rem), con fondo exterior verde claro y bordes redondeados. En tamaños inferiores se oculta la fotografía y el formulario conserva un máximo de (24rem). El pie permite que su contenido cambie de línea.
+Los puntos de cambio utilizados son `sm` (40rem), `md` (48rem) y `lg` (64rem). El login y el registro comparten `AuthShell`: un panel de dos columnas iguales desde `lg`, con formulario a la izquierda y una fotografía grande a la derecha. Su ancho máximo es (72rem), con fondo exterior verde claro y bordes redondeados. En tamaños inferiores se oculta la fotografía y el formulario conserva un máximo de (24rem). El pie permite que su contenido cambie de línea.
+
+El espacio privado tiene un contenedor propio de (80rem), centrado y de ancho disponible. El relleno horizontal es (1rem), aumenta a (2rem) en `sm` y a (3rem) en `lg`; el contenido usa relleno vertical de (1.75rem), que aumenta a (2.5rem) en `sm`. La cabecera tiene una primera fila de (64px). Antes de `md`, los cuatro destinos ocupan una segunda fila de columnas iguales, con icono sobre etiqueta y una altura mínima de (56px); desde `md` se alinean junto a marca y cuenta.
+
+Agenda y Servicios muestran una lista de ancho completo hasta abrir un panel. Desde `lg`, el listado comparte una rejilla con una columna derecha de (23rem) y separación de (1.5rem). En tamaños inferiores, el panel aparece antes del listado. El panel usa relleno de (1.25rem), que aumenta a (1.5rem) en `sm`. Horario limita su contenido a (48rem); la lectura del negocio a (42rem) y su creación inicial a (36rem).
+
+Los filtros de Buscar citas responden al ancho disponible de su contenedor. Desde (48rem) de ancho propio, nombre, servicio, período y acciones comparten cuatro columnas; por debajo, el nombre ocupa todo el ancho, servicio y período forman dos columnas y Buscar/Limpiar quedan debajo. Esta adaptación también se aplica al abrir el panel de Nueva cita, aunque la ventana siga siendo de escritorio. El rango opcional permanece en un desplegable nativo, con Desde y Hasta en dos columnas.
 
 ## Elevation & Depth
 
-Las superficies propias usan fondo, contraste tonal y separadores. No se definen sombras propias. Los formularios conservan los estilos internos oficiales de Clerk.
+Las superficies propias usan fondo, contraste tonal y separadores. No se definen sombras propias. Los paneles contextuales son blancos, con borde fino y sin superposición sobre el contenido. Solo el diálogo de salida con borradores oscurece el fondo con el texto principal al (20%). Los formularios conservan los estilos internos oficiales de Clerk.
 
 ## Shapes
 
@@ -139,13 +171,19 @@ El radio compartido de la aplicación es `app`: 6px (0.375rem). Se aplica a inpu
 
 La marca usa el logo proporcionado por el usuario, con el calendario adaptado al verde de acción y la palabra oscura. La cabecera coloca la marca junto al acceso o menú de cuenta. El enlace para saltar al contenido se hace visible al recibir foco.
 
-El archivo `public/slotly-logo.png` tiene fondo transparente y proporción 3:1. `Brand` lo muestra con `next/image` a 80px de ancho en móvil y 96px desde `sm`, conservando la proporción. La cabecera compartida tiene una altura mínima de 56px.
+El archivo `public/slotly-logo.png` tiene fondo transparente y proporción 3:1. `Brand` lo muestra con `next/image` a 80px de ancho en móvil y 96px desde `sm`, conservando la proporción. La cabecera de portada conserva una altura mínima de (56px); la primera fila privada usa (64px).
+
+La navegación privada ofrece Agenda, Servicios, Horario y Negocio. Usa iconos de Lucide de (16px), etiquetas sin salto de línea, texto secundario en reposo y acento con borde inferior de (2px) para la vista actual, anunciada con `aria-current="page"`. Al pasar el cursor usa texto principal y superficie verde clara al (50%). Al cambiar de vista, el foco pasa al título visible y el título del documento identifica la vista.
 
 El favicon y los iconos de la aplicación usan solo el calendario, sin la palabra Slotly. Su fuente es `public/slotly-mark.png`, con fondo exterior transparente e interior blanco. Las variantes de Apple y maskable se apoyan en el fondo claro `background`; la variante maskable reserva margen para los recortes de los lanzadores móviles.
 
 ### Enlaces de acción
 
 `button-primary` y `button-secondary` sirven para acciones y enlaces de navegación. Comparten altura mínima de 36px (2.25rem), relleno vertical de 6px, relleno horizontal de 16px y separación interna de 8px. Los campos y selectores propios reutilizan `form-control`, con la misma altura mínima de 36px, texto de 14px y relleno horizontal de 12px. La apariencia global de Clerk conserva esa altura y relleno vertical en sus campos y botones de formulario. Los controles de avatar y menú mantienen sus áreas de interacción de 44px.
+
+Preferencia permanente explícita del usuario: todos los inputs, selects y botones propios de Slotly se mantienen compactos, con (36px) de altura en escritorio y móvil. Incluye Nueva cita, Nuevo servicio, Confirmar cita, Guardar semana, fecha/anterior/siguiente/Hoy de Agenda, carga de servicios, cierre de panel y botones del diálogo de salida. Los botones de solo icono miden (36×36px). No imponer (44px) por defecto sin una nueva petición del usuario. La navegación y el `UserButton` oficial de Clerk son elementos distintos y conservan su configuración. Los botones con icono en las acciones de cabecera mantienen el relleno horizontal de (12px).
+
+La altura se hereda de las primitivas: `Input` y `NativeSelect` usan `h-9`; `Button` usa `h-9` en su tamaño predeterminado y `size-9` para `size="icon"`, sin variantes responsive que agranden esos defaults. Los consumidores del dashboard no repiten clases de altura. El aumento anterior a 44px procedía de overrides locales `h-11`/`min-h-11`/`min-w-11`, no del tamaño base. Las variantes explícitas útiles se conservan cuando se solicitan deliberadamente; esta preferencia no modifica Textarea ni Clerk.
 
 La acción secundaria tiene borde verde al 25% y, al pasar el cursor, fondo verde al 5%. Los cambios de color usan la transición existente (150ms), desactivada cuando se solicita movimiento reducido. Los enlaces de texto se subrayan al pasar el cursor.
 
@@ -169,21 +207,47 @@ Usar los componentes oficiales `SignIn` y `SignUp` de Clerk, con la localizació
 
 El login y el registro integran su componente oficial directamente en la columna, sin borde ni sombra de tarjeta. La marca, el formulario y el pie comparten alineación y un ancho máximo de (24rem). Los títulos se alinean a la izquierda y los distintos pasos conservan su comportamiento oficial. Los campos y botones tienen altura mínima (2.25rem), relleno vertical (0.375rem), radio compartido de 6px y Google aparece después del acceso por correo. Ambos usan la fotografía `public/login-workspace.png`, un espacio de trabajo con luz natural, madera y tonos salvia, con recorte `cover` y sin texto superpuesto. Es decorativa y queda fuera del árbol accesible.
 
+### Paneles contextuales y borradores
+
+Nueva cita y Nuevo servicio abren un `aside` no modal dentro de la página. No tienen fondo de superposición ni trampa de foco. Al abrir, el foco pasa al primer selector o campo; al cerrar con el botón o Escape vuelve al disparador. El cierre queda deshabilitado durante el guardado. El contenido se monta al abrirlo por primera vez y permanece montado al ocultarlo, por lo que cerrar el panel o cambiar de vista conserva el borrador.
+
+La vista, la fecha consultada, el modo de Agenda y los filtros aplicados se reflejan en la URL de `/dashboard`, mediante el historial nativo y `useSearchParams`. Las cuatro vistas permanecen montadas para conservar su estado al navegar y volver. Los cambios de servicio o fecha de una cita también cuentan como borrador aunque aún no se haya elegido horario ni escrito un cliente. Salir del documento mediante un enlace presenta un diálogo HTML con «Seguir editando» como foco inicial y «Salir sin guardar» como alternativa; recargar o cerrar la pestaña usa el aviso nativo de `beforeunload`. Los borradores viven en esta pestaña; el guardado sigue siendo explícito. Ante un fallo transitorio de autenticación Convex se oculta el espacio privado y se suspenden sus consultas, conservando el borrador de la misma identidad. Recuperar conexión/foco/visibilidad puede reintentar el acceso si Clerk sigue conectado; «Reintentar acceso» ofrece la misma recuperación explícita y hereda los 36px del Button base. El estado vuelve a autenticado únicamente después de validación de Convex, sin recargar la página. Si Clerk confirma cierre de sesión, el contenido privado y sus borradores se desmontan; cambiar de usuario siempre reinicia el subárbol privado.
+
 ### Perfil del negocio
 
-El formulario utiliza etiquetas visibles, controles compactos y una única acción «Guardar perfil», sin párrafos introductorios ni textos de ayuda permanentes. Usa la anatomía oficial de shadcn/ui: `FieldGroup`, `Field`, `FieldLabel` y `FieldError`, con `Input`, `Button` y `NativeSelect`, adaptados al tema existente. Los errores de campo utilizan `destructive` (#9f2f2f), `data-invalid`, `aria-invalid` y un mensaje asociado mediante `aria-describedby`; el foco pasa al primer campo inválido después del envío. React Hook Form y Zod gestionan el estado y la validación. Los errores generales conservan los valores, y el estado de guardado permanece anunciado para lectores de pantalla. La zona horaria es un selector nativo cerrado, con opciones IANA generadas en servidor y UTC; inicia en `America/Montevideo`. En móvil el botón ocupa el ancho del formulario. Los aliases semánticos de shadcn apuntan a los colores de Slotly y conservan el significado anterior de `accent` y `muted`.
+Cuando existe un negocio, Negocio presenta nombre y zona IANA como una lista de definición con separadores y enlaces contextuales a Agenda y Horario. Es una vista de lectura. Si aún no existe, aparece la creación inicial con una breve introducción, etiquetas visibles, controles compactos y una única acción «Guardar perfil».
+
+El formulario usa la anatomía oficial de shadcn/ui: `FieldGroup`, `Field`, `FieldLabel` y `FieldError`, con `Input`, `Button` y `NativeSelect`, adaptados al tema existente. Los errores de campo utilizan `destructive`, `data-invalid`, `aria-invalid` y un mensaje asociado mediante `aria-describedby`; el foco pasa al primer campo inválido después del envío. React Hook Form y Zod gestionan el estado y la validación. Los errores generales conservan los valores, y el estado de guardado permanece anunciado para lectores de pantalla. La zona horaria es un selector nativo cerrado, con opciones IANA generadas en servidor y UTC; inicia en `America/Montevideo`. En móvil el botón ocupa el ancho del formulario. Los aliases semánticos de shadcn apuntan a los colores de Slotly y conservan el significado anterior de `accent` y `muted`.
+
+### Servicios y horario
+
+Servicios presenta nombre y duración en filas con separadores finos; la duración queda alineada al extremo y usa un icono de reloj decorativo. El estado vacío tiene borde discontinuo y una indicación para añadir el primer servicio. Nuevo servicio abre el panel contextual con nombre y duración apilados, sin ocultar la lista.
+
+Horario es una vista propia con título, explicación breve y zona IANA. Cada día se separa por una línea; los días abiertos muestran estado, apertura y cierre. En móvil, día y estado comparten la primera fila y las horas ocupan dos columnas; un día cerrado se reduce a esa fila. Desde `sm`, los días usan tres columnas y los cerrados indican «Sin atención». El wrapper del selector Abierto/Cerrado mide (128px), el select ocupa todo su ancho y la flecha permanece dentro del borde.
+
+La barra de guardado semanal permanece junto al borde inferior al desplazarse, con fondo general y separador superior. Distingue semana sin configurar, cambios sin guardar, guardado en curso, error y cambios guardados. «Guardar semana» guarda la semana completa explícitamente y queda deshabilitado durante el envío o cuando una semana existente no cambió.
 
 ### Confirmaciones por toast
 
-La creación de un servicio se confirma con «Servicio creado» mediante Sonner y el wrapper de shadcn/ui adaptado al tema claro. Hay un único `Toaster` en el layout raíz. La confirmación se emite solo después de que el guardado termine correctamente; no se duplica con un mensaje de éxito dentro del formulario. Los errores permanecen en `FieldError` y el estado de guardado conserva su anuncio exclusivo para lectores de pantalla.
+Las escrituras de servicio, horario y cita se confirman con «Servicio creado», «Horario guardado» y «Cita confirmada» mediante Sonner y el wrapper de shadcn/ui adaptado al tema claro. Hay un único `Toaster` en el layout raíz. La confirmación se emite solo después de que el guardado termine correctamente; no se duplica con un mensaje de éxito dentro del formulario. Consultar disponibilidad no emite un toast. Los errores permanecen en `FieldError` y el estado de guardado conserva su anuncio exclusivo para lectores de pantalla.
 
 El toast reutiliza Geist con texto de (14px), fondo `surface`, texto `foreground`, borde fino `line`, radio compartido de (6px) y ninguna sombra. El icono de éxito es `CircleCheck` de Lucide, decorativo, de (16px) y color `accent`. Conserva la posición nativa de Sonner en la esquina inferior derecha, con márgenes móviles de (16px) y duración base de (4000ms).
 
-La región de notificaciones se anuncia mediante `aria-live="polite"`, con el nombre «Notificaciones» y el atajo nativo `Alt+T`. Mostrar el éxito no toma el foco: el formulario se limpia y devuelve el foco a «Nombre del servicio», preparado para crear otro servicio. Se mantiene un único anuncio accesible de la confirmación.
+La región de notificaciones se anuncia mediante `aria-live="polite"`, con el nombre «Notificaciones» y el atajo nativo `Alt+T`. Mostrar el éxito no toma el foco. Al crear un servicio, el formulario se limpia y el foco vuelve a «Nombre del servicio»; al confirmar una cita se limpian cliente y horario y el foco vuelve al selector de horario. Guardar la semana conserva sus valores y marca el borrador como guardado. Se mantiene un único anuncio accesible de cada confirmación.
 
 ### Citas privadas
 
-La sección «Citas» reutiliza los filtros de servicio y fecha, seguidos de `NativeSelect` para elegir un intervalo disponible y `Input` para el nombre del cliente. Mantiene `Field`, React Hook Form, Zod, controles de 36px y radio de 6px. Los filtros quedan deshabilitados mientras se confirma, y los envíos rápidos comparten un bloqueo inmediato del formulario. El nombre y el horario se conservan ante errores; si el intervalo deja de estar disponible, se identifica en el selector y el error se asocia al campo, con foco para elegir otro. Las actualizaciones de disponibilidad conservan el borrador.
+Agenda ofrece Día y Buscar citas mediante dos botones compactos, con el modo activo en verde y anunciado como pulsado. Día inicia en hoy según la zona IANA del negocio. Su barra de fecha reúne día legible, zona, anterior, siguiente, selector nativo y Hoy. El listado diario incluye todos los servicios sin exigir una selección previa. La carga usa bloques tonales y estado anunciado; el vacío usa un icono decorativo de calendario, «Un día sin citas» y una explicación breve.
 
-El éxito real emite únicamente «Cita confirmada» en el Toaster existente, limpia nombre/horario y devuelve el foco al selector. El listado de la fecha incluye todos los servicios, ordena por inicio y muestra cliente, servicio, estado confirmado e inicio/fin en la zona IANA del negocio. Usa la misma lista con divisores y filas que se adaptan al ancho móvil; no incorpora otro calendario ni un sistema visual nuevo.
+Buscar citas consulta independientemente del día seleccionado. Reúne etiquetas visibles para nombre del cliente, servicio y período, una acción Buscar y la alternativa Limpiar. El texto de ayuda explica la búsqueda por fragmento con o sin tildes. El rango de fechas opcional se revela mediante `details`/`summary`, permanece abierto cuando hay un rango aplicado y explica que sus extremos se incluyen y se combinan con los otros filtros. Los controles heredan los (36px) de las primitivas existentes.
+
+Sobre los resultados se explican la zona y el orden cronológico ascendente por fecha y hora. Todas consulta cualquier fecha; Próximas incluye todo el día de referencia en la zona del negocio y los posteriores; Pasadas comprende los días anteriores. Cada fila muestra fecha completa, inicio/fin, cliente, servicio, «Confirmada» y Ver día, con separadores finos. En móvil, fecha y horas ocupan la primera fila, y cliente/servicio y la acción comparten la segunda; desde `sm`, fecha/horas, cliente/servicio y acción forman tres columnas. Ver día abre ese día exacto en el modo Día.
+
+La cabecera de resultados anuncia la carga y distingue citas cargadas con páginas pendientes de un total encontrado al agotar la consulta. Un tramo sin coincidencias conserva «La búsqueda continúa» y Seguir buscando mientras queden páginas; solo la búsqueda agotada muestra «Sin coincidencias». Cargar más citas cambia a «Buscando más citas…» y se deshabilita durante la carga. Los errores de lectura presentan una explicación y Reintentar búsqueda, conservando filtros y borrador.
+
+Nueva cita reúne servicio, fecha, disponibilidad automática, horario y cliente en el panel contextual. Servicio y fecha disparan la consulta; «Confirmar cita» es la acción final y queda deshabilitada sin un horario vigente y nombre válido. Mantiene `Field`, React Hook Form, Zod, campos de (36px) y radio de (6px). Los selectores quedan deshabilitados mientras se confirma, y los envíos rápidos comparten un bloqueo inmediato del formulario. Si la fecha del borrador difiere del día consultado, aparece un enlace para ver ese día en Agenda. El nombre y el horario se conservan ante errores; si el intervalo deja de estar disponible, se identifica en el selector y el error se asocia al campo, con foco para elegir otro. Las actualizaciones de disponibilidad conservan el borrador.
+
+Un borrador nuevo abierto desde Buscar citas comienza con la fecha vacía y exige elegirla; desde Día toma el día consultado. Un borrador existente conserva servicio, fecha, horario y cliente al alternar los modos o usar Ver día. En búsqueda, cuando ya tiene fecha, el panel también permite abrir ese día en Agenda sin descartar los datos.
+
+El listado diario ordena por inicio y muestra inicio/fin, cliente, servicio y estado «Confirmada» en la zona IANA del negocio. Las filas usan separadores y dos columnas en móvil: horas y contenido, con el estado debajo del contenido. Desde `sm`, el estado ocupa una tercera columna. Los nombres largos pueden partirse sin desplazar las horas ni la duración.
 

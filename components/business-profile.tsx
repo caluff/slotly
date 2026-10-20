@@ -1,74 +1,71 @@
 "use client";
 
+import { useAuth } from "@clerk/nextjs";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { useState } from "react";
+import { useLastDefined } from "@/components/use-last-defined";
 import { BusinessProfileForm } from "@/components/business-profile-form";
 import { BusinessServices } from "@/components/business-services";
 import { BusinessWeeklySchedule } from "@/components/business-weekly-schedule";
 import { BusinessAvailability } from "@/components/business-availability";
-import Link from "next/link";
+import { WorkspaceLink } from "@/components/dashboard-workspace";
+import { useRetryConvexAuth } from "@/components/convex-client-provider";
+import { Button } from "@/components/ui/button";
+import { readDashboardView } from "@/lib/dashboard-navigation";
 import { api } from "@/convex/_generated/api";
 
-type BusinessProfileProps = { timeZones: string[] };
-
-export function BusinessProfile({ timeZones }: BusinessProfileProps) {
+export function BusinessProfile({ timeZones }: { timeZones: string[] }) {
+  const { userId, isLoaded, isSignedIn } = useAuth();
+  const signedOut = isLoaded && isSignedIn === false;
+  // Only an unresolved Clerk state may retain the previous identity. A
+  // confirmed sign-out clears it and unmounts every private form below.
+  const ownerId = useLastDefined(signedOut ? null : userId ?? undefined);
+  const retryAccess = useRetryConvexAuth();
   const { isLoading, isAuthenticated } = useConvexAuth();
-
-  if (isLoading) {
-    return <p role="status" className="py-10 text-muted">Comprobando tu acceso al negocio…</p>;
-  }
-  if (!isAuthenticated) {
-    return (
-      <div className="mt-10 max-w-xl space-y-4">
-        <p role="alert" className="leading-7 text-muted">
-          No pudimos verificar tu acceso al negocio. Vuelve a iniciar sesión. Si el problema continúa, revisa la conexión con Convex.
-        </p>
-        <Link href="/sign-in" className="button-secondary">Volver a iniciar sesión</Link>
-      </div>
-    );
-  }
-
-  return <AuthenticatedBusinessProfile timeZones={timeZones} />;
+  const [opened, setOpened] = useState(isAuthenticated);
+  if (isAuthenticated && !opened) setOpened(true);
+  return <>
+    {isLoading && <p role="status" className="py-10 text-muted">Comprobando tu acceso al negocio…</p>}
+    {!isLoading && !isAuthenticated && <div className="max-w-xl space-y-4 py-10">
+    <h1 className="workspace-title">Recupera tu sesión</h1>
+    <p role="alert" className="text-muted">No pudimos verificar tu acceso al negocio. Comprueba la conexión y reintenta. Si tu sesión venció, vuelve a iniciar sesión.</p>
+    <div className="flex flex-wrap gap-3">
+      <Button onClick={retryAccess} disabled={!isLoaded || !isSignedIn}>Reintentar acceso</Button>
+      <Link href="/sign-in" target="_blank" rel="noopener noreferrer" className="button-secondary">Iniciar sesión en otra pestaña</Link>
+    </div>
+    <p className="text-sm text-muted">{signedOut ? "La sesión se cerró y se descartaron sus borradores." : "Los borradores siguen en esta pestaña mientras recuperas el acceso."}</p>
+  </div>}
+  {opened && ownerId && !signedOut && <div hidden={!isAuthenticated}><AuthenticatedBusinessProfile key={ownerId} timeZones={timeZones} enabled={isAuthenticated} /></div>}
+  </>;
 }
 
-function AuthenticatedBusinessProfile({ timeZones }: BusinessProfileProps) {
-  const business = useQuery(api.businesses.getMyBusiness, {});
-
-  if (business === undefined) {
-    return <p role="status" className="py-10 text-muted">Cargando el perfil de tu negocio…</p>;
-  }
-
-  return (
-    <>
-    <section aria-labelledby="business-heading" className="mt-10 max-w-2xl border-t border-line pt-8 sm:mt-12">
-      {business === null ? (
-        <CreateBusinessForm timeZones={timeZones} />
-      ) : (
-        <>
-          <h2 id="business-heading" className="text-2xl font-semibold tracking-tight">Tu negocio</h2>
-          <p role="status" className="sr-only">El perfil de tu negocio está guardado.</p>
-          <dl className="mt-6 rounded-md bg-surface p-6 sm:p-8">
-            <div>
-              <dt className="text-sm font-medium text-muted">Nombre del negocio o profesional</dt>
-              <dd className="mt-2 text-xl font-semibold">{business.name}</dd>
-            </div>
-            <div className="mt-6">
-              <dt className="text-sm font-medium text-muted">Zona horaria</dt>
-              <dd className="mt-2">{business.timeZone}</dd>
-            </div>
-          </dl>
-        </>
-      )}
-    </section>
-    {business !== null && <BusinessServices key={business._id} />}
-    {business !== null && <BusinessWeeklySchedule key={`schedule-${business._id}`} timeZone={business.timeZone} />}
-    {business !== null ? <BusinessAvailability key={`availability-${business._id}`} timeZone={business.timeZone} /> : (
-      <p role="status" className="mt-8 text-sm text-muted">Crea el perfil de tu negocio para consultar opciones de horario.</p>
-    )}
-    </>
-  );
-}
-
-function CreateBusinessForm({ timeZones }: BusinessProfileProps) {
+function AuthenticatedBusinessProfile({ timeZones, enabled }: { timeZones: string[]; enabled: boolean }) {
+  const business = useLastDefined(useQuery(api.businesses.getMyBusiness, enabled ? {} : "skip"));
+  const params = useSearchParams();
+  const active = readDashboardView(params.get("vista"));
   const createBusiness = useMutation(api.businesses.createMyBusiness);
-  return <BusinessProfileForm timeZones={timeZones} onCreate={createBusiness} />;
+  if (business === undefined) return <p role="status" className="py-10 text-muted">Cargando tu negocio…</p>;
+  if (business === null) return <section className="max-w-xl py-4">
+    <p className="mb-6 leading-7 text-muted">Empieza con tu negocio. Después podrás añadir servicios, definir tu horario y organizar las citas.</p>
+    <BusinessProfileForm timeZones={timeZones} onCreate={createBusiness} />
+  </section>;
+
+  return <div key={business._id}>
+    <p className="mb-5 text-sm font-medium text-muted wrap-anywhere">{business.name}</p>
+    {/* Keep each view mounted: back/forward and navigation preserve unsaved work. */}
+    <section hidden={active !== "agenda"} aria-label="Agenda"><BusinessAvailability timeZone={business.timeZone} enabled={enabled} active={active === "agenda"} /></section>
+    <section hidden={active !== "servicios"} aria-label="Servicios"><BusinessServices enabled={enabled} /></section>
+    <section hidden={active !== "horario"} aria-label="Horario"><BusinessWeeklySchedule timeZone={business.timeZone} enabled={enabled} /></section>
+    <section hidden={active !== "negocio"} aria-labelledby="business-heading">
+      <h1 id="business-heading" tabIndex={-1} className="workspace-title">Negocio</h1>
+      <p className="workspace-description">Los datos que definen tu espacio de trabajo.</p>
+      <dl className="mt-8 max-w-2xl divide-y divide-line border-y border-line">
+        <div className="py-5"><dt className="text-sm text-muted">Nombre del negocio o profesional</dt><dd className="mt-1 font-semibold wrap-anywhere">{business.name}</dd></div>
+        <div className="py-5"><dt className="text-sm text-muted">Zona horaria</dt><dd className="mt-1 wrap-anywhere">{business.timeZone}</dd></div>
+      </dl>
+      <p className="mt-6 max-w-prose text-sm leading-6 text-muted">Las fechas y horas de tu <WorkspaceLink view="agenda">agenda</WorkspaceLink> y tu <WorkspaceLink view="horario">horario de atención</WorkspaceLink> se muestran en esta zona.</p>
+    </section>
+  </div>;
 }

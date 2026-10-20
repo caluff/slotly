@@ -7,6 +7,7 @@ import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { createBusinessProfileSchema, type BusinessProfileValues } from "@/lib/business-profile-schema";
+import { useDraftWarning } from "@/components/use-draft-warning";
 
 type BusinessProfileFormProps = {
   timeZones: string[];
@@ -25,6 +26,7 @@ export function BusinessProfileForm({ timeZones, onCreate }: BusinessProfileForm
   });
   const { errors, isSubmitting, isSubmitSuccessful, submitCount } = form.formState;
   const isSaving = isSubmitting || isSubmitSuccessful;
+  useDraftWarning(form.formState.isDirty || isSubmitting);
   const { setFocus } = form;
   const submissionLock = useRef(false);
   const focusAfterSubmit = useRef<keyof BusinessProfileValues | null>(null);
@@ -80,7 +82,7 @@ export function BusinessProfileForm({ timeZones, onCreate }: BusinessProfileForm
 
   return (
     <>
-      <h2 id="business-heading" className="text-2xl font-semibold tracking-tight">Crea el perfil de tu negocio</h2>
+      <h1 id="business-heading" tabIndex={-1} className="workspace-title">Crea el perfil de tu negocio</h1>
       <form onSubmit={handleSubmit} noValidate className="mt-6 max-w-xl" aria-busy={isSaving}>
         <fieldset disabled={isSaving}>
           <legend className="sr-only">Datos del negocio</legend>

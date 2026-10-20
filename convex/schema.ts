@@ -26,5 +26,7 @@ export default defineSchema({
     start: v.number(),
     end: v.number(),
     status: v.literal("confirmed"),
-  }).index("by_businessId_and_date", ["businessId", "date"]),
+  }).index("by_businessId_and_date", ["businessId", "date"])
+    .index("by_businessId_and_date_and_start", ["businessId", "date", "start"])
+    .index("by_businessId_and_serviceId_and_date_and_start", ["businessId", "serviceId", "date", "start"]),
 });

@@ -77,7 +77,7 @@ Después de iniciar sesión o completar el registro, Clerk envía al usuario a `
 
 Cache Components ya está habilitado. Las lecturas de sesión se ejecutan dentro de `Suspense`, sin caché compartida de usuarios. Una redirección durante streaming puede conservar HTTP 200: comprueba el destino y la ausencia de contenido privado, además del estado HTTP.
 
-Las páginas y la estructura conservan sus Server Components. El perfil y el formulario son Client Components, con el proveedor oficial `ConvexProviderWithClerk` dentro del proveedor existente de Clerk y limitado al dashboard. El formulario utiliza componentes reales de shadcn/ui adaptados al tema de Slotly, React Hook Form y Zod.
+Las páginas y la estructura conservan sus Server Components. El perfil y el formulario son Client Components, con el proveedor oficial `ConvexProviderWithAuth` y un adaptador del `useAuth` oficial de Clerk, dentro del proveedor existente de Clerk y limitado al dashboard. El adaptador conserva la obtención oficial de credenciales y permite reintentar acceso sin recrear el cliente ni desmontar formularios; Convex confirma la autenticación en el servidor. El formulario utiliza componentes reales de shadcn/ui adaptados al tema de Slotly, React Hook Form y Zod.
 
 ## Perfil del negocio
 
@@ -137,7 +137,7 @@ El **Reto 05 queda cerrado funcionalmente en desarrollo** tras la revisión est�
 
 ## Reto 06: citas privadas
 
-Desde «Citas», elige servicio y fecha, consulta opciones y confirma una de ellas con el nombre del cliente. La lista de esa fecha comprende todos los servicios del negocio. Una cita bloquea su intervalo para toda la agenda; dos citas consecutivas son válidas. El backend vuelve a comprobar servicio propio, fecha/inicio futuros, horario vigente, paso de 15 minutos desde apertura, cierre, zona y DST. Calcula el fin y comprueba los solapes dentro de la misma mutación que inserta. No confía en negocio, propietario, zona, duración o fin proporcionados por el cliente.
+Desde «Agenda», consulta todas las citas de una fecha sin elegir servicio. «Nueva cita» abre un panel con fecha heredada de la agenda; al elegir servicio o cambiar fecha se cargan automáticamente los horarios. Confirma uno con el nombre del cliente. La lista diaria comprende todos los servicios del negocio. Una cita bloquea su intervalo para toda la agenda; dos citas consecutivas son válidas. El backend vuelve a comprobar servicio propio, fecha/inicio futuros, horario vigente, paso de 15 minutos desde apertura, cierre, zona y DST. Calcula el fin y comprueba los solapes dentro de la misma mutación que inserta. No confía en negocio, propietario, zona, duración o fin proporcionados por el cliente.
 
 Las citas guardadas conservan sus instantes al modificar la semana. Las opciones se actualizan al cambiar servicios/semana/citas, cada 30 segundos y al recuperar foco/conexión; una opción vencida se retira con reloj monotónico. Ante ocupación concurrente se conserva el nombre, se indica el conflicto y se actualizan las opciones. El único toast «Cita confirmada» se emite después del guardado. No incluye edición, cancelación, reprogramación, agenda pública, módulo de clientes, contactos ni notificaciones externas.
 
@@ -146,7 +146,7 @@ El **Reto 06 queda cerrado funcionalmente en desarrollo**, sincronizado solo con
 ## Archivos de esta etapa
 
 - `app/page.tsx`: portada con estado real de sesión.
-- `app/dashboard/page.tsx`: bienvenida y protección en servidor.
+- `app/dashboard/page.tsx`: entrada privada y protección en servidor; `DashboardWorkspace` organiza Agenda, Servicios, Horario y Negocio.
 - `app/sign-in/[[...sign-in]]/page.tsx` y `app/sign-up/[[...sign-up]]/page.tsx`: formularios oficiales adaptados a la interfaz.
 - `app/layout.tsx` y `app/globals.css`: proveedor existente, idioma, metadatos y estilos.
 - `components/brand.tsx` y `components/site-shell.tsx`: marca y estructura compartidas.
@@ -180,7 +180,7 @@ pnpm build
 
 Para servir la compilación: `pnpm start`.
 
-`pnpm test` ejecuta 234 casos en memoria: los 177 previos y 57 del Reto 06. Incluye creación/listado, normalización, autorización, argumentos manipulados, todos los tipos de solape, agenda compartida entre servicios, horarios obsoletos, paso, cierre, fechas, zona y DST, así como conservación de instantes al cambiar la semana o la duración. Las llamadas simultáneas de `convex-test` verifican el contrato del harness; por sí solas no demuestran OCC del motor real. Las identidades son sintéticas; estas pruebas no escriben datos remotos ni comprueban firmas de Clerk.
+`pnpm test` ejecuta **268 casos en memoria**: 234 de los Retos 01–06, 6 de fechas/navegación, 6 del adaptador de credenciales y 22 de consulta amplia. Incluye creación/listado, normalización, autorización, argumentos manipulados, todos los tipos de solape, agenda compartida entre servicios, horarios obsoletos, paso, cierre, fechas, zona y DST, así como conservación de instantes al cambiar la semana o la duración. La búsqueda verifica años lejanos, filtros combinados, rangos, paginación con páginas intermedias vacías e identidades aisladas. Las llamadas simultáneas de `convex-test` verifican el contrato del harness; por sí solas no demuestran OCC del motor real. Las identidades son sintéticas; estas pruebas no escriben datos remotos ni comprueban firmas de Clerk.
 
 `pnpm test:appointments:engine` ejecuta las pruebas de citas contra un motor **real aislado** de Convex/SQLite: crea directorio, configuración, clave de prueba, puertos y datos sintéticos temporales. Reutiliza únicamente el binario oficial cacheado por el CLI (o el indicado en `SLOTLY_CONVEX_BACKEND`) y las dependencias instaladas. No lee `.env.local` ni `.convex`, no cambia el destino de la app ni provisiona cloud. Tres rondas, seis escenarios: 60 solicitudes en 18 carreras con barrera de salida, clientes HTTP separados y `skipQueue`. Verifica documentos finales, persistencia tras reinicio y que cerrar la semana no altera citas. Detiene el proceso y elimina solo su directorio propio al terminar. `--report <ruta absoluta>` conserva un informe sin credenciales. Las identidades administrativas de prueba no son sesiones de Clerk.
 
@@ -225,3 +225,22 @@ Para el Reto 05, las pruebas reales son de lectura: consultar un día abierto co
 Durante la implementación del Reto 06, las escrituras se probaron con datos sintéticos en memoria, motor local aislado y fixture de UI; las cuentas reales se verificaron en modo lectura y no se dejaron citas sintéticas. Posteriormente, con autorización expresa del usuario, el agente de planificación creó y conservó **una cita** para «Prueba de validación Reto 06», servicio 2, el **26 de octubre de 2026 de 09:30 a 10:00 America/Montevideo**. Verificó toast único, limpieza/foco, listado reactivo, persistencia tras recarga y ocupación compartida con el servicio de 46 minutos. Perfil, servicios y semana permanecieron intactos; la segunda cuenta no se abrió ni se modificó. Los **234 tests**, las **60 solicitudes/18 carreras locales**, lint, tipos y build siguen siendo pruebas ejecutadas por implementación y no se repitieron en planificación ni en esta reconciliación documental. La evidencia y sus límites están en `docs/PROJECT_CONTEXT.md`. No se incluyen edición/cancelación/reprogramación de citas, agenda pública, calendarios externos, pagos ni notificaciones por correo u otros canales externos.
 
 Documentación de referencia: [Convex con Clerk](https://docs.convex.dev/auth/clerk) y [runtime de Convex](https://docs.convex.dev/functions/runtimes).
+
+
+## Mejora de experiencia del espacio privado (antes del Reto 07)
+
+`/dashboard` abre Agenda con hoy en la zona del negocio. Los enlaces `?vista=servicios`, `?vista=horario` y `?vista=negocio` permiten acceso directo; `fecha=AAAA-MM-DD` conserva el día al navegar. La API nativa de historial, integrada con `useSearchParams`, permite atrás/adelante sin desmontar los formularios. Todas las vistas usan la misma ruta protegida en servidor, y los endpoints actuales mantienen su autorización propia.
+
+La navegación superior concentra cuatro destinos reales; en móvil pasa a una segunda fila con icono y etiqueta. Nueva cita y Nuevo servicio muestran sus formularios bajo demanda. Cerrar el panel o cambiar de vista conserva el borrador en memoria de esa pestaña. Salir mediante enlaces muestra un diálogo accesible; recargar o cerrar la pestaña usa el aviso nativo del navegador. No hay almacenamiento persistente de borradores. Horario guarda explícitamente la semana completa y anuncia cambios pendientes, guardado y errores. Negocio sigue siendo consulta del perfil existente o creación inicial, sin edición.
+
+Las pruebas de esta mejora y sus límites se registran al final de `docs/PROJECT_CONTEXT.md`: **268 tests**, lint, tipos y build correctos, revisión visual independiente y lectura real de la cita existente sin crear datos. El usuario autorizó posteriormente revisar el diff y, si es correcto, hacer commit y subir las mejoras de UX/UI y los filtros de Agenda a GitHub. La revisión final del lote y la publicación quedan a cargo de planificación, que verificará y comunicará el resultado; aún no se registra aquí un commit o push de este lote. No autoriza producción, el Reto 07 ni nuevas operaciones de negocio.
+
+### Buscar una cita sin recordar su fecha
+
+Agenda ofrece **Día** y **Buscar citas**. El segundo modo consulta todas las fechas propias y permite combinar un fragmento del nombre del cliente, servicio, período y un rango Desde/Hasta opcional e inclusivo. «Todas» no impone fecha ni antigüedad máxima. «Próximas» incluye todo el día de referencia del negocio y los siguientes; «Pasadas», los días anteriores. La fecha de referencia y la zona IANA se muestran, y el cliente actualiza el día cada 30 segundos y al recuperar foco, visibilidad o conexión; la query recibe esa fecha explícita y no depende de un reloj cacheado. Los períodos se refieren a días completos, no a si una hora concreta ya transcurrió.
+
+El nombre admite un **fragmento literal en el mismo orden**, sin distinguir mayúsculas ni marcas diacríticas y unificando espacios. No hay tolerancia a erratas ni búsqueda de palabras reordenadas. La normalización se aplica en el servidor sobre páginas acotadas del índice propio; no se utiliza un índice de texto ni se descarga toda la tabla. Cada solicitud revisa una página: si quedan páginas, «Cargar más citas» o «Seguir buscando» permite continuar. Una página sin coincidencias no agota la búsqueda. «Sin coincidencias» aparece únicamente al terminar el recorrido; los recuentos intermedios se identifican como citas cargadas.
+
+El orden es ascendente por fecha e inicio. Cada resultado muestra fecha completa, horas en la zona del negocio, cliente, servicio y **Ver día**, que abre la vista diaria correspondiente. `modo=listado`, `cliente`, `servicio`, `periodo`, `desde` y `hasta` conservan los filtros en URL/recarga/historial; `fecha` sigue perteneciendo exclusivamente a la vista diaria. Por ejemplo, `/dashboard?modo=listado&cliente=ana` no exige conocer el día. Limpiar elimina los filtros de búsqueda.
+
+Alternar modos o abrir un día conserva el borrador existente. Al empezar una cita nueva desde Buscar, la fecha queda vacía para elegirla explícitamente. No se añaden edición, cancelación ni otras escrituras. La consulta y los dos índices de lectura se sincronizaron solo con `dev/slotly`; la comprobación real encontró la cita ya existente sin introducir su fecha y no creó datos.

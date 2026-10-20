@@ -3,6 +3,7 @@ import { ConvexError } from "convex/values";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Controller, useForm, useWatch, type FieldPath } from "react-hook-form";
 import { toast } from "sonner";
+import { useDraftWarning } from "@/components/use-draft-warning";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ export function WeeklyScheduleForm({ schedule, onSave }: WeeklyScheduleFormProps
     shouldFocusError: false,
   });
   const { errors, isDirty, isSubmitting, submitCount } = form.formState;
+  useDraftWarning(isDirty || isSubmitting);
   const { reset, setFocus } = form;
   const days = useWatch({ control: form.control, name: "days" });
   const [savedOnce, setSavedOnce] = useState(false);
@@ -111,20 +113,20 @@ export function WeeklyScheduleForm({ schedule, onSave }: WeeklyScheduleFormProps
             <fieldset key={label} className="grid min-w-0 grid-cols-2 gap-4 py-4 sm:grid-cols-[8rem_minmax(0,1fr)_minmax(0,1fr)]">
               <legend className="sr-only">{label}</legend>
               <Controller name={`days.${index}.isOpen`} control={form.control} render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="col-span-2 gap-2 sm:col-span-1">
+                <Field data-invalid={fieldState.invalid} className="col-span-2 flex-row items-center justify-between gap-4 sm:col-span-1 sm:flex-col sm:items-start sm:justify-start sm:gap-2 [&>[data-slot=native-select-wrapper]]:w-32 [&>[data-slot=native-select-wrapper]]:shrink-0">
                   <FieldLabel htmlFor={`schedule-${index}-state`} className="font-semibold">{label}</FieldLabel>
                   <NativeSelect ref={field.ref} id={`schedule-${index}-state`} name={field.name}
                     value={field.value ? "open" : "closed"} onBlur={field.onBlur}
                     onChange={(event) => {
                       field.onChange(event.target.value === "open");
                       form.clearErrors([`days.${index}.start`, `days.${index}.end`]);
-                    }} className="w-full sm:w-32" aria-invalid={fieldState.invalid}>
+                    }} className="w-full" aria-invalid={fieldState.invalid}>
                     <NativeSelectOption value="closed">Cerrado</NativeSelectOption>
                     <NativeSelectOption value="open">Abierto</NativeSelectOption>
                   </NativeSelect>
                 </Field>
               )} />
-              {(["start", "end"] as const).map((timeField) => (
+              {days[index].isOpen ? (["start", "end"] as const).map((timeField) => (
                 <Controller key={timeField} name={`days.${index}.${timeField}`} control={form.control} render={({ field, fieldState }) => {
                   const enabled = days[index].isOpen;
                   const id = `schedule-${index}-${timeField}`;
@@ -141,16 +143,18 @@ export function WeeklyScheduleForm({ schedule, onSave }: WeeklyScheduleFormProps
                     </Field>
                   );
                 }} />
-              ))}
+              )) : <p className="hidden self-center text-sm text-muted sm:col-span-2 sm:block">Sin atención</p>}
             </fieldset>
           ))}
         </FieldGroup>
         {errors.days?.root && <FieldError className="mt-4" errors={[errors.days.root]} />}
         {errors.root?.server && <FieldError className="mt-4" errors={[errors.root.server]} />}
-        <Button type="submit" disabled={isSubmitting} className="mt-6 w-full disabled:cursor-wait sm:w-auto">
-          {isSubmitting ? "Guardando horario…" : "Guardar horario"}
-        </Button>
-        <p role="status" className="sr-only">{isSubmitting ? "Guardando el horario." : ""}</p>
+        <div className="sticky bottom-0 mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-line bg-background py-4">
+          <p role="status" className="text-sm text-muted">{isSubmitting ? "Guardando la semana…" : errors.root?.server ? "No se guardaron los cambios." : isDirty ? "Cambios sin guardar" : savedOnce ? "Todos los cambios guardados" : schedule === null ? "Semana sin configurar" : "Horario guardado"}</p>
+          <Button type="submit" disabled={isSubmitting || (!isDirty && schedule !== null)} className="w-full sm:w-auto">
+            {isSubmitting ? "Guardando…" : "Guardar semana"}
+          </Button>
+        </div>
       </fieldset>
     </form>
   );

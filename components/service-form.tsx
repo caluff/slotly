@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { serviceSchema, type ServiceFormValues, type ServiceValues } from "@/lib/service-schema";
+import { useDraftWarning } from "@/components/use-draft-warning";
 
-type ServiceFormProps = { onCreate: (values: ServiceValues) => Promise<unknown> };
+type ServiceFormProps = { onCreate: (values: ServiceValues) => Promise<unknown>; onSaving?: (saving: boolean) => void; compact?: boolean };
 const emptyValues: ServiceFormValues = { name: "", durationMinutes: "" };
 
 // The parent connects the mutation; a local callback can verify every form state
 // without writing synthetic services into a real account.
-export function ServiceForm({ onCreate }: ServiceFormProps) {
+export function ServiceForm({ onCreate, onSaving, compact = false }: ServiceFormProps) {
   const form = useForm<ServiceFormValues, unknown, ServiceValues>({
     resolver: zodResolver(serviceSchema),
     defaultValues: emptyValues,
@@ -21,6 +22,7 @@ export function ServiceForm({ onCreate }: ServiceFormProps) {
   });
   const { errors, isSubmitting, submitCount } = form.formState;
   const { setFocus } = form;
+  useDraftWarning(form.formState.isDirty || isSubmitting);
   const submissionLock = useRef(false);
   const focusAfterSubmit = useRef<keyof ServiceFormValues | null>(null);
 
@@ -32,6 +34,7 @@ export function ServiceForm({ onCreate }: ServiceFormProps) {
   }, [isSubmitting, submitCount, setFocus]);
 
   async function onSubmit(values: ServiceValues) {
+    onSaving?.(true);
     try {
       await onCreate(values);
       form.reset(emptyValues);
@@ -58,7 +61,7 @@ export function ServiceForm({ onCreate }: ServiceFormProps) {
             ? "Tu cuenta no tiene un negocio asociado. Recarga la página y crea su perfil."
             : "No pudimos guardar el servicio. Comprueba tu conexión e inténtalo de nuevo; los datos siguen en el formulario.",
       });
-    }
+    } finally { onSaving?.(false); }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -79,7 +82,7 @@ export function ServiceForm({ onCreate }: ServiceFormProps) {
       <fieldset disabled={isSubmitting}>
         <legend className="sr-only">Datos del servicio</legend>
         <FieldGroup className="gap-5">
-          <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_12rem]">
+          <div className={`grid gap-5 ${compact ? "" : "sm:grid-cols-[minmax(0,1fr)_12rem]"}`}>
             <Controller name="name" control={form.control} render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid} data-disabled={isSubmitting} className="gap-2">
                 <FieldLabel htmlFor="service-name" className="font-semibold">Nombre del servicio</FieldLabel>

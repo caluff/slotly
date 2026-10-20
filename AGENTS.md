@@ -32,6 +32,7 @@
 - Usa exclusivamente pnpm para gestionar dependencias y ejecutar scripts. No uses npm, yarn ni bun; para ejecutables de paquetes usa `pnpm exec` o `pnpm dlx` cuando corresponda.
 - Consulta `package.json` y `pnpm-lock.yaml` para determinar las versiones reales. No asumas versiones a partir del stack elegido.
 - shadcn/ui es una elección del stack, pero su incorporación debe responder a una necesidad del reto; no asumir que ya está instalado.
+- Preferencia visual permanente y explícita del usuario: los inputs, selects y botones propios de Slotly se mantienen compactos, con **36px de altura por defecto en escritorio y móvil**; `Button size="icon"` mide **36×36px**. Definir la altura en las primitivas `Input`, `NativeSelect` y `Button`, y heredarla en sus consumidores sin repetir `h-9`/`min-h-9`. No volver a imponer 44px por defecto mediante overrides locales sin una petición del usuario. Conservar variantes de tamaño solicitadas deliberadamente; esta regla no redimensiona Textarea, navegación ni el `UserButton` oficial de Clerk.
 - Clerk gestiona la autenticación. Reutiliza sus componentes y APIs oficiales; no desarrolles autenticación propia ni almacenamiento manual de tokens.
 - Convex se integrará en una etapa posterior. No añadirlo sin autorización para esa etapa.
 - Mercado Pago, Resend y otras integraciones son posibilidades futuras, no requisitos actuales. Proponerlas solo cuando aporten valor a un reto autorizado.

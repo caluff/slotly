@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-20T03:07:48.888Z",
+  "generatedAt": "2026-10-20T20:49:16.379Z",
   "title": "Design System: Slotly",
   "extensions": {
     "colorMeta": {
@@ -52,7 +52,7 @@
       },
       "title": {
         "displayName": "Encabezado de sección",
-        "purpose": "Panel de cuenta y título de autenticación."
+        "purpose": "Panel de cuenta y encabezados de las vistas privadas; aumenta en sm."
       },
       "lead": {
         "displayName": "Introducción",
@@ -64,7 +64,7 @@
       },
       "label": {
         "displayName": "Acciones",
-        "purpose": "Enlaces con apariencia de botón."
+        "purpose": "Acciones y enlaces con apariencia de botón."
       }
     },
     "motion": [
@@ -83,6 +83,10 @@
       {
         "name": "sm",
         "value": "40rem"
+      },
+      {
+        "name": "md",
+        "value": "48rem"
       },
       {
         "name": "lg",
@@ -125,19 +129,57 @@
     {
       "name": "Confirmación por toast",
       "kind": "custom",
-      "description": "Sonner con el wrapper de shadcn/ui adaptado al tema claro y un único Toaster en el layout raíz. «Servicio creado» se emite solo tras guardar correctamente, sin éxito inline ni anuncio duplicado; los errores siguen en FieldError y el guardado conserva su anuncio exclusivo para lectores de pantalla. Geist de 14px, superficie verde clara, texto principal, borde line, radio compartido de 6px, sin sombra e icono decorativo CircleCheck de 16px en accent. Posición inferior derecha, márgenes móviles de 16px y duración base nativa de 4000ms. Región aria-live polite «Notificaciones», con Alt+T nativo. El éxito limpia el formulario y devuelve el foco a «Nombre del servicio» sin enfocarse en el toast.",
+      "description": "Sonner con el wrapper de shadcn/ui adaptado al tema claro y un único Toaster en el layout raíz. «Servicio creado», «Horario guardado» y «Cita confirmada» se emiten solo tras guardar correctamente, sin éxito inline ni anuncio duplicado; consultar disponibilidad no emite toast. Los errores siguen en FieldError y el guardado conserva su anuncio exclusivo para lectores de pantalla. Geist de 14px, superficie verde clara, texto principal, borde line, radio compartido de 6px, sin sombra e icono decorativo CircleCheck de 16px en accent. Posición inferior derecha, márgenes móviles de 16px y duración base nativa de 4000ms. Región aria-live polite «Notificaciones», con Alt+T nativo. El toast no toma el foco: cada formulario conserva el comportamiento descrito en DESIGN.md.",
       "html": "<section class=\"ds-notifications\" aria-label=\"Notificaciones alt+T\" aria-live=\"polite\" aria-relevant=\"additions text\" aria-atomic=\"false\"><div class=\"ds-success-toast\" tabindex=\"0\"><span class=\"ds-success-icon\" aria-hidden=\"true\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m16 9-5.5 5.5L8 12\"/></svg></span><span class=\"ds-success-title\">Servicio creado</span></div></section>",
       "css": ".ds-notifications{width:356px;max-width:calc(100vw - 32px);}.ds-success-toast{display:flex;align-items:center;gap:6px;padding:16px;background:var(--surface);color:var(--foreground);border:1px solid var(--line);border-radius:var(--radius-md);box-shadow:none;font-family:var(--font-geist-sans),sans-serif;font-size:.875rem;overflow-wrap:anywhere;}.ds-success-icon{display:flex;width:16px;height:16px;align-items:center;flex-shrink:0;margin-left:-3px;margin-right:4px;color:var(--accent);}.ds-success-icon svg{margin-left:-1px;}.ds-success-title{font-weight:500;line-height:1.5;}.ds-success-toast:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}"
+    },
+    {
+      "name": "Acción del espacio privado",
+      "kind": "button",
+      "refersTo": "workspace-action",
+      "description": "Acción compacta de cabecera Nueva cita o Nuevo servicio, con altura de 36px en escritorio y móvil. Preferencia permanente: inputs, selects y botones propios de Slotly conservan 36px; no imponer 44px sin petición del usuario. La altura se hereda de Input, NativeSelect y Button, sin overrides redundantes en consumidores; se conservan variantes explícitas deliberadas. Navegación y UserButton oficial son elementos distintos.",
+      "html": "<button class=\"ds-workspace-action\"><svg aria-hidden=\"true\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg>Nueva cita</button>",
+      "css": ".ds-workspace-action{display:inline-flex;min-height:2.25rem;align-items:center;justify-content:center;gap:.5rem;border:0;border-radius:.375rem;background:var(--accent);color:#fff;padding:.375rem .75rem;font-family:var(--font-geist-sans),sans-serif;font-size:.875rem;font-weight:600;line-height:1.25rem;white-space:nowrap;cursor:pointer;transition:background-color 150ms cubic-bezier(.4,0,.2,1);}.ds-workspace-action svg{flex-shrink:0;}.ds-workspace-action:hover{background:var(--accent-hover);}.ds-workspace-action:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}.ds-workspace-action:disabled{pointer-events:none;opacity:.6;}@media(prefers-reduced-motion:reduce){.ds-workspace-action{transition:none;}}"
+    },
+    {
+      "name": "Campo propio",
+      "kind": "input",
+      "refersTo": "form-control",
+      "description": "Campo compacto de 36px con etiqueta visible; comparte borde, radio, error inline y foco con los formularios privados.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-field-label\" for=\"ds-client-name\">Nombre del cliente</label><input class=\"ds-field-input\" id=\"ds-client-name\" autocomplete=\"off\" maxlength=\"100\" required /></div>",
+      "css": ".ds-field{display:flex;flex-direction:column;gap:.5rem;font-family:var(--font-geist-sans),sans-serif;color:var(--foreground);}.ds-field-label{font-size:.875rem;font-weight:600;line-height:1.25rem;}.ds-field-input{width:100%;min-width:0;height:2.25rem;min-height:2.25rem;border:1px solid var(--muted);border-radius:.375rem;background:#fff;color:var(--foreground);padding:.375rem .75rem;font:400 .875rem/1.25rem var(--font-geist-sans),sans-serif;transition:border-color 150ms cubic-bezier(.4,0,.2,1);}.ds-field-input::placeholder{color:var(--muted);}.ds-field-input:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}.ds-field-input[aria-invalid=true]{border-color:var(--destructive);}.ds-field-input:disabled{opacity:.6;cursor:not-allowed;}@media(prefers-reduced-motion:reduce){.ds-field-input{transition:none;}}"
+    },
+    {
+      "name": "Navegación del espacio privado",
+      "kind": "nav",
+      "description": "Cuatro destinos con acento y borde inferior en la vista activa. Antes de md usa columnas iguales, icono encima de etiqueta sin partir nombres; desde md usa una fila horizontal.",
+      "html": "<nav class=\"ds-workspace-nav\" aria-label=\"Espacio de trabajo\"><a class=\"ds-workspace-destination\" aria-current=\"page\" href=\"/dashboard\"><svg aria-hidden=\"true\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M8 2v4m8-4v4M3 10h18\"/><rect x=\"3\" y=\"4\" width=\"18\" height=\"18\" rx=\"2\"/></svg>Agenda</a><a class=\"ds-workspace-destination\" href=\"/dashboard?vista=servicios\"><svg aria-hidden=\"true\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m3 5 2 2 4-4M13 6h8M3 12l2 2 4-4m4 3h8M3 19l2 2 4-4m4 3h8\"/></svg>Servicios</a><a class=\"ds-workspace-destination\" href=\"/dashboard?vista=horario\"><svg aria-hidden=\"true\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 6v6h4\"/></svg>Horario</a><a class=\"ds-workspace-destination\" href=\"/dashboard?vista=negocio\"><svg aria-hidden=\"true\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 10v10h18V10M2 10l2-7h16l2 7M9 20v-8h6v8M2 10a3 3 0 0 0 5 2 3 3 0 0 0 5 0 3 3 0 0 0 5 0 3 3 0 0 0 5-2\"/></svg>Negocio</a></nav>",
+      "css": ".ds-workspace-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));font-family:var(--font-geist-sans),sans-serif;}.ds-workspace-destination{display:flex;min-height:3.5rem;flex-direction:column;align-items:center;justify-content:center;gap:.25rem;border-bottom:2px solid transparent;padding:.5rem;color:var(--muted);font-size:.75rem;font-weight:500;line-height:1rem;white-space:nowrap;text-decoration:none;transition:color 150ms cubic-bezier(.4,0,.2,1),background-color 150ms cubic-bezier(.4,0,.2,1);}.ds-workspace-destination:hover{background:color-mix(in oklab,var(--surface) 50%,transparent);color:var(--foreground);}.ds-workspace-destination[aria-current=page]{border-color:var(--accent);color:var(--accent);}.ds-workspace-destination:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}@media(min-width:48rem){.ds-workspace-nav{display:flex;}.ds-workspace-destination{min-height:3rem;flex-direction:row;gap:.5rem;padding:0 1.25rem;font-size:.875rem;line-height:1.25rem;}}@media(prefers-reduced-motion:reduce){.ds-workspace-destination{transition:none;}}"
+    },
+    {
+      "name": "Panel contextual",
+      "kind": "custom",
+      "refersTo": "context-panel",
+      "description": "Aside no modal de Nueva cita o Nuevo servicio. Se sitúa antes de la lista en móvil y a la derecha en una columna de 23rem desde lg. En la aplicación, abrir enfoca el primer campo; cerrar o Escape restaura el foco, conserva el borrador y queda bloqueado durante el guardado.",
+      "html": "<aside class=\"ds-context-panel\" aria-labelledby=\"ds-context-title\"><div class=\"ds-context-heading\"><h2 class=\"ds-context-title\" id=\"ds-context-title\">Nueva cita</h2><button class=\"ds-context-close\" aria-label=\"Cerrar nueva cita\"><svg aria-hidden=\"true\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"m18 6-12 12M6 6l12 12\"/></svg></button></div><p class=\"ds-context-note\">El borrador se conserva al cerrar el panel o cambiar de vista.</p></aside>",
+      "css": ".ds-context-panel{min-width:0;border:1px solid var(--line);border-radius:.375rem;background:#fff;color:var(--foreground);padding:1.25rem;font-family:var(--font-geist-sans),sans-serif;}.ds-context-heading{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.5rem;}.ds-context-title{margin:0;font-size:1.125rem;font-weight:600;line-height:1.75rem;letter-spacing:-.025em;}.ds-context-close{display:inline-flex;min-width:2.25rem;min-height:2.25rem;align-items:center;justify-content:center;border:0;border-radius:.375rem;background:transparent;color:var(--foreground);cursor:pointer;transition:background-color 150ms cubic-bezier(.4,0,.2,1);}.ds-context-close:hover{background:var(--surface);}.ds-context-close:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}.ds-context-close:disabled{pointer-events:none;opacity:.6;}.ds-context-note{margin:1.25rem 0 0;border-top:1px solid var(--line);padding-top:1rem;font-size:.75rem;line-height:1.25rem;color:var(--muted);}@media(min-width:40rem){.ds-context-panel{padding:1.5rem;}}@media(prefers-reduced-motion:reduce){.ds-context-close{transition:none;}}"
+    },
+    {
+      "name": "Estado del día semanal",
+      "kind": "input",
+      "refersTo": "weekly-state-select",
+      "description": "Selector nativo de Abierto/Cerrado. El wrapper mide 128px, el select ocupa todo su ancho y la flecha se mantiene dentro del borde.",
+      "html": "<div class=\"ds-weekly-state\"><label class=\"ds-weekly-label\" for=\"ds-weekly-state\">Lunes</label><div class=\"ds-weekly-select-wrap\"><select class=\"ds-weekly-select\" id=\"ds-weekly-state\"><option>Cerrado</option><option>Abierto</option></select><svg class=\"ds-weekly-chevron\" aria-hidden=\"true\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m6 9 6 6 6-6\"/></svg></div></div>",
+      "css": ".ds-weekly-state{display:flex;align-items:center;justify-content:space-between;gap:1rem;font-family:var(--font-geist-sans),sans-serif;color:var(--foreground);}.ds-weekly-label{font-size:.875rem;font-weight:600;line-height:1.25rem;}.ds-weekly-select-wrap{position:relative;width:8rem;}.ds-weekly-select{width:100%;height:2.25rem;min-height:2.25rem;min-width:0;appearance:none;border:1px solid var(--muted);border-radius:.375rem;background:#fff;color:var(--foreground);padding:.375rem 2.25rem .375rem .75rem;font:400 .875rem/1.25rem var(--font-geist-sans),sans-serif;cursor:pointer;transition:border-color 150ms cubic-bezier(.4,0,.2,1);}.ds-weekly-chevron{position:absolute;top:50%;right:.875rem;transform:translateY(-50%);color:var(--muted);opacity:.5;pointer-events:none;}.ds-weekly-select:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}.ds-weekly-select[aria-invalid=true]{border-color:var(--destructive);}.ds-weekly-select:disabled{opacity:.6;cursor:not-allowed;}@media(min-width:40rem){.ds-weekly-state{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:.5rem;}}@media(prefers-reduced-motion:reduce){.ds-weekly-select{transition:none;}}"
     }
   ],
   "narrative": {
-    "overview": "Interfaz clara, sencilla y profesional, con acentos verdes. Esta documentación captura la implementación visual de la etapa 1.",
+    "overview": "Interfaz clara, sencilla y profesional, con acentos verdes. La portada y la autenticación conservan su presentación existente; el espacio privado usa una composición más amplia para consultar y gestionar el día.",
     "keyCharacteristics": [
       "Fondo claro y texto verde oscuro.",
       "Jerarquía tipográfica en Geist.",
       "Acciones principales verdes y formularios oficiales de Clerk.",
-      "Perfil con anatomía de shadcn/ui, controles de 36px y errores inline accesibles."
+      "Espacio privado con cuatro vistas, listas con separadores y formularios bajo demanda."
     ]
   }
 }
-
