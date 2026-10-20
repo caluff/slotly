@@ -2,7 +2,7 @@
 
 Última revisión del repositorio: **20 de octubre de 2026** (America/Montevideo).
 
-Última actualización documental: **20 de octubre de 2026** (America/Montevideo). Los **Retos 02 y 03 quedan cerrados funcionalmente en desarrollo**, con las pruebas reales reportadas por el usuario. El usuario autorizó posteriormente revisar el diff, hacer commit y push del Reto 03 a GitHub; el resultado de la publicación se verifica y comunica en el chat de planificación. La evidencia y sus límites se registran al final.
+Última actualización documental: **20 de octubre de 2026** (America/Montevideo). Los **Retos 02 y 03 quedan cerrados funcionalmente en desarrollo**, con las pruebas reales reportadas por el usuario. El Reto 03 está publicado en `main` en `f4e38fb2e780dec86cab4b4f1f6ee9bb6302abdf`, comprobado al comenzar el Reto 04 con árbol limpio. El **Reto 04 queda cerrado funcionalmente en desarrollo**, con las confirmaciones del usuario y las pruebas reales del agente de planificación, incluido el aislamiento entre dos cuentas reales. El usuario autorizó posteriormente revisar, hacer commit y push del Reto 04; el resultado de la publicación se verifica y comunica en el chat de planificación. La evidencia y sus límites se registran al final.
 
 ## Propósito
 
@@ -19,6 +19,7 @@ No se busca construir otra tienda online ni otro marketplace. Stripe no será la
 - Preferir soluciones modernas, mantenibles y seguras, evitando sobreingeniería y abstracciones innecesarias.
 - Proponer criterios de aceptación y pruebas reales cuando corresponda.
 - El usuario sabe programar y prefiere casos de prueba y resultados esperados concisos, sin instrucciones elementales de interfaz.
+- El usuario quiere que el agente ejecute las comprobaciones disponibles, incluidas las pruebas reales dentro del alcance autorizado, reservando su intervención para autenticación u otra acción necesaria. Lo explicitó el 20 de octubre de 2026: «verifica tú que esté correcto, o sea haz las pruebas tú».
 - Usar únicamente pnpm; no usar npm, yarn, bun ni OpenSpec.
 - Se pueden cuestionar decisiones técnicas con argumentos. Una recomendación no sustituye una decisión aceptada.
 
@@ -34,7 +35,7 @@ Las instrucciones permanentes para agentes están en `AGENTS.md`. Este documento
 | Tailwind CSS 4 | Dependencias `tailwindcss` y `@tailwindcss/turbopack` declaradas en `^4`; importación, tema y estilos en `app/globals.css`. |
 | shadcn/ui y formularios | Integrados: `components.json`, primitivas en `components/ui/`, React Hook Form **7.90.0**, Zod **4.6.7** y resolvers **5.9.2**. Se reutilizan en perfil y servicios. |
 | Clerk | `@clerk/nextjs` instalado en **7.9.17** (declarado como `^7.9.17`) y `@clerk/localizations` en **4.23.0**. Integración presente en el código. |
-| Convex | **1.47.0**. Destino activo cloud `daniel-caluff:slotly:dev/slotly`, con Clerk como emisor JWT, perfil en `businesses` y servicios en `services`. Retos 02 y 03 cerrados funcionalmente en desarrollo. Backend local inicial conservado como respaldo. |
+| Convex | **1.47.0**. Destino activo cloud `daniel-caluff:slotly:dev/slotly`, con Clerk como emisor JWT, perfil en `businesses`, servicios en `services` y horario semanal en `weeklySchedules`. Retos 02, 03 y 04 cerrados funcionalmente en desarrollo. Backend local inicial conservado como respaldo. |
 | pnpm | `packageManager` declara **pnpm@12.11.2**; existen `pnpm-lock.yaml` y `pnpm-workspace.yaml`. |
 
 `next.config.ts` tiene habilitados Cache Components, Partial Prefetching y `experimental.agentFeedback`. Las lecturas de autenticación están dentro de límites `Suspense`. El bloque administrado por Next.js en `AGENTS.md` debe conservarse, y se deben leer las guías pertinentes de `node_modules/next/dist/docs/` antes de escribir código.
@@ -519,3 +520,82 @@ El cierre corresponde exclusivamente a desarrollo: no acredita producción ni fu
 Posteriormente, el **20 de octubre de 2026**, el usuario autorizó expresamente: «Perfecto, revisa el diff y, si está todo correcto, haz el commit y sube el reto 03 a GitHub». Esta autorización permite revisar, hacer commit y push del Reto 03. El resultado de la publicación se verifica y comunica en el chat de planificación.
 
 Esta reconciliación se limita a `README.md`, `PRODUCT.md` y este documento. Solo se revisó su diff: no se ejecutaron pruebas ni se modificaron código, configuración o datos, y no se hizo commit o push en este ajuste documental.
+
+## Reto 04: horario semanal de atención
+
+Implementación autorizada el **20 de octubre de 2026** en un chat separado del de planificación. Se comenzó con `main` limpio en `f4e38fb2e780dec86cab4b4f1f6ee9bb6302abdf`, el Reto 03 publicado. **Cerrado funcionalmente en desarrollo el mismo día**, tras las pruebas de guardado, actualización, validaciones, semana cerrada, nueva sesión y aislamiento entre dos cuentas reales registradas a continuación. La implementación y el cierre documental se entregaron sin commit ni push; la autorización posterior se registra al final.
+
+### Modelo, reglas y autorización
+
+- Se añade únicamente `weeklySchedules`, con `businessId`, `days` e índice `by_businessId`; identificador y fecha de creación son campos de sistema de Convex. No se modifica el esquema ni los datos de perfiles y servicios.
+- Cada semana contiene siete entradas únicas con `dayOfWeek` ISO **1=lunes…7=domingo**, persistidas en orden ascendente; `isOpen`, `start` y `end` tienen tipos obligatorios. Un día abierto exige horas locales de 24 horas **`HH:mm`**, de `00:00` a `23:59`, y cierre posterior a apertura. No acepta segundos, fechas, offsets, `24:00` ni tramos que continúen al día siguiente. Las cadenas de ancho fijo permiten comparar el orden dentro del día sin convertirlas a fechas.
+- La zona se toma del negocio existente mediante la relación; no se copia ni cambia. Las reglas son recurrentes en esa zona IANA, sin timestamps UTC. Convertirlas a instantes concretos o resolver cambios de horario estacional pertenece a la futura generación de turnos, fuera del reto.
+- Los días cerrados normalizan ambas horas a `null`, independientemente del texto de un borrador previo en controles deshabilitados. Una semana con los siete días cerrados es válida. La consulta devuelve `null` si nunca se guardó configuración; una semana cerrada guardada devuelve su documento. La interfaz no inventa tramos ni escribe al montarse.
+- `getMyWeeklySchedule` y `saveMyWeeklySchedule` comprueban `ctx.auth.getUserIdentity()` y resuelven el negocio por `identity.subject` e índice de propietario en cada llamada. Rechazan ausencia de sesión o negocio y no aceptan IDs ni propietario del cliente. El correo no participa en autorización.
+- La mutación valida estructura, tipos y todos los días antes de escribir. Consulta el horario por el índice e inserta o actualiza el mismo documento en **una transacción**: un error no persiste ni siquiera un cambio válido anterior dentro del envío. El índice no impone unicidad por sí mismo; la ruta de escritura transaccional, con reintentos OCC de Convex, evita dos configuraciones por negocio. No se añadieron otras rutas de escritura ni operaciones por día.
+
+### Interfaz y decisiones
+
+`BusinessWeeklySchedule` se monta tras resolver el negocio autenticado, junto a los servicios existentes. `WeeklySchedulePanel` distingue carga (`undefined`), ausencia (`null`) y configuración persistida. Su cabecera muestra la zona IANA como contexto de las horas. `WeeklyScheduleForm` reutiliza `Controller`, React Hook Form, Zod/resolver y las primitivas existentes `Field`, `FieldLabel`, `FieldError`, `NativeSelect`, `Input` y `Button`. No se añadieron componentes de formulario genéricos, dependencias ni tokens visuales.
+
+Cada día tiene un selector Abierto/Cerrado y un único par de horas nativas. Las validaciones de Zod y Convex son independientes: comparten la convención documentada, sin delegar reglas de servidor al esquema del cliente. Los errores accesibles se asocian por campo y reciben foco después de que los controles vuelvan a estar disponibles; los fallos generales se anuncian y conservan valores. Un bloqueo síncrono evita envíos rápidos antes de que se renderice el estado de guardado.
+
+El éxito restablece la base del formulario a la semana enviada, manteniéndola visible y editable, y emite una vez `toast.success("Horario guardado")`. Se reutiliza el único `Toaster` del layout; no hay mensaje inline de éxito. Una consulta reactiva nueva actualiza el formulario cuando está limpio. Si hay una edición o envío pendiente se descarta su aplicación al borrador completo, sin mezclar días ni reproducir esa actualización al terminar de guardar. Entre ediciones simultáneas prevalece el último guardado confirmado de la semana completa; recargar recupera lo persistido.
+
+Se conservaron verde claro, Geist, controles de **36px** y radio de **6px**, con dos columnas de horas en móvil. Al verificar la integración se detectó y corrigió una clave React repetida entre las nuevas secciones hermanas: el horario ahora usa un prefijo propio. No se cambió la lógica validada de perfil, servicios, Clerk o el contenedor de notificaciones.
+
+### Evidencia de la implementación inicial y límites
+
+Las comprobaciones de este apartado corresponden al chat de implementación antes de la entrega. Las pruebas posteriores del usuario y del chat de planificación se registran por separado a continuación.
+
+| Comprobación | Resultado y límite |
+| --- | --- |
+| Context7 y guías locales | Consultadas las fuentes oficiales de Convex, React Hook Form y shadcn/ui, más `use-client` de la versión local de Next.js, antes de implementar. |
+| Sincronización de Convex | `pnpm exec convex dev --once`: destino confirmado `daniel-caluff:slotly:dev/slotly`, deployment `determined-poodle-377`; nuevo índice y funciones aceptados, tipos regenerados. No se crearon proyectos ni se usó producción. |
+| `pnpm test` final | **131 casos correctos**: 75 previos y 56 nuevos del horario (31 de funciones Convex y 25 del esquema Zod). Datos e identidades sintéticos en memoria, sin escrituras remotas. |
+| Reglas y funciones en memoria | Semana mixta/cerrada, ausencia de configuración, nueva identidad de sesión simulada, orden ISO y horas locales, guardados repetidos con el mismo ID y un solo documento, atomicidad ante horas/estructuras manipuladas, autenticación, ausencia de negocio, dos propietarios con igual correo, argumentos de acceso ajeno rechazados y perfil/servicios intactos. No acredita JWT reales ni concurrencia OCC del motor cloud. |
+| Consulta cloud sin sesión | `getMyWeeklySchedule` rechaza con `UNAUTHENTICATED`. Fue una lectura sin token; no se crearon horarios. |
+| Acceso HTTP sin cookies a `/dashboard` | Respuesta de streaming con redirección a `/sign-in`, sin sección de horario ni zona privada. No sustituye una prueba real de cierre de sesión. |
+| UI con respuestas sintéticas locales | Montaje sin callback ni horarios inventados; carga; semana cerrada guardada y nueva lectura local; intervalos vacíos, iguales e invertidos sin callback, con foco; cierre de día normaliza horas; errores de red, sesión, ausencia de negocio, estructura, hora e intervalo conservan valores y no muestran toast; doble clic pendiente hace un solo intento; fallo diferido/reintento y resolución correcta; éxito conserva semana editable con un toast y sin éxito inline; actualización reactiva conserva edición pendiente. |
+| Responsive y accesibilidad | Capturas de error y éxito a **1440×1000**, **390×844** y viewport actual **1280×720**, sin desbordamiento horizontal; 22 controles de 36px/radio 6px, Geist y errores asociados con foco visible. Consola del fixture sin errores. Detector manual sobre los tres TSX: `[]`. |
+| Lectura real sin escrituras | Dashboard con la sesión existente: recupera el perfil y los dos servicios reales y muestra horario todavía sin guardar. No se cerró sesión ni se creó/modificó configuración real por el agente. La recarga tras corregir la clave no produjo nuevos errores de consola. |
+| Comprobaciones finales sin fixture | **`pnpm lint`, `pnpm typecheck`, `pnpm exec tsc --noEmit --project convex/tsconfig.json` y `pnpm build` correctos**. El build conserva las rutas anteriores y no incluye `schedule-check`. `git diff --check` correcto. |
+
+Las capturas, mediciones y 22 comprobaciones de UI están fuera del repositorio, en `C:/Users/dcalu/.codex/visualizations/2026/10/20/01a15a65-1003-7dc1-b67f-18bd536923df/weekly-schedule/`. Se conservó allí la fuente del fixture como evidencia; la ruta temporal `app/schedule-check` se retiró antes de los comandos finales. El fixture conectaba los componentes reales a callbacks locales, sin proveedor ni cliente Convex. Su «nueva lectura» no equivale a persistencia cloud tras recargar o iniciar sesión.
+
+La revisión visual independiente devolvió **`ship` al alcance visual y de UI revisado**, sin correcciones materiales, sobre las seis capturas y los componentes. La revisión documental independiente confirmó que la extensión no requiere modificar `DESIGN.md` ni `.impeccable/design.json`. Se conserva sin reparar un drift previo del ejemplo del panel de cuenta en ese sidecar (radios 16/12px frente a los 6px actuales), ajeno a esta superficie. No se añadieron assets raster.
+
+No se instalaron dependencias ni fue necesario reiniciar Next.js. Se conservaron procesos existentes, variables, sesiones, datos y respaldos privados. `.env.local` y `.convex` siguen excluidos de Git. No se ejecutó `test:local`. Los comandos emitieron los avisos experimentales de Node sobre localStorage ya presentes, sin impedir las comprobaciones.
+
+### Verificaciones posteriores desde planificación
+
+El **20 de octubre de 2026**, el chat «Retomar planificación de Slotly» comunicó los resultados siguientes para su registro. Este ajuste documental distingue sus ejecutores; no atribuye al chat de implementación ni al usuario las pruebas ejecutadas por el agente de planificación.
+
+| Ejecutor | Comprobación y resultado |
+| --- | --- |
+| Usuario, confirmado en planificación | Guardó una semana con días abiertos/cerrados. Tras recargar se conservaron estados, horas y zona; observó un único toast y el perfil y los servicios intactos. |
+| Usuario, confirmado en planificación | Modificó un tramo y guardó dos veces. Al recargar se conservaron el cambio y el resto de días, sin errores. Esto confirma el comportamiento de actualización y persistencia observado en la UI; no constituye un conteo de documentos en cloud. |
+| Agente del chat de planificación | Ejecutó de nuevo **`pnpm test`: 6 archivos, 131 casos correctos, 0 fallos**, en memoria. No repitió lint, tipos ni build porque no hubo cambios de código desde sus resultados correctos. Esta nueva ejecución respalda las reglas y la atomicidad del backend con identidades sintéticas, sin acreditar concurrencia del motor cloud. |
+| Agente del chat de planificación, navegador real autenticado | Observó como configuración original el lunes abierto **08:30–17:00**, de martes a domingo cerrados, con la zona **America/Montevideo**, el perfil y los valores visibles de los dos servicios existentes intactos. |
+| Agente del chat de planificación, UI real | Probó cierre igual a apertura (**08:30–08:30**), cierre anterior (**08:30–08:00**), cierre vacío y apertura vacía. Cada envío mostró error por campo y foco. Tras recargar se recuperó la semana original, sin persistir los borradores inválidos. No se evadió el formulario para probar peticiones inválidas directas al backend cloud; esa validación independiente mantiene su evidencia en memoria. |
+| Agente del chat de planificación, escritura real autorizada | Cerró temporalmente el lunes y guardó los siete días cerrados desde el formulario. Se mostró un único toast «Horario guardado» y la recarga recuperó los siete cerrados como configuración existente. Después restauró el lunes **08:30–17:00**, con los demás días cerrados, guardó y recargó: recuperó la configuración original, el perfil y los dos servicios intactos. |
+| Agente del chat de planificación, autenticación real | Cerró sesión con `UserButton` y abrió `/dashboard`: terminó en `/sign-in`, con retorno al dashboard y sin datos del negocio ni horario. Después volvió a entrar mediante el botón Google de uso previo; regresó a `/dashboard` y recuperó la semana original, el perfil y los dos servicios correctos. |
+| Usuario, intervención para cambiar de cuenta | Respondió «ya» a la solicitud de abrir la segunda cuenta y la abrió personalmente. Las comprobaciones siguientes las ejecutó el agente de planificación, no el usuario ni el chat de implementación. |
+| Agente del chat de planificación, aislamiento real: segunda cuenta | Observó el negocio **usapeek**, zona **America/Montevideo**, sin horario guardado y con la lista de servicios ya vacía al entrar. No recibió la semana de la primera cuenta (**slotly**: lunes **08:30–17:00**, demás días cerrados). Al no existir una configuración previa en la segunda cuenta, guardó una semana con los siete días cerrados, sin inventar horas. Apareció un único toast, desapareció «Todavía no has guardado un horario» y la recarga recuperó la semana cerrada como configuración existente. |
+| Agente del chat de planificación, aislamiento real: regreso a la primera | Cerró la segunda sesión y volvió a la primera mediante Google. Recuperó **slotly**, **America/Montevideo**, los dos servicios originales y exactamente lunes **08:30–17:00**, con el resto cerrado. La escritura de la segunda cuenta no sobrescribió los datos de la primera. |
+
+Las escrituras funcionales reales de planificación quedaron autorizadas por la petición del usuario de que el agente hiciera las pruebas. No se crearon negocios ni se crearon o eliminaron servicios. **Estado final:** la primera cuenta quedó abierta, con su horario original restaurado; la segunda conserva una **nueva configuración guardada con los siete días cerrados**, porque antes no tenía horario. No se restauró la ausencia de configuración en la segunda cuenta y sus servicios no se confunden con los dos de la primera. Esta evidencia real resuelve los pendientes de semana mixta, actualización, semana cerrada, validaciones de UI, recarga, salida, nueva sesión y separación entre cuentas, sin atribuir al entorno sintético resultados del navegador real.
+
+La evidencia local está fuera del repositorio, en `C:/Users/dcalu/.codex/visualizations/2026/10/20/01a15620-54fe-7153-a4ec-ca62821d3c15/weekly-schedule-review/`: `checks.json` actualizado, `invalid-opening.png`, `restored-original-week.png`, `closed-week-after-reload.txt` y `signed-out-redirect.txt`; para el aislamiento se añadieron `second-account-before.txt`, `second-account-saved-after-reload.txt`, `second-account-closed-week.png`, `first-account-after-second-account-save.txt` y `first-account-final.png`. No se copian correos, credenciales ni identificadores privados de esos artefactos a este documento.
+
+### Cierre funcional del Reto 04 en desarrollo
+
+El **20 de octubre de 2026**, las primeras confirmaciones del usuario y las pruebas posteriores ejecutadas por el agente del chat de planificación completan los criterios acordados del horario semanal. Quedan acreditados el guardado y la consulta de la semana, su modificación y persistencia tras recarga y nuevo acceso, las validaciones de UI sin persistir borradores inválidos, la semana completamente cerrada, el toast único, la protección sin sesión, la continuidad de perfiles y servicios y el aislamiento entre dos cuentas reales. Las reglas independientes del backend, los argumentos manipulados, la atomicidad y los guardados sin duplicados conservan además su evidencia automatizada en memoria: **6 archivos, 131 casos correctos y 0 fallos** en la nueva ejecución de planificación.
+
+El **Reto 04 queda cerrado funcionalmente en desarrollo**, sin pendientes funcionales de este alcance. No se ejecutaron pruebas de producción ni de concurrencia OCC del motor cloud, ni un conteo remoto de documentos para estos guardados. Estos límites no se presentan como resultados de las pruebas sintéticas ni se convierten en nuevos requisitos para este cierre. Los resultados anteriores de lint, tipos y build se conservan como evidencia de la implementación; no se repitieron al no haber cambios de código.
+
+El ajuste documental de cierre anterior se limitó a `docs/PROJECT_CONTEXT.md` y al párrafo de estado del Reto 04 en `README.md`, con revisión de su diff. No ejecutó más pruebas ni modificó código, configuración, datos u otros archivos; no hizo commit ni push ni autorizaba publicación. Esa restricción correspondía a aquella petición. El cierre no incorpora múltiples tramos, excepciones, vacaciones/festivos, huecos/turnos, reservas, agenda pública, precios/pagos, empleados, roles ni sincronización externa.
+
+Posteriormente, el **20 de octubre de 2026**, el usuario autorizó expresamente: «Perfecto, revisa el diff y, si está todo correcto, haz el commit y sube el reto 04 a GitHub». Esta autorización permite revisar, hacer commit y push del Reto 04. El resultado de la publicación se verifica y comunica en el chat de planificación.
+
+Esta reconciliación modifica únicamente `PRODUCT.md`, el párrafo de estado del Reto 04 en `README.md` y este documento. Solo se revisó el diff de estos ajustes; no se ejecutaron pruebas ni se modificaron código, configuración, datos u otros archivos, y no se hizo commit ni push desde el chat de implementación durante esta actualización.

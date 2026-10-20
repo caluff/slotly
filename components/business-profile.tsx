@@ -3,6 +3,7 @@
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { BusinessProfileForm } from "@/components/business-profile-form";
 import { BusinessServices } from "@/components/business-services";
+import { BusinessWeeklySchedule } from "@/components/business-weekly-schedule";
 import Link from "next/link";
 import { api } from "@/convex/_generated/api";
 
@@ -58,6 +59,7 @@ function AuthenticatedBusinessProfile({ timeZones }: BusinessProfileProps) {
       )}
     </section>
     {business !== null && <BusinessServices key={business._id} />}
+    {business !== null && <BusinessWeeklySchedule key={`schedule-${business._id}`} timeZone={business.timeZone} />}
     </>
   );
 }

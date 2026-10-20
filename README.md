@@ -1,6 +1,6 @@
 # Slotly
 
-Plataforma de citas y reservas para profesionales y negocios. La etapa actual incluye autenticación con Clerk y creación y consulta del perfil del negocio y sus servicios con Convex: un negocio por cuenta, con un único propietario y varios servicios.
+Plataforma de citas y reservas para profesionales y negocios. La etapa actual incluye autenticación con Clerk, creación y consulta del perfil del negocio y sus servicios, y configuración del horario semanal de atención con Convex: un negocio por cuenta, con un único propietario y varios servicios.
 
 ## Desarrollo
 
@@ -106,7 +106,20 @@ No hay edición ni eliminación del negocio, Organizations, sincronización de u
 
 El Reto 03 queda cerrado funcionalmente en desarrollo. El usuario confirmó la creación de dos servicios y su persistencia tras recarga, las validaciones negativas sin crear servicios inválidos, la redirección a `/sign-in` sin sesión y la recuperación del perfil y los servicios al volver a entrar. También confirmó el perfil intacto, el aislamiento entre dos cuentas reales y un único toast de éxito sin mensaje junto al botón.
 
-Estas pruebas fueron ejecutadas y reportadas por el usuario. Las comprobaciones de UI sintética del agente usaron respuestas locales sin escrituras remotas; las pruebas en memoria conservan sus límites sobre JWT y concurrencia indicados en «Comprobaciones». El cierre no acredita producción. No hay edición ni eliminación de servicios, precios, pagos, disponibilidad ni citas.
+Estas pruebas fueron ejecutadas y reportadas por el usuario. Las comprobaciones de UI sintética del agente usaron respuestas locales sin escrituras remotas; las pruebas en memoria conservan sus límites sobre JWT y concurrencia indicados en «Comprobaciones». El cierre no acredita producción. No hay edición ni eliminación de servicios, precios, pagos ni citas.
+
+## Horario semanal del negocio (Reto 04)
+
+**Cerrado funcionalmente en desarrollo el 20 de octubre de 2026**, con las confirmaciones del usuario y las pruebas reales del agente de planificación de guardado, actualización, validaciones, semana cerrada, recarga, nueva sesión y aislamiento entre dos cuentas. La evidencia automatizada, los ejecutores, el estado final de las cuentas y los límites se registran en `docs/PROJECT_CONTEXT.md`. No se validaron producción ni concurrencia del motor cloud. El usuario autorizó revisar, hacer commit y push del Reto 04; el resultado de la publicación se verifica y comunica en el chat de planificación.
+
+- `weeklySchedules` contiene una configuración por negocio, relacionada mediante `businessId` e índice `by_businessId`. La mutación consulta ese índice e inserta o actualiza el mismo documento dentro de una transacción. El índice no es una restricción SQL de unicidad: la garantiza esta ruta de escritura transaccional, con los reintentos de Convex ante conflictos.
+- `getMyWeeklySchedule` y `saveMyWeeklySchedule` autentican cada petición y resuelven el negocio desde `identity.subject`. Rechazan ausencia de sesión o negocio y no aceptan propietario, negocio ni identificador de horario del cliente.
+- Convención: `dayOfWeek` ISO **1=lunes…7=domingo**, una entrada por día y orden persistido ascendente. `isOpen` indica atención. Las horas `start`/`end` son texto local **`HH:mm` de 24 horas, de `00:00` a `23:59`**, en la zona IANA del negocio; no representan fechas ni instantes UTC. Cada día abierto exige ambas horas y `end > start`. `24:00`, segundos, offsets e intervalos nocturnos se rechazan. En días cerrados ambas horas se normalizan a `null`, sin exigir horarios a sus controles deshabilitados.
+- La semana completa se valida antes de escribir: un error no modifica ningún día. Se permite cerrar los siete. `null` como resultado de la consulta significa que todavía no existe configuración; una semana cerrada guardada sí devuelve documento. El montaje de la interfaz no guarda ni inventa horarios.
+- El formulario reutiliza shadcn/ui, React Hook Form, Zod y el resolver, sin dependencias nuevas. Mantiene carga y guardado, errores por campo con foco, bloqueo de envíos rápidos y valores ante fallos. Después del éxito conserva la semana editable y muestra un único toast «Horario guardado» desde el Toaster global existente, sin mensaje inline duplicado.
+- Las actualizaciones reactivas se aplican cuando el formulario está limpio. Si hay una edición o guardado pendiente se descarta esa actualización del formulario completo, sin mezclar días de dos versiones ni sobrescribir el borrador. Guardar envía la semana completa; entre editores simultáneos prevalece el último guardado confirmado. Recargar recupera la versión persistida.
+
+No incluye múltiples tramos, excepciones, vacaciones/festivos, huecos, turnos concretos, reservas, agenda pública ni sincronización externa. No cambia el negocio ni los servicios.
 
 ## Archivos de esta etapa
 
@@ -145,7 +158,7 @@ pnpm build
 
 Para servir la compilación: `pnpm start`.
 
-`pnpm test` ejecuta 75 casos en memoria: los 30 previos del negocio y 45 de servicios (26 de esquema/funciones Convex y 19 del esquema Zod). Comprueban autenticación, ausencia de negocio, relaciones, tipos, límites, nombre normalizado, propietarios separados, solicitudes manipuladas, cursor ajeno y paginación. Las zonas inventadas se comprueban en los tests del negocio; el esquema del formulario comprueba además que la zona pertenezca a las opciones. Las identidades son simuladas; estas pruebas no escriben datos remotos ni comprueban la firma de Clerk o el motor real de concurrencia.
+`pnpm test` ejecuta 131 casos en memoria: los 75 previos del negocio y servicios, y 56 del horario semanal (31 de funciones Convex y 25 de Zod). Comprueban autenticación, ausencia de negocio, relaciones, tipos, límites, nombres normalizados, propietarios separados, solicitudes manipuladas y paginación; para horarios, ausencia frente a semana cerrada, consulta desde otra identidad de sesión sintética, horas locales, actualización del mismo documento sin duplicados y rechazo atómico de semanas inválidas, conservando perfil y servicios. Las zonas inventadas se comprueban en los tests del negocio; el esquema del formulario comprueba además que la zona pertenezca a las opciones. Las identidades son simuladas; estas pruebas no escriben datos remotos ni comprueban la firma de Clerk o el motor real de concurrencia.
 
 La comprobación inicial `pnpm test:local` verificó esas invariantes contra el backend **local**, incluyendo diez solicitudes HTTP simultáneas mediante clientes separados y un token falso. Usa identidades administrativas sintéticas y deja dos perfiles de prueba con propietarios `slotly_test_...` en la base local por ejecución. No usa sesiones de Clerk ni equivale a una prueba de login; se niega a ejecutarse fuera de `http://127.0.0.1:3210`. Las credenciales administrativas se leen del archivo local excluido de Git y no se imprimen. Con la configuración cloud actual, este script no es parte del arranque ni debe ejecutarse contra el perfil real. `pnpm test` sigue siendo la comprobación automática habitual, aislada de los datos remotos.
 
@@ -176,6 +189,13 @@ Para el Reto 03, sin crear datos descartables en cuentas reales:
 4. Con la segunda cuenta, comprueba que la lista es independiente y crea sus propios servicios. Al volver a la primera, cada lista debe seguir separada.
 5. Comprueba la continuidad del perfil, cierre de sesión y redirección de `/dashboard` a `/sign-in`. El rechazo de peticiones manipuladas y sin negocio se prueba en memoria; las llamadas cloud sin sesión se verificaron sin crear datos.
 
-La evidencia ejecutada y los casos pendientes se registran en `docs/PROJECT_CONTEXT.md`. No se incluyen disponibilidad, citas, calendarios, pagos ni notificaciones por correo u otros canales externos. La confirmación de UI mediante el toast de éxito sí forma parte del alcance actual.
+Para el Reto 04, con horarios propios que quieras conservar:
+
+1. Guarda una semana con días abiertos y cerrados: un único toast y la configuración editable. Recarga y vuelve a iniciar sesión: misma semana y zona IANA.
+2. Modifica un tramo, cierra un día y guarda repetidamente: actualiza la misma configuración completa, con un solo documento por negocio.
+3. Día abierto sin ambas horas, horas iguales o cierre anterior a apertura: errores asociados y con foco, sin alterar la semana guardada. Una semana con los siete días cerrados sí debe guardarse y recuperarse como configuración existente.
+4. Comprueba la separación de horarios entre dos cuentas y la continuidad de sus perfiles y servicios. Sin sesión, `/dashboard` sigue redirigiendo a `/sign-in`.
+
+La evidencia ejecutada y los casos pendientes se registran en `docs/PROJECT_CONTEXT.md`. No se incluyen huecos de disponibilidad, citas, reservas, calendarios externos, pagos ni notificaciones por correo u otros canales externos. La confirmación de UI mediante el toast de éxito sí forma parte del alcance actual.
 
 Documentación de referencia: [Convex con Clerk](https://docs.convex.dev/auth/clerk) y [runtime de Convex](https://docs.convex.dev/functions/runtimes).

@@ -10,6 +10,8 @@
 
 import type * as businesses from "../businesses.js";
 import type * as services from "../services.js";
+import type * as weeklySchedule from "../weeklySchedule.js";
+import type * as weeklyScheduleValidators from "../weeklyScheduleValidators.js";
 
 import type {
   ApiFromModules,
@@ -20,6 +22,8 @@ import type {
 declare const fullApi: ApiFromModules<{
   businesses: typeof businesses;
   services: typeof services;
+  weeklySchedule: typeof weeklySchedule;
+  weeklyScheduleValidators: typeof weeklyScheduleValidators;
 }>;
 
 /**
