@@ -4,7 +4,7 @@ import { action, internalQuery } from "./_generated/server";
 import { weeklyScheduleDay } from "./weeklyScheduleValidators";
 import { generateAvailability } from "./lib/availability";
 import { isLocalDate } from "../lib/local-date";
-import { confirmedAppointmentsForDate, overlaps, requireMyBusiness } from "./lib/appointmentData";
+import { confirmedAppointmentsForDate, overlaps, requireMyAppointment, requireMyBusiness } from "./lib/appointmentData";
 
 const selectedService = v.object({ id: v.id("services"), name: v.string(), durationMinutes: v.number() });
 const availabilityResult = v.object({
@@ -53,5 +53,38 @@ export const getMyAvailability = action({
       ...result, slots, status: result.status === "available" && slots.length === 0 ? "empty" : result.status,
       generatedAt, date, timeZone: source.timeZone, service: source.service,
     };
+  },
+});
+
+export const getRescheduleSource = internalQuery({
+  args: { appointmentId: v.id("appointments"), date: v.string() },
+  returns: v.object({ timeZone: v.string(), service: selectedService, originalStart: v.number(), version: v.number(),
+    days: v.union(v.array(weeklyScheduleDay), v.null()), occupied: v.array(v.object({ start: v.number(), end: v.number() })) }),
+  handler: async (ctx, { appointmentId, date }) => {
+    const { business, saved } = await requireMyAppointment(ctx, appointmentId);
+    if (saved.status !== "confirmed") throw new ConvexError({ code: "APPOINTMENT_CANCELLED" });
+    if (!isLocalDate(date)) throw new ConvexError({ code: "INVALID_DATE" });
+    const service = await ctx.db.get("services", saved.serviceId);
+    if (!service || service.businessId !== business._id) throw new ConvexError({ code: "SERVICE_NOT_FOUND" });
+    const schedule = await ctx.db.query("weeklySchedules").withIndex("by_businessId", (q) => q.eq("businessId", business._id)).unique();
+    const occupied = (await confirmedAppointmentsForDate(ctx, business._id, date))
+      .filter((row) => row._id !== saved._id).map(({ start, end }) => ({ start, end }));
+    return { timeZone: business.timeZone, service: { id: service._id, name: service.name, durationMinutes: service.durationMinutes },
+      originalStart: saved.start, version: saved.version ?? 0, days: schedule?.days ?? null, occupied };
+  },
+});
+
+const rescheduleAvailability = v.object({ ...availabilityResult.fields, version: v.number() });
+export const getMyRescheduleAvailability = action({
+  args: { appointmentId: v.id("appointments"), date: v.string() }, returns: rescheduleAvailability,
+  handler: async (ctx, args): Promise<Infer<typeof rescheduleAvailability>> => {
+    if (!await ctx.auth.getUserIdentity()) throw new ConvexError({ code: "UNAUTHENTICATED" });
+    const source = await ctx.runQuery(internal.availability.getRescheduleSource, args);
+    const generatedAt = Date.now();
+    if (source.originalStart <= generatedAt) throw new ConvexError({ code: "APPOINTMENT_STARTED" });
+    const result = generateAvailability({ date: args.date, ...source, durationMinutes: source.service.durationMinutes, now: generatedAt });
+    const slots = result.slots.filter((slot) => slot.start > generatedAt && !source.occupied.some((row) => overlaps(slot, row)));
+    return { ...result, slots, status: result.status === "available" && !slots.length ? "empty" : result.status,
+      generatedAt, date: args.date, timeZone: source.timeZone, service: source.service, version: source.version };
   },
 });

@@ -11,6 +11,20 @@ export async function requireMyBusiness(ctx: QueryCtx) {
   return business;
 }
 
+export async function requireMyAppointment(ctx: QueryCtx, appointmentId: Id<"appointments">) {
+  const business = await requireMyBusiness(ctx);
+  const saved = await ctx.db.get("appointments", appointmentId);
+  if (!saved || saved.businessId !== business._id) throw new ConvexError({ code: "APPOINTMENT_NOT_FOUND" });
+  return { business, saved };
+}
+
+export function checkVersion(actual: number, expected: number) {
+  if (!Number.isSafeInteger(expected) || expected < 0 || expected >= Number.MAX_SAFE_INTEGER) {
+    throw new ConvexError({ code: "INVALID_VERSION" });
+  }
+  if (actual !== expected) throw new ConvexError({ code: "APPOINTMENT_CONFLICT" });
+}
+
 // Confirmed appointments stay within one local date and have integer-minute starts
 // and positive integer-minute durations. Even after changing the opening/grid,
 // at most 1440 non-overlapping starts can fit. Read one extra and fail closed:

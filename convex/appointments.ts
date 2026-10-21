@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator, paginationResultValidator } from "convex/server";
 import { mutation, query } from "./_generated/server";
-import { confirmedAppointmentsForDate, overlaps, requireMyBusiness } from "./lib/appointmentData";
+import { checkVersion, confirmedAppointmentsForDate, overlaps, requireMyAppointment, requireMyBusiness } from "./lib/appointmentData";
 import { generateAvailability } from "./lib/availability";
 import { appointmentSchema } from "../lib/appointment-schema";
 import { isLocalDate } from "../lib/local-date";
@@ -10,6 +10,25 @@ import { appointmentDateBounds, appointmentFilterError, normalizeClientSearch } 
 const appointment = v.object({
   _id: v.id("appointments"), serviceId: v.id("services"), serviceName: v.string(),
   clientName: v.string(), start: v.number(), end: v.number(), status: v.union(v.literal("confirmed"), v.literal("cancelled")),
+});
+
+const historyAppointment = v.object({
+  _id: v.id("appointments"), serviceId: v.id("services"), serviceName: v.string(),
+  clientName: v.string(), date: v.string(), start: v.number(), end: v.number(),
+  status: v.union(v.literal("confirmed"), v.literal("cancelled")), cancelledAt: v.optional(v.number()),
+  version: v.number(), rescheduledAt: v.optional(v.number()),
+});
+
+function publicAppointment(row: import("./_generated/dataModel").Doc<"appointments">) {
+  const { _id, serviceId, serviceName, clientName, date, start, end, status, cancelledAt, rescheduledAt } = row;
+  return { _id, serviceId, serviceName, clientName, date, start, end, status, version: row.version ?? 0,
+    ...(cancelledAt === undefined ? {} : { cancelledAt }), ...(rescheduledAt === undefined ? {} : { rescheduledAt }) };
+}
+
+// Keeps an open confirmation reactive even if a remote move leaves its filters.
+export const getMyAppointment = query({
+  args: { appointmentId: v.id("appointments") }, returns: historyAppointment,
+  handler: async (ctx, { appointmentId }) => publicAppointment((await requireMyAppointment(ctx, appointmentId)).saved),
 });
 
 // Bounded reactive occupation, not historical listing. History (including
@@ -37,11 +56,7 @@ export const searchMyAppointments = query({
     from: v.string(), until: v.string(), referenceDate: v.optional(v.string()),
     paginationOpts: paginationOptsValidator,
   },
-  returns: paginationResultValidator(v.object({
-    _id: v.id("appointments"), serviceId: v.id("services"), serviceName: v.string(),
-    clientName: v.string(), date: v.string(), start: v.number(), end: v.number(),
-    status: v.union(v.literal("confirmed"), v.literal("cancelled")), cancelledAt: v.optional(v.number()),
-  })),
+  returns: paginationResultValidator(historyAppointment),
   handler: async (ctx, { client, serviceId, period, from, until, referenceDate, paginationOpts }) => {
     const business = await requireMyBusiness(ctx);
     const filters = { client, service: serviceId ?? "", period, from, until };
@@ -74,8 +89,7 @@ export const searchMyAppointments = query({
     const needle = normalizeClientSearch(client);
     return { ...page, page: page.page
       .filter((row) => !needle || normalizeClientSearch(row.clientName).includes(needle))
-      .map(({ _id, serviceId, serviceName, clientName, date, start, end, status, cancelledAt }) =>
-        ({ _id, serviceId, serviceName, clientName, date, start, end, status, ...(cancelledAt === undefined ? {} : { cancelledAt }) })) };
+      .map(publicAppointment) };
   },
 });
 
@@ -110,22 +124,56 @@ export const createMyAppointment = mutation({
 });
 
 export const cancelMyAppointment = mutation({
-  args: { appointmentId: v.id("appointments") },
+  args: { appointmentId: v.id("appointments"), expectedVersion: v.number() },
   returns: v.object({ outcome: v.union(v.literal("cancelled"), v.literal("already_cancelled")), cancelledAt: v.number() }),
-  handler: async (ctx, { appointmentId }) => {
-    const business = await requireMyBusiness(ctx);
-    const saved = await ctx.db.get("appointments", appointmentId);
-    // Same response for missing and foreign IDs; never reveal foreign state.
-    if (!saved || saved.businessId !== business._id) throw new ConvexError({ code: "APPOINTMENT_NOT_FOUND" });
+  handler: async (ctx, { appointmentId, expectedVersion }) => {
+    const { saved } = await requireMyAppointment(ctx, appointmentId);
     if (saved.status === "cancelled") {
       if (saved.cancelledAt === undefined) throw new ConvexError({ code: "INVALID_APPOINTMENT_STATE" });
       return { outcome: "already_cancelled" as const, cancelledAt: saved.cancelledAt };
     }
+    checkVersion(saved.version ?? 0, expectedVersion);
     const cancelledAt = Date.now();
     if (saved.start <= cancelledAt) throw new ConvexError({ code: "APPOINTMENT_STARTED" });
     // The read and status/index transition share a transaction. OCC retries a
     // concurrent cancellation or creation reading this confirmed range.
-    await ctx.db.patch("appointments", appointmentId, { status: "cancelled", cancelledAt });
+    await ctx.db.patch("appointments", appointmentId, { status: "cancelled", cancelledAt, version: expectedVersion + 1 });
     return { outcome: "cancelled" as const, cancelledAt };
+  },
+});
+
+export const rescheduleMyAppointment = mutation({
+  args: { appointmentId: v.id("appointments"), expectedVersion: v.number(), date: v.string(), start: v.number() },
+  returns: v.object({ outcome: v.union(v.literal("rescheduled"), v.literal("already_rescheduled"), v.literal("unchanged")),
+    version: v.number(), rescheduledAt: v.optional(v.number()), date: v.string(), start: v.number(), end: v.number() }),
+  handler: async (ctx, { appointmentId, expectedVersion, date, start }) => {
+    const { business, saved } = await requireMyAppointment(ctx, appointmentId);
+    if (saved.status !== "confirmed") throw new ConvexError({ code: "APPOINTMENT_CANCELLED" });
+    const version = saved.version ?? 0;
+    const response = { version, date: saved.date, start: saved.start, end: saved.end,
+      ...(saved.rescheduledAt === undefined ? {} : { rescheduledAt: saved.rescheduledAt }) };
+    // Only the immediately preceding effective move can be replayed. Once any
+    // later transition commits, this old request conflicts instead of reverting it.
+    if (Number.isSafeInteger(expectedVersion) && expectedVersion >= 0 && version === expectedVersion + 1
+      && saved.rescheduledFromVersion === expectedVersion && saved.date === date && saved.start === start) {
+      return { ...response, outcome: "already_rescheduled" as const };
+    }
+    checkVersion(version, expectedVersion);
+    const now = Date.now();
+    if (saved.start <= now) throw new ConvexError({ code: "APPOINTMENT_STARTED" });
+    if (!isLocalDate(date)) throw new ConvexError({ code: "INVALID_DATE" });
+    if (!Number.isSafeInteger(start) || start <= now) throw new ConvexError({ code: "SLOT_UNAVAILABLE" });
+    const service = await ctx.db.get("services", saved.serviceId);
+    if (!service || service.businessId !== business._id) throw new ConvexError({ code: "SERVICE_NOT_FOUND" });
+    const schedule = await ctx.db.query("weeklySchedules").withIndex("by_businessId", (q) => q.eq("businessId", business._id)).unique();
+    const slot = generateAvailability({ date, timeZone: business.timeZone, days: schedule?.days ?? null,
+      durationMinutes: service.durationMinutes, now }).slots.find((option) => option.start === start);
+    if (!slot) throw new ConvexError({ code: "SLOT_UNAVAILABLE" });
+    const existing = await confirmedAppointmentsForDate(ctx, business._id, date);
+    if (existing.some((row) => row._id !== saved._id && overlaps(slot, row))) throw new ConvexError({ code: "SLOT_TAKEN" });
+    if (saved.date === date && saved.start === start && saved.end === slot.end) return { ...response, outcome: "unchanged" as const };
+    await ctx.db.patch("appointments", appointmentId, { date, start: slot.start, end: slot.end,
+      version: version + 1, rescheduledAt: now, rescheduledFromVersion: version });
+    return { outcome: "rescheduled" as const, version: version + 1, rescheduledAt: now, date, start: slot.start, end: slot.end };
   },
 });

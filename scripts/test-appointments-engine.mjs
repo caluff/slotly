@@ -136,7 +136,7 @@ export const cancelledHistory = internalMutation({
     return { results, maxInFlight };
   }
   const createOperation = (who, serviceId = who.serviceId, offset = 0) => ({ who, name: "appointments:createMyAppointment", args: { date, start: start + offset, serviceId, clientName: "Synthetic race" } });
-  const cancelOperation = (who, appointmentId) => ({ who, name: "appointments:cancelMyAppointment", args: { appointmentId } });
+  const cancelOperation = (who, appointmentId) => ({ who, name: "appointments:cancelMyAppointment", args: { appointmentId, expectedVersion: 0 } });
   async function history(who) {
     const result = await who.client.query("appointments:searchMyAppointments", { client: "", period: "todas", from: date, until: date, paginationOpts: { cursor: null, numItems: 100 } });
     assert.equal(result.isDone, true);
@@ -187,7 +187,7 @@ export const cancelledHistory = internalMutation({
       const a = await setup();
       const original = await a.client.mutation("appointments:createMyAppointment", createOperation(a).args);
       const before = (await history(a))[0];
-      const cancelArgs = { appointmentId: original };
+      const cancelArgs = { appointmentId: original, expectedVersion: 0 };
       const began = Date.now();
       const b = scenario === "freed-different-businesses" ? await setup() : a;
       let operations;
@@ -206,7 +206,7 @@ export const cancelledHistory = internalMutation({
       const rowsA = await history(a);
       const originalAfter = rowsA.find((row) => row._id === original);
       assert.ok(originalAfter);
-      assert.deepEqual(originalAfter, { ...before, status: "cancelled", cancelledAt: originalAfter.cancelledAt });
+      assert.deepEqual(originalAfter, { ...before, status: "cancelled", cancelledAt: originalAfter.cancelledAt, version: 1 });
       assert.ok(originalAfter.cancelledAt >= began && originalAfter.cancelledAt <= ended);
       if (firstCancel) assert.equal(originalAfter.cancelledAt, firstCancel.cancelledAt);
       const repeated = await a.client.mutation("appointments:cancelMyAppointment", cancelArgs);
@@ -245,6 +245,99 @@ export const cancelledHistory = internalMutation({
       report.scenarios.push({ round, scenario, requests: operations.length, maxInFlight, successes, rejected: operations.length - successes, finalDocuments: rowsA.length + rowsB.length, confirmed: active.length, cancelled: 1, timestampStable: true });
     }
   }
+  const moveOperation = (who, appointmentId, offset = 90 * 60_000, expectedVersion = 0) => ({ who, name: "appointments:rescheduleMyAppointment", args: { appointmentId, expectedVersion, date, start: start + offset } });
+  for (let round = 1; round <= 3; round++) {
+    for (const scenario of ["same-version-distinct-targets", "same-version-same-target", "two-moves-same-target", "create-vs-move", "cancel-vs-move", "move-vs-old-reservation", "partial-targets", "adjacent-targets", "moves-different-businesses"]) {
+      const a = await setup();
+      const firstId = await a.client.mutation("appointments:createMyAppointment", createOperation(a).args);
+      const beforeA = await history(a);
+      const b = scenario === "moves-different-businesses" ? await setup() : a;
+      let secondId;
+      if (["two-moves-same-target", "partial-targets", "adjacent-targets", "moves-different-businesses"].includes(scenario)) {
+        secondId = await b.client.mutation("appointments:createMyAppointment", createOperation(b, b.serviceId, b === a ? 30 * 60_000 : 0).args);
+      }
+      const originalsA = await history(a), originalsB = b === a ? [] : await history(b);
+      let operations;
+      if (scenario.startsWith("same-version")) operations = [moveOperation(a, firstId), moveOperation(a, firstId, scenario === "same-version-same-target" ? 90 * 60_000 : 60 * 60_000)];
+      else if (scenario === "create-vs-move") operations = [createOperation(a, a.secondServiceId, 90 * 60_000), moveOperation(a, firstId)];
+      else if (scenario === "cancel-vs-move") operations = [cancelOperation(a, firstId), moveOperation(a, firstId)];
+      else if (scenario === "move-vs-old-reservation") operations = [moveOperation(a, firstId), createOperation(a)];
+      else operations = [moveOperation(a, firstId), moveOperation(b, secondId, scenario === "partial-targets" ? 105 * 60_000 : scenario === "adjacent-targets" ? 120 * 60_000 : 90 * 60_000)];
+      if (round === 2 && ["create-vs-move", "cancel-vs-move"].includes(scenario)) operations.reverse();
+      const began = Date.now();
+      const { results, maxInFlight } = await race(operations);
+      const ended = Date.now();
+      const rowsA = await history(a), rowsB = b === a ? [] : await history(b);
+      const successes = results.filter((r) => r.status === "fulfilled").length;
+      const compatible = ["same-version-same-target", "adjacent-targets", "moves-different-businesses"].includes(scenario);
+      if (scenario === "move-vs-old-reservation") assert.equal(results[0].status, "fulfilled");
+      else assert.equal(successes, compatible ? 2 : 1);
+      for (const [i, result] of results.entries()) {
+        const operation = operations[i];
+        if (result.status === "rejected") {
+          assert.match(String(result.reason), /APPOINTMENT_CONFLICT|APPOINTMENT_CANCELLED|SLOT_TAKEN/);
+          continue;
+        }
+        if (operation.name !== "appointments:rescheduleMyAppointment") continue;
+        const row = (operation.who === a ? rowsA : rowsB).find((r) => r._id === operation.args.appointmentId);
+        assert.equal(row.start, operation.args.start); assert.equal(row.end, row.start + 30 * 60_000);
+        assert.equal(row.version, 1); assert.equal(row.status, "confirmed");
+        assert.ok(row.rescheduledAt >= began && row.rescheduledAt <= ended);
+        const repeated = await operation.who.client.mutation(operation.name, operation.args);
+        assert.deepEqual(repeated, { ...result.value, outcome: "already_rescheduled" });
+      }
+      // Verify every original ID and immutable field, and byte-equivalent public
+      // state for losing originals. A rejection must not free their old slot.
+      for (const [who, originals, rows] of (b === a ? [[a, originalsA, rowsA]] : [[a, originalsA, rowsA], [b, originalsB, rowsB]])) {
+        for (const original of originals) {
+          const row = rows.find((r) => r._id === original._id); assert.ok(row);
+          for (const field of ["_id", "clientName", "serviceId", "serviceName"]) assert.equal(row[field], original[field]);
+          if (row.version === original.version) assert.deepEqual(row, original);
+          else if (row.status === "cancelled") {
+            assert.deepEqual(row, { ...original, version: 1, status: "cancelled", cancelledAt: row.cancelledAt });
+            assert.ok(row.cancelledAt >= began && row.cancelledAt <= ended);
+          }
+        }
+        const active = rows.filter((r) => r.status === "confirmed").sort((x, y) => x.start - y.start);
+        for (let i = 1; i < active.length; i++) assert.ok(active[i - 1].end <= active[i].start, "Solape confirmado tras carrera");
+        const preview = await who.client.action("availability:getMyAvailability", { serviceId: who.serviceId, date });
+        for (const candidate of [start, start + 90 * 60_000]) {
+          assert.equal(preview.slots.some((s) => s.start === candidate), !active.some((r) => candidate < r.end && r.start < candidate + 30 * 60_000));
+        }
+      }
+      if (scenario === "same-version-distinct-targets") {
+        assert.equal(rowsA.length, beforeA.length); assert.equal(rowsA[0].version, 1);
+      }
+      if (scenario === "cancel-vs-move") {
+        if (rowsA[0].status === "confirmed") await assert.rejects(a.client.mutation("appointments:cancelMyAppointment", { appointmentId: firstId, expectedVersion: 0 }), /APPOINTMENT_CONFLICT/);
+        else assert.equal((await a.client.mutation("appointments:cancelMyAppointment", { appointmentId: firstId, expectedVersion: 0 })).outcome, "already_cancelled");
+      }
+      assert.deepEqual(await history(a), rowsA); if (b !== a) assert.deepEqual(await history(b), rowsB);
+      const created = operations.filter((op, i) => op.name === "appointments:createMyAppointment" && results[i].status === "fulfilled").length;
+      assert.equal(rowsA.length + rowsB.length, originalsA.length + originalsB.length + created);
+      report.scenarios.push({ round, scenario, requests: operations.length, maxInFlight, successes,
+        operationOrder: operations.map((op) => op.name.split(":")[1]),
+        observedResults: results.map((r) => r.status === "fulfilled" ? (typeof r.value === "string" ? "created" : r.value.outcome) : String(r.reason).match(/APPOINTMENT_CONFLICT|APPOINTMENT_CANCELLED|SLOT_TAKEN/)?.[0]),
+        finalDocuments: rowsA.length + rowsB.length, unchangedLosers: true, noOverlaps: true, stableRetries: true });
+    }
+  }
+  const stale = await setup();
+  const staleId = await stale.client.mutation("appointments:createMyAppointment", createOperation(stale).args);
+  const firstMove = moveOperation(stale, staleId);
+  await stale.client.mutation(firstMove.name, firstMove.args);
+  const afterFirst = await history(stale);
+  await assert.rejects(stale.client.mutation("appointments:cancelMyAppointment", { appointmentId: staleId, expectedVersion: 0 }), /APPOINTMENT_CONFLICT/);
+  assert.deepEqual(await history(stale), afterFirst);
+  report.staleCancellationCannotCancelMovedAppointment = true;
+  await stale.client.mutation(firstMove.name, moveOperation(stale, staleId, 60 * 60_000, 1).args);
+  const afterSecond = await history(stale);
+  await assert.rejects(stale.client.mutation(firstMove.name, firstMove.args), /APPOINTMENT_CONFLICT/);
+  assert.deepEqual(await history(stale), afterSecond);
+  report.oldRetryCannotRevertLaterMove = true;
+  const oldReplacement = await stale.client.mutation("appointments:createMyAppointment", createOperation(stale).args);
+  assert.notEqual(oldReplacement, staleId);
+  assert.equal((await history(stale)).length, 2);
+  report.oldIntervalCanBeReservedAfterMove = true;
   const owner = await setup();
   const dense = await setup();
   assert.equal(await dense.client.mutation("engineFixtures:cancelledHistory", { serviceId: dense.serviceId, date, start }), 1600);

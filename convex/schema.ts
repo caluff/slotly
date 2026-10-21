@@ -27,6 +27,9 @@ export default defineSchema({
     end: v.number(),
     status: v.union(v.literal("confirmed"), v.literal("cancelled")),
     cancelledAt: v.optional(v.number()),
+    version: v.optional(v.number()),
+    rescheduledAt: v.optional(v.number()),
+    rescheduledFromVersion: v.optional(v.number()),
   }).index("by_businessId_and_date", ["businessId", "date"])
     .index("by_businessId_and_date_and_status", ["businessId", "date", "status"])
     .index("by_businessId_and_date_and_start", ["businessId", "date", "start"])

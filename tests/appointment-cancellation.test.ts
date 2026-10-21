@@ -20,7 +20,7 @@ async function setup() {
   const args = { serviceId, date, start, clientName: "Synthetic" };
   const appointmentId = await owner.mutation(api.appointments.createMyAppointment, args);
   const saved = () => t.run((ctx) => ctx.db.get("appointments", appointmentId));
-  const cancel = () => owner.mutation(api.appointments.cancelMyAppointment, { appointmentId });
+  const cancel = () => owner.mutation(api.appointments.cancelMyAppointment, { appointmentId, expectedVersion: 0 });
   const active = () => owner.query(api.appointments.listMyConfirmedAppointments, { date });
   const availability = (id = serviceId) => owner.action(api.availability.getMyAvailability, { serviceId: id, date });
   const history = (cursor: string | null = null, numItems = 100) => owner.query(api.appointments.searchMyAppointments, {
@@ -36,7 +36,7 @@ describe("cancelación privada transaccional (memoria, no acredita OCC real)", (
     const before = await saved();
     expect(before).not.toHaveProperty("cancelledAt");
     expect(await cancel()).toEqual({ outcome: "cancelled", cancelledAt: now });
-    expect(await saved()).toEqual({ ...before, status: "cancelled", cancelledAt: now });
+    expect(await saved()).toEqual({ ...before, status: "cancelled", cancelledAt: now, version: 1 });
     expect(await active()).toEqual([]);
     expect((await history()).page[0]).toMatchObject({ _id: before!._id, status: "cancelled", cancelledAt: now, start, end: start + 30 * 60_000 });
   });
@@ -60,13 +60,13 @@ describe("cancelación privada transaccional (memoria, no acredita OCC real)", (
   });
   test("sesión y negocio se verifican antes de leer existencia o estado", async () => {
     const { t, owner, appointmentId, cancel } = await setup();
-    await expect(t.mutation(api.appointments.cancelMyAppointment, { appointmentId })).rejects.toThrow("UNAUTHENTICATED");
+    await expect(t.mutation(api.appointments.cancelMyAppointment, { appointmentId, expectedVersion: 0 })).rejects.toThrow("UNAUTHENTICATED");
     const stranger = t.withIdentity({ ...identity, subject: "other-same-email" });
-    await expect(stranger.mutation(api.appointments.cancelMyAppointment, { appointmentId })).rejects.toThrow("BUSINESS_NOT_FOUND");
+    await expect(stranger.mutation(api.appointments.cancelMyAppointment, { appointmentId, expectedVersion: 0 })).rejects.toThrow("BUSINESS_NOT_FOUND");
     await stranger.mutation(api.businesses.createMyBusiness, { name: "Other", timeZone: "UTC" });
     for (const state of ["confirmed", "cancelled"]) {
       if (state === "cancelled") await cancel();
-      await expect(stranger.mutation(api.appointments.cancelMyAppointment, { appointmentId })).rejects.toThrow("APPOINTMENT_NOT_FOUND");
+      await expect(stranger.mutation(api.appointments.cancelMyAppointment, { appointmentId, expectedVersion: 0 })).rejects.toThrow("APPOINTMENT_NOT_FOUND");
     }
     const missing = await t.run(async (ctx) => {
       const { businessId, serviceId, serviceName, clientName, date, start, end } = (await ctx.db.get("appointments", appointmentId))!;
@@ -74,16 +74,16 @@ describe("cancelación privada transaccional (memoria, no acredita OCC real)", (
       await ctx.db.delete("appointments", id);
       return id;
     });
-    await expect(owner.mutation(api.appointments.cancelMyAppointment, { appointmentId: missing })).rejects.toThrow("APPOINTMENT_NOT_FOUND");
+    await expect(owner.mutation(api.appointments.cancelMyAppointment, { appointmentId: missing, expectedVersion: 0 })).rejects.toThrow("APPOINTMENT_NOT_FOUND");
   });
   test.each([{ ownerId: "other" }, { businessId: "other" }, { status: "confirmed" }, { start: start + 1 }, { cancelledAt: 123 }, { now: 0 }])("rechaza campos controlados por cliente: %j", async (extra) => {
     const { owner, appointmentId, saved } = await setup();
-    await expect(owner.mutation(api.appointments.cancelMyAppointment, { appointmentId, ...extra } as never)).rejects.toThrow();
+    await expect(owner.mutation(api.appointments.cancelMyAppointment, { appointmentId, expectedVersion: 0, ...extra } as never)).rejects.toThrow();
     expect((await saved())!.status).toBe("confirmed");
   });
   test("ID malformado o de otra tabla no cambia documentos", async () => {
     const { owner, businessId, saved } = await setup();
-    for (const id of ["invalid", businessId]) await expect(owner.mutation(api.appointments.cancelMyAppointment, { appointmentId: id } as never)).rejects.toThrow();
+    for (const id of ["invalid", businessId]) await expect(owner.mutation(api.appointments.cancelMyAppointment, { appointmentId: id, expectedVersion: 0 } as never)).rejects.toThrow();
     expect((await saved())!.status).toBe("confirmed");
   });
   test("cancelar sigue permitido si cambian duración, semana o zona; no recalcula historia", async () => {
@@ -92,7 +92,7 @@ describe("cancelación privada transaccional (memoria, no acredita OCC real)", (
     await t.run(async (ctx) => { await ctx.db.patch("services", serviceId, { durationMinutes: 46 }); await ctx.db.patch("businesses", businessId, { timeZone: "UTC" }); });
     await owner.mutation(api.weeklySchedule.saveMyWeeklySchedule, { days: days.map((d) => ({ ...d, isOpen: false, start: null, end: null })) });
     await cancel();
-    expect(await saved()).toEqual({ ...before, status: "cancelled", cancelledAt: now });
+    expect(await saved()).toEqual({ ...before, status: "cancelled", cancelledAt: now, version: 1 });
   });
   test("libera todos los servicios y admite citas consecutivas; otra confirmada sigue bloqueando", async () => {
     const { owner, args, cancel, active, availability, history } = await setup();

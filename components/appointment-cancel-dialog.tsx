@@ -3,14 +3,14 @@
 import { AlertDialog } from "radix-ui";
 import { ConvexError } from "convex/values";
 import type { FunctionReturnType } from "convex/server";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { formatLocalDate } from "@/lib/agenda-date";
 
-export type CancelAppointment = (args: { appointmentId: Id<"appointments"> }) => Promise<FunctionReturnType<typeof api.appointments.cancelMyAppointment>>;
+export type CancelAppointment = (args: { appointmentId: Id<"appointments">; expectedVersion: number }) => Promise<FunctionReturnType<typeof api.appointments.cancelMyAppointment>>;
 export type CancelTarget = FunctionReturnType<typeof api.appointments.searchMyAppointments>["page"][number];
 
 function cancellationError(cause: unknown) {
@@ -18,28 +18,35 @@ function cancellationError(cause: unknown) {
   if (code === "UNAUTHENTICATED") return "Tu sesión dejó de estar disponible. Vuelve a iniciar sesión antes de reintentar.";
   if (code === "BUSINESS_NOT_FOUND" || code === "APPOINTMENT_NOT_FOUND") return "No tienes acceso a esta cita. Recarga la agenda para comprobar tu cuenta.";
   if (code === "APPOINTMENT_STARTED") return "La cita ya comenzó. Solo puedes cancelar antes de su hora de inicio.";
+  if (code === "APPOINTMENT_CONFLICT") return "La cita cambió desde que abriste la confirmación. Revisa el horario actualizado antes de cancelar.";
   return "No pudimos confirmar la cancelación. Comprueba tu conexión y reintenta; conservamos los datos de la cita.";
 }
 
-export function AppointmentCancelDialog({ appointment, timeZone, onCancel, onClose, onReturnFocus }: {
-  appointment: CancelTarget; timeZone: string; onCancel: CancelAppointment; onClose: () => void; onReturnFocus: () => void;
+export function AppointmentCancelDialog({ appointment: initial, latest = initial, timeZone, onCancel, onClose, onReturnFocus }: {
+  appointment: CancelTarget; latest?: CancelTarget; timeZone: string; onCancel: CancelAppointment; onClose: () => void; onReturnFocus: () => void;
 }) {
+  // Capture what the person reviewed, never silently substitute reactive props.
+  const [appointment, setAppointment] = useState(initial);
   const inFlight = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const errorRef = useRef<HTMLParagraphElement>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [repeatedAt, setRepeatedAt] = useState<number | null>(null);
-  const cancelled = appointment.status === "cancelled" || repeatedAt !== null;
-  const cancelledAt = repeatedAt ?? appointment.cancelledAt;
+  const cancelled = latest.status === "cancelled" || repeatedAt !== null;
+  const changed = latest.version !== appointment.version;
+  const cancelledAt = repeatedAt ?? latest.cancelledAt;
   const time = new Intl.DateTimeFormat("es-UY", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
   const timestamp = new Intl.DateTimeFormat("es-UY", { timeZone, dateStyle: "medium", timeStyle: "short" });
   async function confirm() {
-    if (inFlight.current || cancelled) return;
+    if (inFlight.current || cancelled || changed) return;
     inFlight.current = true;
     setPending(true);
     setError(null);
     try {
-      const result = await onCancel({ appointmentId: appointment._id });
+      const result = await onCancel({ appointmentId: appointment._id, expectedVersion: appointment.version });
+      if (!mounted.current) return;
       if (result.outcome === "cancelled") {
         toast.success("Cita cancelada.");
         onClose();
@@ -47,11 +54,12 @@ export function AppointmentCancelDialog({ appointment, timeZone, onCancel, onClo
         setRepeatedAt(result.cancelledAt);
       }
     } catch (cause) {
+      if (!mounted.current) return;
       setError(cancellationError(cause));
       requestAnimationFrame(() => errorRef.current?.focus());
     } finally {
       inFlight.current = false;
-      setPending(false);
+      if (mounted.current) setPending(false);
     }
   }
   return <AlertDialog.Root open onOpenChange={(open) => { if (!open && !inFlight.current) onClose(); }}>
@@ -61,20 +69,18 @@ export function AppointmentCancelDialog({ appointment, timeZone, onCancel, onClo
         onEscapeKeyDown={(event) => { if (inFlight.current) event.preventDefault(); }}
         onCloseAutoFocus={(event) => { event.preventDefault(); onReturnFocus(); }}>
         <AlertDialog.Title className="text-lg font-semibold tracking-tight">{cancelled ? "Cita ya cancelada" : "Cancelar cita"}</AlertDialog.Title>
-        <AlertDialog.Description className="mt-2 text-sm leading-6 text-muted">
-          {cancelled ? "Esta cita ya estaba cancelada. No se ha vuelto a modificar."
-            : "La cita quedará en el historial y dejará de ocupar este horario para todos tus servicios. Esta acción no se puede deshacer."}
+        <AlertDialog.Description className="sr-only">
+          {cancelled ? "Esta cita ya estaba cancelada." : `Cancela la cita de ${appointment.clientName}, ${appointment.serviceName}.`}
         </AlertDialog.Description>
         <dl className="my-5 space-y-3 border-y border-line py-4 text-sm">
-          <div><dt className="text-muted">Cliente</dt><dd className="mt-1 font-semibold wrap-anywhere">{appointment.clientName}</dd></div>
-          <div><dt className="text-muted">Servicio</dt><dd className="mt-1 wrap-anywhere">{appointment.serviceName}</dd></div>
           <div><dt className="text-muted">Fecha y horario</dt><dd className="mt-1">{formatLocalDate(appointment.date)}<br /><span className="tabular-nums">{time.format(appointment.start)}–{time.format(appointment.end)}</span><br /><span className="text-muted wrap-anywhere">{timeZone}</span></dd></div>
         </dl>
         {cancelled && <p role="status" className="mb-5 text-sm leading-6">Cancelada{cancelledAt !== undefined ? ` el ${timestamp.format(cancelledAt)} (${timeZone})` : ""}.</p>}
+        {changed && !cancelled && !pending && <div role="status" className="mb-5 space-y-3 text-sm leading-6"><p>La cita cambió en otra pestaña. Ahora está confirmada para el {formatLocalDate(latest.date)}, {time.format(latest.start)}–{time.format(latest.end)} ({timeZone}). Revisa este horario antes de cancelar.</p><Button variant="outline" disabled={pending} onClick={() => { setAppointment(latest); setError(null); }}>Revisar horario actualizado</Button></div>}
         {error && !cancelled && <p ref={errorRef} role="alert" tabIndex={-1} className="mb-5 text-sm leading-6 text-destructive">{error}</p>}
         <div className="flex flex-wrap justify-end gap-3" aria-busy={pending}>
           <AlertDialog.Cancel asChild><Button variant="outline" disabled={pending}>{cancelled ? "Cerrar" : "Volver"}</Button></AlertDialog.Cancel>
-          {!cancelled && <AlertDialog.Action asChild><Button variant="destructive" disabled={pending} onClick={(event) => { event.preventDefault(); void confirm(); }}>{pending ? "Cancelando…" : "Cancelar cita"}</Button></AlertDialog.Action>}
+          {!cancelled && <AlertDialog.Action asChild><Button variant="destructive" disabled={pending || changed} onClick={(event) => { event.preventDefault(); void confirm(); }}>{pending ? "Cancelando…" : "Cancelar cita"}</Button></AlertDialog.Action>}
         </div>
         <p role="status" className="sr-only">{pending ? "Confirmando la cancelación…" : ""}</p>
       </AlertDialog.Content>

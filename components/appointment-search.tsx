@@ -1,11 +1,13 @@
 "use client";
 
-import { useMutation, usePaginatedQuery } from "convex/react";
+import { useAction, useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { ConvexError } from "convex/values";
 import { Search } from "lucide-react";
-import { Component, useEffect, useRef, useState, type ReactNode, type FormEvent } from "react";
+import { Component, useEffect, useRef, useState, type ComponentType, type ReactNode, type FormEvent } from "react";
 import { AppointmentCancelDialog, type CancelAppointment } from "@/components/appointment-cancel-dialog";
+import { AppointmentRescheduleDialog, type MoveResult } from "@/components/appointment-reschedule-dialog";
+import { AppointmentActionsMenu } from "@/components/appointment-actions-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -14,11 +16,29 @@ import { navigateWorkspace } from "@/components/dashboard-workspace";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { formatLocalDate } from "@/lib/agenda-date";
+import { isLocalDate } from "@/lib/local-date";
 import { agendaFilterError, agendaPeriods, appointmentPeriodDates, appointmentQueryFilters, type AgendaFilters, type AgendaPeriod, type AppointmentFilters } from "@/lib/appointment-search";
 
 type SearchAppointment = FunctionReturnType<typeof api.appointments.searchMyAppointments>["page"][number];
 type SearchStatus = "LoadingFirstPage" | "CanLoadMore" | "LoadingMore" | "Exhausted";
 type Service = { _id: Id<"services">; name: string };
+
+export type AppointmentActionProps = { appointment: SearchAppointment; latest: SearchAppointment; mode: "cancel" | "reschedule";
+  onClose: () => void; onReturnFocus: () => void; onMoved: (result: MoveResult) => void };
+
+function ConnectedAppointmentAction({ appointment, mode, onClose, onReturnFocus, onMoved, timeZone, dayHref }: AppointmentActionProps & { timeZone: string; dayHref: (date: string) => string }) {
+  const latest = useQuery(api.appointments.getMyAppointment, { appointmentId: appointment._id });
+  const [date, setDate] = useState(appointment.date);
+  const occupied = useQuery(api.appointments.listMyConfirmedAppointments, mode === "reschedule" && isLocalDate(date) ? { date } : "skip");
+  const schedule = useQuery(api.weeklySchedule.getMyWeeklySchedule, mode === "reschedule" ? {} : "skip");
+  const services = usePaginatedQuery(api.services.listMyServices, mode === "reschedule" ? {} : "skip", { initialNumItems: 100 });
+  const cancel = useMutation(api.appointments.cancelMyAppointment);
+  const move = useMutation(api.appointments.rescheduleMyAppointment);
+  const consult = useAction(api.availability.getMyRescheduleAvailability);
+  if (mode === "cancel") return <AppointmentCancelDialog appointment={appointment} latest={latest ?? appointment} timeZone={timeZone} onCancel={cancel} onClose={onClose} onReturnFocus={onReturnFocus} />;
+  return <AppointmentRescheduleDialog appointment={appointment} latest={latest ?? appointment} timeZone={timeZone} onConsult={consult} onReschedule={move}
+    revision={JSON.stringify([occupied, schedule, services.results, latest, timeZone])} onDateChange={setDate} onClose={onClose} onReturnFocus={onReturnFocus} onMoved={onMoved} dayHref={dayHref} />;
+}
 
 export function AppointmentSearch({ filters, today, timeZone, enabled, services, moreServices, loadingServices, onLoadServices, onSearch, dayHref }: {
   filters: AgendaFilters; today: string; timeZone: string; enabled: boolean; services: Service[];
@@ -107,17 +127,20 @@ function SearchRead({ filters, today, timeZone, enabled, dayHref }: { filters: A
     client: filters.client.trim(), serviceId: filters.service ? filters.service as Id<"services"> : undefined,
     period: filters.period, from: filters.from, until: filters.until, referenceDate: filters.period === "todas" ? undefined : today,
   } : "skip", { initialNumItems: 50 });
-  return <AppointmentSearchResults appointments={results} status={status} timeZone={timeZone} dayHref={dayHref} onLoadMore={() => loadMore(50)} onCancel={cancel} />;
+  return <AppointmentSearchResults appointments={results} status={status} timeZone={timeZone} dayHref={dayHref} onLoadMore={() => loadMore(50)} onCancel={cancel}
+    actionComponent={ConnectedAppointmentAction} />;
 }
 
-export function AppointmentSearchResults({ appointments, status, timeZone, dayHref, onLoadMore, onCancel }: {
+export function AppointmentSearchResults({ appointments, status, timeZone, dayHref, onLoadMore, onCancel, actionComponent: Action }: {
   appointments: SearchAppointment[]; status: SearchStatus; timeZone: string; dayHref: (date: string) => string; onLoadMore: () => void;
   onCancel?: CancelAppointment;
+  actionComponent?: ComponentType<AppointmentActionProps & { timeZone: string; dayHref: (date: string) => string }>;
 }) {
-  const [selected, setSelected] = useState<SearchAppointment | null>(null);
+  const [selected, setSelected] = useState<{ appointment: SearchAppointment; mode: "cancel" | "reschedule" } | null>(null);
+  const [moved, setMoved] = useState<MoveResult | null>(null);
+  const noticeLink = useRef<HTMLAnchorElement>(null);
   const [now, setNow] = useState(0);
   const trigger = useRef<HTMLButtonElement | null>(null);
-  const dayLinks = useRef(new Map<string, HTMLAnchorElement>());
   // UI affordance only. The mutation always decides using server time.
   useEffect(() => {
     const update = () => setNow(Date.now());
@@ -126,11 +149,16 @@ export function AppointmentSearchResults({ appointments, status, timeZone, dayHr
     window.addEventListener("focus", update);
     return () => { window.clearInterval(timer); window.removeEventListener("focus", update); };
   }, []);
-  const target = selected && (appointments.find((item) => item._id === selected._id) ?? selected);
+  const target = selected && (appointments.find((item) => item._id === selected.appointment._id) ?? selected.appointment);
+  function returnFocus() {
+    if (trigger.current?.isConnected) trigger.current.focus();
+    else (noticeLink.current ?? document.querySelector<HTMLElement>("#search-client"))?.focus();
+  }
   const loading = status === "LoadingFirstPage" || status === "LoadingMore";
   const remaining = status === "CanLoadMore" || status === "LoadingMore";
   const time = new Intl.DateTimeFormat("es-UY", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
   return <div aria-busy={loading}>
+    {moved && <p className="my-4 text-sm leading-6">La cita se guardó para el {formatLocalDate(moved.date)}, {time.format(moved.start)}–{time.format(moved.end)} ({timeZone}). <a ref={noticeLink} className="text-link text-accent" href={dayHref(moved.date)} onClick={navigateWorkspace}>Ver día</a></p>}
     <div className="sr-only">
       <h2 className="font-semibold">Resultados</h2>
       <p role="status" className="text-sm text-muted">{status === "LoadingFirstPage" ? "Buscando citas…"
@@ -145,16 +173,20 @@ export function AppointmentSearchResults({ appointments, status, timeZone, dayHr
           <div className="col-span-2 min-w-0 sm:col-span-1"><time dateTime={item.date} className="text-sm font-semibold first-letter:uppercase">{formatLocalDate(item.date)}</time>
             <p className="mt-1 tabular-nums"><time dateTime={new Date(item.start).toISOString()}>{time.format(item.start)}</time><span aria-hidden="true">–</span><span className="sr-only"> a </span><time dateTime={new Date(item.end).toISOString()}>{time.format(item.end)}</time></p></div>
           <div className="min-w-0"><p className="wrap-anywhere font-semibold">{item.clientName}</p><p className="mt-1 wrap-anywhere text-sm text-muted">{item.serviceName} · <span className={item.status === "cancelled" ? "font-semibold text-destructive" : ""}>{item.status === "cancelled" ? "Cancelada" : "Confirmada"}</span></p>
-            {item.cancelledAt !== undefined && <p className="mt-1 text-xs leading-5 text-muted">Cancelada el {new Intl.DateTimeFormat("es-UY", { timeZone, dateStyle: "short", timeStyle: "short" }).format(item.cancelledAt)} · {timeZone}</p>}</div>
-          <div className="flex flex-col items-end gap-2">
-            <Button asChild variant="outline"><a ref={(node) => { if (node) dayLinks.current.set(item._id, node); else dayLinks.current.delete(item._id); }} href={dayHref(item.date)} onClick={navigateWorkspace} aria-label={`Ver día ${item.date}, cita de ${item.clientName}`}>Ver día</a></Button>
-            {onCancel && now > 0 && item.status === "confirmed" && item.start > now && <Button variant="ghost" className="text-destructive" aria-label={`Cancelar cita de ${item.clientName}`} onClick={(event) => { trigger.current = event.currentTarget; setSelected(item); }}>Cancelar cita</Button>}
+            {item.cancelledAt !== undefined && <p className="mt-1 text-xs leading-5 text-muted">Cancelada el {new Intl.DateTimeFormat("es-UY", { timeZone, dateStyle: "short", timeStyle: "short" }).format(item.cancelledAt)} · {timeZone}</p>}
+            {item.rescheduledAt !== undefined && <p className="mt-1 text-xs leading-5 text-muted">Última reprogramación: {new Intl.DateTimeFormat("es-UY", { timeZone, dateStyle: "short", timeStyle: "short" }).format(item.rescheduledAt)} · {timeZone}</p>}</div>
+          <div className="flex justify-end">
+            <AppointmentActionsMenu label={`Acciones de la cita de ${item.clientName}, ${item.date} a las ${time.format(item.start)}`}
+              date={item.date} dayHref={dayHref(item.date)}
+              canReschedule={!!Action && now > 0 && item.status === "confirmed" && item.start > now}
+              canCancel={!!onCancel && now > 0 && item.status === "confirmed" && item.start > now}
+              onAction={(mode, button) => { trigger.current = button; setSelected({ appointment: item, mode }); }} />
           </div>
         </li>)}
       </ol>}
     {remaining && <div className="mt-5 space-y-2"><Button type="button" variant="outline" disabled={loading} onClick={onLoadMore}>{loading ? "Buscando más citas…" : appointments.length ? "Cargar más citas" : "Seguir buscando"}</Button>
       <p className="text-xs leading-5 text-muted">Quedan páginas por consultar. Se revisan las siguientes citas que cumplen los filtros.</p></div>}
-    {target && onCancel && <AppointmentCancelDialog key={target._id} appointment={target} timeZone={timeZone} onCancel={onCancel} onClose={() => setSelected(null)}
-      onReturnFocus={() => { if (trigger.current?.isConnected) trigger.current.focus(); else dayLinks.current.get(target._id)?.focus(); }} />}
+    {selected && target && (Action ? <Action appointment={selected.appointment} latest={target} mode={selected.mode} onClose={() => setSelected(null)} onMoved={setMoved} onReturnFocus={returnFocus} timeZone={timeZone} dayHref={dayHref} />
+      : onCancel && <AppointmentCancelDialog key={selected.appointment._id} appointment={selected.appointment} latest={target} timeZone={timeZone} onCancel={onCancel} onClose={() => setSelected(null)} onReturnFocus={returnFocus} />)}
   </div>;
 }

@@ -32,7 +32,7 @@ describe("consulta amplia de citas (solo memoria)", () => {
     const result = await search();
     expect(result.page.map((r) => `${r.date}:${r.start}`)).toEqual([...result.page].sort((a, b) => a.start - b.start).map((r) => `${r.date}:${r.start}`));
     expect(result.page.map((r) => r.date)).toEqual(["1999-01-01", "2030-01-07", "2030-01-07", "2099-12-31"]);
-    expect(Object.keys(result.page[0]).sort()).toEqual(["_id", "clientName", "date", "end", "serviceId", "serviceName", "start", "status"].sort());
+    expect(Object.keys(result.page[0]).sort()).toEqual(["_id", "clientName", "date", "end", "serviceId", "serviceName", "start", "status", "version"].sort());
     expect(result.isDone).toBe(true);
   });
   test("combina fragmento de nombre, servicio y rango inclusivo", async () => {
