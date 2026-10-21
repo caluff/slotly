@@ -131,7 +131,7 @@ Los valores del frontmatter son normativos y proceden de la hoja global y de la 
 - `muted`: descripciones, notas y pie.
 - `line`: separadores de cabecera y pie.
 - `white`: texto de la acción principal, cabecera privada, paneles contextuales y fondo configurado para Clerk.
-- `destructive`: bordes y mensajes de error en formularios.
+- `destructive`: bordes y mensajes de error, acción de cancelación y estado textual de citas canceladas. La confirmación destructiva usa fondo opaco y texto blanco, también cuando el sistema operativo prefiere modo oscuro; la aplicación mantiene su paleta clara.
 
 ## Typography
 
@@ -159,7 +159,7 @@ Los filtros de Agenda responden al ancho disponible de su contenedor. Nombre del
 
 ## Elevation & Depth
 
-Las superficies propias usan fondo, contraste tonal y separadores. No se definen sombras propias. Los paneles contextuales son blancos, con borde fino y sin superposición sobre el contenido. Solo el diálogo de salida con borradores oscurece el fondo con el texto principal al (20%). Los formularios conservan los estilos internos oficiales de Clerk.
+Las superficies propias usan fondo, contraste tonal y separadores. No se definen sombras propias. Los paneles contextuales son blancos, con borde fino y sin superposición sobre el contenido. El diálogo de salida con borradores oscurece el fondo con el texto principal al (20%); la confirmación de cancelación usa ese color al (30%). Los formularios conservan los estilos internos oficiales de Clerk.
 
 ## Shapes
 
@@ -181,7 +181,7 @@ El favicon y los iconos de la aplicación usan solo el calendario, sin la palabr
 
 `button-primary` y `button-secondary` sirven para acciones y enlaces de navegación. Comparten altura mínima de 36px (2.25rem), relleno vertical de 6px, relleno horizontal de 16px y separación interna de 8px. Los campos y selectores propios reutilizan `form-control`, con la misma altura mínima de 36px, texto de 14px y relleno horizontal de 12px. La apariencia global de Clerk conserva esa altura y relleno vertical en sus campos y botones de formulario. Los controles de avatar y menú mantienen sus áreas de interacción de 44px.
 
-Preferencia permanente explícita del usuario: todos los inputs, selects y botones propios de Slotly se mantienen compactos, con (36px) de altura en escritorio y móvil. Incluye Nueva cita, Nuevo servicio, Confirmar cita, Guardar semana, filtros y acciones de Agenda, carga de servicios, cierre de panel y botones del diálogo de salida. Los botones de solo icono miden (36×36px). No imponer (44px) por defecto sin una nueva petición del usuario. La navegación y el `UserButton` oficial de Clerk son elementos distintos y conservan su configuración. Los botones con icono en las acciones de cabecera mantienen el relleno horizontal de (12px).
+Preferencia permanente explícita del usuario: todos los inputs, selects y botones propios de Slotly se mantienen compactos, con (36px) de altura en escritorio y móvil. Incluye Nueva cita, Nuevo servicio, Confirmar cita, Guardar semana, filtros y acciones de Agenda, carga de servicios, cierre de panel y botones de los diálogos de salida y cancelación. Los botones de solo icono miden (36×36px). No imponer (44px) por defecto sin una nueva petición del usuario. La navegación y el `UserButton` oficial de Clerk son elementos distintos y conservan su configuración. Los botones con icono en las acciones de cabecera mantienen el relleno horizontal de (12px).
 
 La altura se hereda de las primitivas: `Input` y `NativeSelect` usan `h-9`; `Button` usa `h-9` en su tamaño predeterminado y `size-9` para `size="icon"`, sin variantes responsive que agranden esos defaults. Los consumidores del dashboard no repiten clases de altura. El aumento anterior a 44px procedía de overrides locales `h-11`/`min-h-11`/`min-w-11`, no del tamaño base. Las variantes explícitas útiles se conservan cuando se solicitan deliberadamente; esta preferencia no modifica Textarea ni Clerk.
 
@@ -229,7 +229,7 @@ La barra de guardado semanal permanece junto al borde inferior al desplazarse, c
 
 ### Confirmaciones por toast
 
-Las escrituras de servicio, horario y cita se confirman con «Servicio creado», «Horario guardado» y «Cita confirmada» mediante Sonner y el wrapper de shadcn/ui adaptado al tema claro. Hay un único `Toaster` en el layout raíz. La confirmación se emite solo después de que el guardado termine correctamente; no se duplica con un mensaje de éxito dentro del formulario. Consultar disponibilidad no emite un toast. Los errores permanecen en `FieldError` y el estado de guardado conserva su anuncio exclusivo para lectores de pantalla.
+Las escrituras de servicio, horario y cita se confirman con «Servicio creado», «Horario guardado», «Cita confirmada» y «Cita cancelada.» mediante Sonner y el wrapper de shadcn/ui adaptado al tema claro. Hay un único `Toaster` en el layout raíz. La confirmación se emite solo después de que el guardado termine correctamente; no se duplica con un mensaje de éxito dentro del formulario. Una cancelación que ya estaba realizada, incluida la recibida desde otra pestaña, se explica en el diálogo sin un nuevo toast. Consultar disponibilidad no emite un toast. Los errores de formulario permanecen en `FieldError`; los de cancelación permanecen en el diálogo con foco. El estado de guardado conserva su anuncio exclusivo para lectores de pantalla.
 
 El toast reutiliza Geist con texto de (14px), fondo `surface`, texto `foreground`, borde fino `line`, radio compartido de (6px) y ninguna sombra. El icono de éxito es `CircleCheck` de Lucide, decorativo, de (16px) y color `accent`. Conserva la posición nativa de Sonner en la esquina inferior derecha, con márgenes móviles de (16px) y duración base de (4000ms).
 
@@ -241,7 +241,7 @@ Agenda presenta un único listado paginado, con Hoy como período inicial según
 
 El formulario reúne seis controles con etiquetas visibles: nombre del cliente, servicio, período, Desde, Hasta y Buscar. Los límites permanecen a la vista: Hoy muestra hoy en ambos; Todas los vacía; Próximas muestra hoy en Desde; Pasadas muestra ayer en Hasta. Editar una fecha selecciona Personalizado, que exige al menos un extremo y admite dejar el otro vacío. Ambos límites son inclusivos. Buscar o Enter aplica todos los filtros combinados; un rango invertido muestra un error sin cambiar la consulta aplicada. El nombre permite un fragmento literal con o sin tildes. Los controles heredan los (36px) de las primitivas existentes.
 
-Cada fila muestra fecha completa, inicio/fin en la zona IANA del negocio, cliente, servicio, «Confirmada» y Ver día, con separadores finos y orden cronológico ascendente por fecha e inicio. En móvil, fecha y horas ocupan la primera fila, y cliente/servicio y la acción comparten la segunda; desde `sm`, fecha/horas, cliente/servicio y acción forman tres columnas. Ver día aplica esa fecha en ambos límites de Personalizado dentro del mismo listado, conservando nombre, servicio y borrador.
+Cada fila muestra fecha completa, inicio/fin en la zona IANA del negocio, cliente, servicio, estado textual y Ver día, con separadores finos y orden cronológico ascendente por fecha e inicio. «Cancelada» usa el color destructivo y añade la fecha/hora de cancelación con zona IANA; «Confirmada» conserva su tratamiento anterior. Cancelar cita aparece debajo de Ver día solo en confirmadas futuras. En móvil, fecha y horas ocupan la primera fila, y cliente/servicio y las acciones comparten la segunda; desde `sm`, fecha/horas, cliente/servicio y acciones forman tres columnas. Ver día aplica esa fecha en ambos límites de Personalizado dentro del mismo listado, conservando nombre, servicio y borrador. No se añade filtro de estado ni una banda nueva.
 
 El encabezado Resultados y su contador permanecen solo para lectores de pantalla: anuncian la carga y distinguen citas cargadas con páginas pendientes de un total encontrado al agotar la consulta. El listado empieza inmediatamente después de los filtros. Un tramo sin coincidencias conserva «La búsqueda continúa» y Seguir buscando mientras queden páginas; solo la búsqueda agotada muestra «Sin coincidencias». Cargar más citas cambia a «Buscando más citas…» y se deshabilita durante la carga. Las páginas pendientes mantienen una explicación visible. Los errores de lectura presentan una explicación y Reintentar búsqueda, conservando filtros y borrador.
 
@@ -250,4 +250,10 @@ Nueva cita reúne servicio, fecha, disponibilidad automática, horario y cliente
 Un borrador nuevo hereda fecha únicamente cuando el filtro aplicado representa un solo día; con Todas, un rango de varios días o un extremo abierto, la fecha empieza vacía y exige elegirla. Un borrador existente conserva servicio, fecha, horario y cliente al aplicar filtros, usar Ver día, cambiar de vista o cerrar el panel. El enlace del panel permite aplicar el día del borrador en Agenda sin descartar los datos.
 
 Los nombres largos pueden partirse dentro de la columna de contenido sin desplazar las fechas, horas ni la acción. Esta composición reutiliza los tokens y primitivas existentes; no introduce un segundo listado diario ni nuevos recursos gráficos.
+
+### Confirmación de cancelación
+
+Cancelar cita abre un `AlertDialog` de Radix sobre el contenido. Reutiliza fondo claro, borde fino, radio compartido y espaciado de los paneles, sin sombra. El diálogo está centrado, limitado a (28rem), deja (16px) de margen mínimo por lado y admite desplazamiento vertical dentro de la ventana. Cliente, servicio, fecha completa, intervalo y zona IANA quedan visibles antes de confirmar. La explicación aclara que la cita conserva su historial y libera el horario para todos los servicios.
+
+Volver recibe el foco inicial; Tab y Mayús+Tab permanecen dentro del diálogo y Escape permite cerrarlo. Al confirmar se bloquean ambos botones y Escape hasta recibir respuesta, con «Cancelando…» y un anuncio de estado. Un error conserva el contexto y recibe foco; permite reintentar. Si la cita ya estaba cancelada o cambia desde otra pestaña, el diálogo muestra «Cita ya cancelada», su timestamp y Cerrar, sin ofrecer otra cancelación. Al cerrar, el foco vuelve al disparador o a Ver día de la misma fila si el disparador dejó de existir. Estos estados conservan filtros, navegación y borrador de Nueva cita.
 

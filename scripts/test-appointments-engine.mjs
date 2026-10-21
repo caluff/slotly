@@ -73,6 +73,22 @@ try {
   await cp(path.join(repo, "lib"), path.join(workspace, "lib"), { recursive: true });
   await cp(path.join(repo, "package.json"), path.join(workspace, "package.json"));
   await writeFile(path.join(workspace, "convex", "auth.config.ts"), "export default { providers: [] };\n");
+  // Test-only seed, generated ONLY in the owned temporary deployment. It is
+  // never added to app functions or synchronized with a cloud deployment.
+  await writeFile(path.join(workspace, "convex", "engineFixtures.ts"), `
+import { internalMutation } from "./_generated/server";
+import { v } from "convex/values";
+import { requireMyBusiness } from "./lib/appointmentData";
+export const cancelledHistory = internalMutation({
+  args: { serviceId: v.id("services"), date: v.string(), start: v.number() }, returns: v.number(),
+  handler: async (ctx, args) => {
+    const business = await requireMyBusiness(ctx);
+    const service = await ctx.db.get("services", args.serviceId);
+    if (!service || service.businessId !== business._id) throw new Error("Synthetic fixture ownership");
+    for (let i = 0; i < 1600; i++) await ctx.db.insert("appointments", { ...args, businessId: business._id, serviceName: service.name, clientName: "Synthetic cancelled history", end: args.start + 30 * 60000, status: "cancelled", cancelledAt: Date.now() });
+    return 1600;
+  }
+});\n`);
   await writeFile(path.join(workspace, "convex.json"), '{"functions":"convex/"}\n');
   await symlink(path.join(repo, "node_modules"), path.join(workspace, "node_modules"), process.platform === "win32" ? "junction" : "dir");
   const envFile = path.join(workspace, "isolated.env");
@@ -105,6 +121,27 @@ try {
     return { identity, client, serviceId, secondServiceId };
   }
   let restartCheck;
+  // Independent HTTP clients + transport barrier, also for cancellation races.
+  async function race(operations) {
+    let entered = 0, active = 0, maxInFlight = 0, release;
+    const gate = new Promise((resolve) => { release = resolve; });
+    const concurrentFetch = async (...args) => {
+      if (++entered === operations.length) release();
+      await gate;
+      maxInFlight = Math.max(maxInFlight, ++active);
+      try { return await fetch(...args); } finally { active--; }
+    };
+    const results = await Promise.allSettled(operations.map(({ who, name, args }) => makeClient(who.identity, concurrentFetch).mutation(name, args, { skipQueue: true })));
+    assert.equal(maxInFlight, operations.length);
+    return { results, maxInFlight };
+  }
+  const createOperation = (who, serviceId = who.serviceId, offset = 0) => ({ who, name: "appointments:createMyAppointment", args: { date, start: start + offset, serviceId, clientName: "Synthetic race" } });
+  const cancelOperation = (who, appointmentId) => ({ who, name: "appointments:cancelMyAppointment", args: { appointmentId } });
+  async function history(who) {
+    const result = await who.client.query("appointments:searchMyAppointments", { client: "", period: "todas", from: date, until: date, paginationOpts: { cursor: null, numItems: 100 } });
+    assert.equal(result.isDone, true);
+    return result.page;
+  }
   for (let round = 1; round <= 3; round++) {
     for (const scenario of ["same-interval", "partial-overlap", "different-services", "adjacent", "non-overlapping", "different-businesses"]) {
       const a = await setup();
@@ -134,8 +171,8 @@ try {
       const successes = results.filter((r) => r.status === "fulfilled").length;
       assert.equal(successes, compatible ? 2 : 1);
       for (const r of results) if (r.status === "rejected") assert.match(String(r.reason), /SLOT_TAKEN/);
-      const rowsA = await a.client.query("appointments:listMyAppointments", { date });
-      const rows = scenario === "different-businesses" ? [...rowsA, ...await b.client.query("appointments:listMyAppointments", { date })] : rowsA;
+      const rowsA = await a.client.query("appointments:listMyConfirmedAppointments", { date });
+      const rows = scenario === "different-businesses" ? [...rowsA, ...await b.client.query("appointments:listMyConfirmedAppointments", { date })] : rowsA;
       assert.equal(rows.length, successes, "Documentos finales no coinciden con commits exitosos.");
       assert.deepEqual(rows.map((r) => r._id).sort(), results.filter((r) => r.status === "fulfilled").map((r) => r.value).sort());
       assert.ok(rows.every((r) => r.status === "confirmed" && r.end > r.start));
@@ -145,23 +182,109 @@ try {
       restartCheck = { client: a.client, rows: rowsA };
     }
   }
+  for (let round = 1; round <= 3; round++) {
+    for (const scenario of ["double-cancel", "cancel-vs-create", "freed-two-creations", "freed-different-services", "freed-adjacent", "freed-different-businesses"]) {
+      const a = await setup();
+      const original = await a.client.mutation("appointments:createMyAppointment", createOperation(a).args);
+      const before = (await history(a))[0];
+      const cancelArgs = { appointmentId: original };
+      const began = Date.now();
+      const b = scenario === "freed-different-businesses" ? await setup() : a;
+      let operations;
+      let firstCancel;
+      if (scenario === "double-cancel") operations = [cancelOperation(a, original), cancelOperation(a, original)];
+      else if (scenario === "cancel-vs-create") operations = [cancelOperation(a, original), createOperation(a)];
+      else {
+        firstCancel = await a.client.mutation("appointments:cancelMyAppointment", cancelArgs);
+        assert.equal(firstCancel.outcome, "cancelled");
+        const free = await a.client.action("availability:getMyAvailability", { serviceId: a.secondServiceId, date });
+        assert.ok(free.slots.some((slot) => slot.start === start), "La cancelación no liberó otro servicio.");
+        operations = [createOperation(a), createOperation(b, scenario === "freed-different-services" ? a.secondServiceId : b.serviceId, scenario === "freed-adjacent" ? 30 * 60_000 : 0)];
+      }
+      const { results, maxInFlight } = await race(operations);
+      const ended = Date.now();
+      const rowsA = await history(a);
+      const originalAfter = rowsA.find((row) => row._id === original);
+      assert.ok(originalAfter);
+      assert.deepEqual(originalAfter, { ...before, status: "cancelled", cancelledAt: originalAfter.cancelledAt });
+      assert.ok(originalAfter.cancelledAt >= began && originalAfter.cancelledAt <= ended);
+      if (firstCancel) assert.equal(originalAfter.cancelledAt, firstCancel.cancelledAt);
+      const repeated = await a.client.mutation("appointments:cancelMyAppointment", cancelArgs);
+      assert.deepEqual(repeated, { outcome: "already_cancelled", cancelledAt: originalAfter.cancelledAt });
+      assert.deepEqual(await history(a), rowsA, "La repetición modificó la historia.");
+      const activeA = rowsA.filter((row) => row.status === "confirmed");
+      const rowsB = b === a ? [] : await history(b);
+      const active = [...activeA, ...rowsB.filter((row) => row.status === "confirmed")];
+      const successes = results.filter((r) => r.status === "fulfilled").length;
+      for (const r of results) if (r.status === "rejected") assert.match(String(r.reason), /SLOT_TAKEN/);
+      if (scenario === "double-cancel") {
+        assert.equal(successes, 2);
+        assert.deepEqual(results.map((r) => r.value.outcome).sort(), ["already_cancelled", "cancelled"]);
+        assert.ok(results.every((r) => r.value.cancelledAt === originalAfter.cancelledAt));
+        assert.equal(active.length, 0);
+      } else if (scenario === "cancel-vs-create") {
+        assert.equal(results[0].status, "fulfilled");
+        assert.equal(results[0].value.outcome, "cancelled");
+        assert.equal(active.length, results[1].status === "fulfilled" ? 1 : 0);
+      } else {
+        const compatible = scenario === "freed-adjacent" || scenario === "freed-different-businesses";
+        assert.equal(successes, compatible ? 2 : 1);
+        assert.equal(active.length, successes);
+      }
+      const committedIds = operations.flatMap((op, i) => op.name === "appointments:createMyAppointment" && results[i].status === "fulfilled" ? [results[i].value] : []);
+      assert.deepEqual(active.map((r) => r._id).sort(), committedIds.sort());
+      for (const row of active) {
+        const expected = operations.find((op) => op.name === "appointments:createMyAppointment" && op.args.serviceId === row.serviceId && op.args.start === row.start);
+        assert.ok(expected);
+        assert.equal(row.end, row.start + (row.serviceId === a.secondServiceId ? 46 : 30) * 60_000);
+        assert.equal(row.cancelledAt, undefined);
+      }
+      assert.deepEqual((await a.client.query("appointments:listMyConfirmedAppointments", { date })).map((r) => r._id).sort(), activeA.map((r) => r._id).sort());
+      const preview = await a.client.action("availability:getMyAvailability", { serviceId: a.serviceId, date });
+      assert.equal(preview.slots.some((s) => s.start === start), !activeA.some((r) => r.start < start + 30 * 60_000 && start < r.end));
+      report.scenarios.push({ round, scenario, requests: operations.length, maxInFlight, successes, rejected: operations.length - successes, finalDocuments: rowsA.length + rowsB.length, confirmed: active.length, cancelled: 1, timestampStable: true });
+    }
+  }
   const owner = await setup();
+  const dense = await setup();
+  assert.equal(await dense.client.mutation("engineFixtures:cancelledHistory", { serviceId: dense.serviceId, date, start }), 1600);
+  const freeDense = await dense.client.action("availability:getMyAvailability", { serviceId: dense.secondServiceId, date });
+  assert.ok(freeDense.slots.some((s) => s.start === start));
+  const denseId = await dense.client.mutation("appointments:createMyAppointment", createOperation(dense).args);
+  await assert.rejects(dense.client.mutation("appointments:createMyAppointment", createOperation(dense).args), /SLOT_TAKEN/);
+  assert.deepEqual((await dense.client.query("appointments:listMyConfirmedAppointments", { date })).map((r) => r._id), [denseId]);
+  assert.ok(!(await dense.client.action("availability:getMyAvailability", { serviceId: dense.secondServiceId, date })).slots.some((s) => s.start === start));
+  let denseCursor = null, denseDone = false, densePages = 0, denseCount = 0, denseConfirmed = 0;
+  const denseIds = new Set();
+  while (!denseDone) {
+    const page = await dense.client.query("appointments:searchMyAppointments", { client: "", period: "todas", from: date, until: date, paginationOpts: { cursor: denseCursor, numItems: 73 } });
+    for (const row of page.page) {
+      assert.ok(!denseIds.has(row._id)); denseIds.add(row._id); denseCount++;
+      if (row.status === "confirmed") denseConfirmed++;
+      else assert.equal(typeof row.cancelledAt, "number");
+    }
+    densePages++; denseCursor = page.continueCursor; denseDone = page.isDone;
+    assert.ok(densePages < 30);
+  }
+  assert.equal(denseCount, 1601); assert.equal(denseConfirmed, 1);
+  report.denseCancelledHistory = { cancelled: 1600, confirmed: 1, paginatedDocuments: denseCount, pages: densePages, duplicateIds: 0, freeBeforeCreation: true, conflictDetectedAfterCreation: true };
   const args = { serviceId: owner.serviceId, date, start, clientName: "  Synthetic   normalized  " };
   await assert.rejects(makeClient().mutation("appointments:createMyAppointment", args), /UNAUTHENTICATED/);
-  await assert.rejects(makeClient().query("appointments:listMyAppointments", { date }), /UNAUTHENTICATED/);
+  await assert.rejects(makeClient().query("appointments:listMyConfirmedAppointments", { date }), /UNAUTHENTICATED/);
   await owner.client.mutation("appointments:createMyAppointment", args);
-  const saved = await owner.client.query("appointments:listMyAppointments", { date });
+  const saved = await owner.client.query("appointments:listMyConfirmedAppointments", { date });
   assert.equal(saved[0].clientName, "Synthetic normalized");
   await owner.client.mutation("weeklySchedule:saveMyWeeklySchedule", { days: days.map((d) => ({ ...d, isOpen: false, start: null, end: null })) });
-  assert.deepEqual(await owner.client.query("appointments:listMyAppointments", { date }), saved);
+  assert.deepEqual(await owner.client.query("appointments:listMyConfirmedAppointments", { date }), saved);
   await assert.rejects(owner.client.mutation("appointments:createMyAppointment", { ...args, start: start + 60 * 60_000 }), /SLOT_UNAVAILABLE/);
   await stopBackend();
   await startBackend();
-  assert.deepEqual(await restartCheck.client.query("appointments:listMyAppointments", { date }), restartCheck.rows);
-  assert.deepEqual(await owner.client.query("appointments:listMyAppointments", { date }), saved);
+  assert.deepEqual(await restartCheck.client.query("appointments:listMyConfirmedAppointments", { date }), restartCheck.rows);
+  assert.deepEqual(await owner.client.query("appointments:listMyConfirmedAppointments", { date }), saved);
   report.persistenceAfterRestart = true;
   report.weekChangePreservesInstants = true;
   report.anonymousRejected = true;
+  report.limits = "Synthetic independent HTTP clients against real isolated local Convex/SQLite; not cloud races, Clerk, network fault injection, or load certification.";
   report.totalRequestsInRaces = report.scenarios.reduce((sum, s) => sum + s.requests, 0);
   report.success = true;
   console.log(JSON.stringify(report, null, 2));

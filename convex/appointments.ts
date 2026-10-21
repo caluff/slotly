@@ -1,7 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator, paginationResultValidator } from "convex/server";
 import { mutation, query } from "./_generated/server";
-import { appointmentsForDate, overlaps, requireMyBusiness } from "./lib/appointmentData";
+import { confirmedAppointmentsForDate, overlaps, requireMyBusiness } from "./lib/appointmentData";
 import { generateAvailability } from "./lib/availability";
 import { appointmentSchema } from "../lib/appointment-schema";
 import { isLocalDate } from "../lib/local-date";
@@ -9,16 +9,18 @@ import { appointmentDateBounds, appointmentFilterError, normalizeClientSearch } 
 
 const appointment = v.object({
   _id: v.id("appointments"), serviceId: v.id("services"), serviceName: v.string(),
-  clientName: v.string(), start: v.number(), end: v.number(), status: v.literal("confirmed"),
+  clientName: v.string(), start: v.number(), end: v.number(), status: v.union(v.literal("confirmed"), v.literal("cancelled")),
 });
 
-export const listMyAppointments = query({
+// Bounded reactive occupation, not historical listing. History (including
+// cancellations) is always paginated through searchMyAppointments.
+export const listMyConfirmedAppointments = query({
   args: { date: v.string() },
   returns: v.array(appointment),
   handler: async (ctx, { date }) => {
     const business = await requireMyBusiness(ctx);
     if (!isLocalDate(date)) throw new ConvexError({ code: "INVALID_DATE" });
-    const rows = await appointmentsForDate(ctx, business._id, date);
+    const rows = await confirmedAppointmentsForDate(ctx, business._id, date);
     return rows.map(({ _id, serviceId, serviceName, clientName, start, end, status }) =>
       ({ _id, serviceId, serviceName, clientName, start, end, status }));
   },
@@ -37,7 +39,8 @@ export const searchMyAppointments = query({
   },
   returns: paginationResultValidator(v.object({
     _id: v.id("appointments"), serviceId: v.id("services"), serviceName: v.string(),
-    clientName: v.string(), date: v.string(), start: v.number(), end: v.number(), status: v.literal("confirmed"),
+    clientName: v.string(), date: v.string(), start: v.number(), end: v.number(),
+    status: v.union(v.literal("confirmed"), v.literal("cancelled")), cancelledAt: v.optional(v.number()),
   })),
   handler: async (ctx, { client, serviceId, period, from, until, referenceDate, paginationOpts }) => {
     const business = await requireMyBusiness(ctx);
@@ -71,8 +74,8 @@ export const searchMyAppointments = query({
     const needle = normalizeClientSearch(client);
     return { ...page, page: page.page
       .filter((row) => !needle || normalizeClientSearch(row.clientName).includes(needle))
-      .map(({ _id, serviceId, serviceName, clientName, date, start, end, status }) =>
-        ({ _id, serviceId, serviceName, clientName, date, start, end, status })) };
+      .map(({ _id, serviceId, serviceName, clientName, date, start, end, status, cancelledAt }) =>
+        ({ _id, serviceId, serviceName, clientName, date, start, end, status, ...(cancelledAt === undefined ? {} : { cancelledAt }) })) };
   },
 });
 
@@ -97,11 +100,32 @@ export const createMyAppointment = mutation({
     // Read the COMPLETE business/day range (not service-scoped), including an
     // empty range, in THIS mutation. An insertion into that range invalidates
     // concurrent read sets; Convex OCC retries and rechecks before committing.
-    const existing = await appointmentsForDate(ctx, business._id, date);
+    const existing = await confirmedAppointmentsForDate(ctx, business._id, date);
     if (existing.some((saved) => overlaps(slot, saved))) throw new ConvexError({ code: "SLOT_TAKEN" });
     return await ctx.db.insert("appointments", {
       businessId: business._id, serviceId, serviceName: service.name,
       clientName: parsed.data.clientName, date, start: slot.start, end: slot.end, status: "confirmed",
     });
+  },
+});
+
+export const cancelMyAppointment = mutation({
+  args: { appointmentId: v.id("appointments") },
+  returns: v.object({ outcome: v.union(v.literal("cancelled"), v.literal("already_cancelled")), cancelledAt: v.number() }),
+  handler: async (ctx, { appointmentId }) => {
+    const business = await requireMyBusiness(ctx);
+    const saved = await ctx.db.get("appointments", appointmentId);
+    // Same response for missing and foreign IDs; never reveal foreign state.
+    if (!saved || saved.businessId !== business._id) throw new ConvexError({ code: "APPOINTMENT_NOT_FOUND" });
+    if (saved.status === "cancelled") {
+      if (saved.cancelledAt === undefined) throw new ConvexError({ code: "INVALID_APPOINTMENT_STATE" });
+      return { outcome: "already_cancelled" as const, cancelledAt: saved.cancelledAt };
+    }
+    const cancelledAt = Date.now();
+    if (saved.start <= cancelledAt) throw new ConvexError({ code: "APPOINTMENT_STARTED" });
+    // The read and status/index transition share a transaction. OCC retries a
+    // concurrent cancellation or creation reading this confirmed range.
+    await ctx.db.patch("appointments", appointmentId, { status: "cancelled", cancelledAt });
+    return { outcome: "cancelled" as const, cancelledAt };
   },
 });

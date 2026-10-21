@@ -1,10 +1,11 @@
 "use client";
 
-import { usePaginatedQuery } from "convex/react";
+import { useMutation, usePaginatedQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { ConvexError } from "convex/values";
 import { Search } from "lucide-react";
-import { Component, useState, type ReactNode, type FormEvent } from "react";
+import { Component, useEffect, useRef, useState, type ReactNode, type FormEvent } from "react";
+import { AppointmentCancelDialog, type CancelAppointment } from "@/components/appointment-cancel-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -101,16 +102,31 @@ class SearchReadBoundary extends Component<{ children: ReactNode }, { error: unk
 }
 
 function SearchRead({ filters, today, timeZone, enabled, dayHref }: { filters: AppointmentFilters; today: string; timeZone: string; enabled: boolean; dayHref: (date: string) => string }) {
+  const cancel = useMutation(api.appointments.cancelMyAppointment);
   const { results, status, loadMore } = usePaginatedQuery(api.appointments.searchMyAppointments, enabled ? {
     client: filters.client.trim(), serviceId: filters.service ? filters.service as Id<"services"> : undefined,
     period: filters.period, from: filters.from, until: filters.until, referenceDate: filters.period === "todas" ? undefined : today,
   } : "skip", { initialNumItems: 50 });
-  return <AppointmentSearchResults appointments={results} status={status} timeZone={timeZone} dayHref={dayHref} onLoadMore={() => loadMore(50)} />;
+  return <AppointmentSearchResults appointments={results} status={status} timeZone={timeZone} dayHref={dayHref} onLoadMore={() => loadMore(50)} onCancel={cancel} />;
 }
 
-export function AppointmentSearchResults({ appointments, status, timeZone, dayHref, onLoadMore }: {
+export function AppointmentSearchResults({ appointments, status, timeZone, dayHref, onLoadMore, onCancel }: {
   appointments: SearchAppointment[]; status: SearchStatus; timeZone: string; dayHref: (date: string) => string; onLoadMore: () => void;
+  onCancel?: CancelAppointment;
 }) {
+  const [selected, setSelected] = useState<SearchAppointment | null>(null);
+  const [now, setNow] = useState(0);
+  const trigger = useRef<HTMLButtonElement | null>(null);
+  const dayLinks = useRef(new Map<string, HTMLAnchorElement>());
+  // UI affordance only. The mutation always decides using server time.
+  useEffect(() => {
+    const update = () => setNow(Date.now());
+    update();
+    const timer = window.setInterval(update, 1000);
+    window.addEventListener("focus", update);
+    return () => { window.clearInterval(timer); window.removeEventListener("focus", update); };
+  }, []);
+  const target = selected && (appointments.find((item) => item._id === selected._id) ?? selected);
   const loading = status === "LoadingFirstPage" || status === "LoadingMore";
   const remaining = status === "CanLoadMore" || status === "LoadingMore";
   const time = new Intl.DateTimeFormat("es-UY", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
@@ -128,11 +144,17 @@ export function AppointmentSearchResults({ appointments, status, timeZone, dayHr
         {appointments.map((item) => <li key={item._id} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-3 py-5 sm:grid-cols-[minmax(12rem,1fr)_minmax(0,1.2fr)_auto] sm:items-center sm:gap-x-6">
           <div className="col-span-2 min-w-0 sm:col-span-1"><time dateTime={item.date} className="text-sm font-semibold first-letter:uppercase">{formatLocalDate(item.date)}</time>
             <p className="mt-1 tabular-nums"><time dateTime={new Date(item.start).toISOString()}>{time.format(item.start)}</time><span aria-hidden="true">–</span><span className="sr-only"> a </span><time dateTime={new Date(item.end).toISOString()}>{time.format(item.end)}</time></p></div>
-          <div className="min-w-0"><p className="wrap-anywhere font-semibold">{item.clientName}</p><p className="mt-1 wrap-anywhere text-sm text-muted">{item.serviceName} · Confirmada</p></div>
-          <Button asChild variant="outline"><a href={dayHref(item.date)} onClick={navigateWorkspace} aria-label={`Ver día ${item.date}, cita de ${item.clientName}`}>Ver día</a></Button>
+          <div className="min-w-0"><p className="wrap-anywhere font-semibold">{item.clientName}</p><p className="mt-1 wrap-anywhere text-sm text-muted">{item.serviceName} · <span className={item.status === "cancelled" ? "font-semibold text-destructive" : ""}>{item.status === "cancelled" ? "Cancelada" : "Confirmada"}</span></p>
+            {item.cancelledAt !== undefined && <p className="mt-1 text-xs leading-5 text-muted">Cancelada el {new Intl.DateTimeFormat("es-UY", { timeZone, dateStyle: "short", timeStyle: "short" }).format(item.cancelledAt)} · {timeZone}</p>}</div>
+          <div className="flex flex-col items-end gap-2">
+            <Button asChild variant="outline"><a ref={(node) => { if (node) dayLinks.current.set(item._id, node); else dayLinks.current.delete(item._id); }} href={dayHref(item.date)} onClick={navigateWorkspace} aria-label={`Ver día ${item.date}, cita de ${item.clientName}`}>Ver día</a></Button>
+            {onCancel && now > 0 && item.status === "confirmed" && item.start > now && <Button variant="ghost" className="text-destructive" aria-label={`Cancelar cita de ${item.clientName}`} onClick={(event) => { trigger.current = event.currentTarget; setSelected(item); }}>Cancelar cita</Button>}
+          </div>
         </li>)}
       </ol>}
     {remaining && <div className="mt-5 space-y-2"><Button type="button" variant="outline" disabled={loading} onClick={onLoadMore}>{loading ? "Buscando más citas…" : appointments.length ? "Cargar más citas" : "Seguir buscando"}</Button>
       <p className="text-xs leading-5 text-muted">Quedan páginas por consultar. Se revisan las siguientes citas que cumplen los filtros.</p></div>}
+    {target && onCancel && <AppointmentCancelDialog key={target._id} appointment={target} timeZone={timeZone} onCancel={onCancel} onClose={() => setSelected(null)}
+      onReturnFocus={() => { if (trigger.current?.isConnected) trigger.current.focus(); else dayLinks.current.get(target._id)?.focus(); }} />}
   </div>;
 }

@@ -21,7 +21,7 @@ async function setup(durationMinutes = 30, timeZone = "America/Montevideo") {
   const serviceId = await owner.mutation(api.services.createMyService, { name: "Synthetic service", durationMinutes });
   await owner.mutation(api.weeklySchedule.saveMyWeeklySchedule, { days: week() });
   const args = { serviceId, date, start: at("09:30"), clientName: "Synthetic client" };
-  const list = () => owner.query(api.appointments.listMyAppointments, { date });
+  const list = () => owner.query(api.appointments.listMyConfirmedAppointments, { date });
   const documents = () => t.run((ctx) => ctx.db.query("appointments").take(1500));
   return { t, owner, businessId, serviceId, args, list, documents };
 }
@@ -36,8 +36,8 @@ describe("citas privadas, validación y persistencia (memoria)", () => {
     expect(rows.map((r) => r.start)).toEqual([at("09:00"), at("10:30")]);
     expect(rows[1]).toEqual({ _id: id, serviceId: args.serviceId, serviceName: "Synthetic service", clientName: "José Sintético", start: at("10:30"), end: at("11:16"), status: "confirmed" });
     expect((await documents())[0]).toMatchObject({ businessId, date });
-    expect(await owner.query(api.appointments.listMyAppointments, { date })).toEqual(rows);
-    expect(await owner.query(api.appointments.listMyAppointments, { date: "2030-01-08" })).toEqual([]);
+    expect(await owner.query(api.appointments.listMyConfirmedAppointments, { date })).toEqual(rows);
+    expect(await owner.query(api.appointments.listMyConfirmedAppointments, { date: "2030-01-08" })).toEqual([]);
   });
   test("cambiar/cerrar la semana conserva citas e instantes y rechaza opciones anteriores", async () => {
     const { owner, args, list } = await setup();
@@ -57,7 +57,7 @@ describe("citas privadas, validación y persistencia (memoria)", () => {
   test.each(["", "2030-02-29", "2030-04-31", "2030-1-07", "2030-01-07T00:00:00Z", "0000-01-01"])("fecha inválida %j", async (invalid) => {
     const { owner, args, documents } = await setup();
     await expect(owner.mutation(api.appointments.createMyAppointment, { ...args, date: invalid })).rejects.toThrow("INVALID_DATE");
-    await expect(owner.query(api.appointments.listMyAppointments, { date: invalid })).rejects.toThrow("INVALID_DATE");
+    await expect(owner.query(api.appointments.listMyConfirmedAppointments, { date: invalid })).rejects.toThrow("INVALID_DATE");
     expect(await documents()).toEqual([]);
   });
   test.each([{ ownerId: "attacker" }, { businessId: "attacker" }, { end: at("09:31") }, { durationMinutes: 1 }, { timeZone: "UTC" }, { status: "confirmed" }, { now: 0 }, { start: "123" }, { clientName: 7 }])
@@ -77,14 +77,14 @@ describe("citas privadas, validación y persistencia (memoria)", () => {
     await owner.mutation(api.appointments.createMyAppointment, args);
     const other = t.withIdentity({ ...identity, subject: "other" });
     await expect(t.mutation(api.appointments.createMyAppointment, args)).rejects.toThrow("UNAUTHENTICATED");
-    await expect(t.query(api.appointments.listMyAppointments, { date })).rejects.toThrow("UNAUTHENTICATED");
+    await expect(t.query(api.appointments.listMyConfirmedAppointments, { date })).rejects.toThrow("UNAUTHENTICATED");
     await expect(other.mutation(api.appointments.createMyAppointment, args)).rejects.toThrow("BUSINESS_NOT_FOUND");
-    await expect(other.query(api.appointments.listMyAppointments, { date })).rejects.toThrow("BUSINESS_NOT_FOUND");
+    await expect(other.query(api.appointments.listMyConfirmedAppointments, { date })).rejects.toThrow("BUSINESS_NOT_FOUND");
     await other.mutation(api.businesses.createMyBusiness, { name: "Other", timeZone: "UTC" });
     const foreign = await other.mutation(api.services.createMyService, { name: "Foreign", durationMinutes: 1 });
     await expect(owner.mutation(api.appointments.createMyAppointment, { ...args, serviceId: foreign })).rejects.toThrow("SERVICE_NOT_FOUND");
     await expect(other.mutation(api.appointments.createMyAppointment, args)).rejects.toThrow("SERVICE_NOT_FOUND");
-    expect(await other.query(api.appointments.listMyAppointments, { date })).toEqual([]);
+    expect(await other.query(api.appointments.listMyConfirmedAppointments, { date })).toEqual([]);
     await t.run((ctx) => ctx.db.delete("services", foreign));
     await expect(owner.mutation(api.appointments.createMyAppointment, { ...args, serviceId: foreign })).rejects.toThrow("SERVICE_NOT_FOUND");
     expect(await documents()).toHaveLength(1);
@@ -125,7 +125,7 @@ describe("citas privadas, validación y persistencia (memoria)", () => {
   });
   test.each([{ businessId: "attacker" }, { ownerId: "attacker" }, { date: 123 }])("listado rechaza argumentos manipulados %j", async (extra) => {
     const { owner } = await setup();
-    await expect(owner.query(api.appointments.listMyAppointments, { date, ...extra } as never)).rejects.toThrow();
+    await expect(owner.query(api.appointments.listMyConfirmedAppointments, { date, ...extra } as never)).rejects.toThrow();
   });
   test.each([
     ["2030-03-10", "America/New_York", "01:00", "04:00", "2030-03-10T01:45:00-05:00"],
@@ -202,7 +202,7 @@ describe("ocupación compartida y atomicidad (harness, no demuestra OCC real)", 
       });
     });
     await expect(owner.mutation(api.appointments.createMyAppointment, args)).rejects.toThrow("DAY_CAPACITY_EXCEEDED");
-    await expect(owner.query(api.appointments.listMyAppointments, { date })).rejects.toThrow("DAY_CAPACITY_EXCEEDED");
+    await expect(owner.query(api.appointments.listMyConfirmedAppointments, { date })).rejects.toThrow("DAY_CAPACITY_EXCEEDED");
     await expect(owner.action(api.availability.getMyAvailability, { date, serviceId: args.serviceId })).rejects.toThrow("DAY_CAPACITY_EXCEEDED");
     expect(await documents()).toHaveLength(1441);
   });

@@ -25,8 +25,10 @@ export default defineSchema({
     date: v.string(),
     start: v.number(),
     end: v.number(),
-    status: v.literal("confirmed"),
+    status: v.union(v.literal("confirmed"), v.literal("cancelled")),
+    cancelledAt: v.optional(v.number()),
   }).index("by_businessId_and_date", ["businessId", "date"])
+    .index("by_businessId_and_date_and_status", ["businessId", "date", "status"])
     .index("by_businessId_and_date_and_start", ["businessId", "date", "start"])
     .index("by_businessId_and_serviceId_and_date_and_start", ["businessId", "serviceId", "date", "start"]),
 });

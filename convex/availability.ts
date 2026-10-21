@@ -4,7 +4,7 @@ import { action, internalQuery } from "./_generated/server";
 import { weeklyScheduleDay } from "./weeklyScheduleValidators";
 import { generateAvailability } from "./lib/availability";
 import { isLocalDate } from "../lib/local-date";
-import { appointmentsForDate, overlaps, requireMyBusiness } from "./lib/appointmentData";
+import { confirmedAppointmentsForDate, overlaps, requireMyBusiness } from "./lib/appointmentData";
 
 const selectedService = v.object({ id: v.id("services"), name: v.string(), durationMinutes: v.number() });
 const availabilityResult = v.object({
@@ -32,7 +32,7 @@ export const getSource = internalQuery({
       timeZone: business.timeZone,
       service: { id: service._id, name: service.name, durationMinutes: service.durationMinutes },
       days: schedule?.days ?? null,
-      occupied: (await appointmentsForDate(ctx, business._id, date)).map(({ start, end }) => ({ start, end })),
+      occupied: (await confirmedAppointmentsForDate(ctx, business._id, date)).map(({ start, end }) => ({ start, end })),
     };
   },
 });

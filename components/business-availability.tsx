@@ -52,25 +52,28 @@ export function BusinessAvailability({ businessName, timeZone, enabled = true, a
   const schedule = useQuery(api.weeklySchedule.getMyWeeklySchedule, enabled ? {} : "skip");
   const consult = useAction(api.availability.getMyAvailability);
   const create = useMutation(api.appointments.createMyAppointment);
-  // Retain the existing reactive invalidation for availability in the panel.
-  const appointments = useQuery(api.appointments.listMyAppointments, enabled ? { date: singleDay || today } : "skip");
+  const [occupancyDate, setOccupancyDate] = useState("");
+  // Subscribe to the draft's day, even when the agenda filters show another
+  // day. Cancellations in another tab invalidate the preview immediately.
+  const appointments = useQuery(api.appointments.listMyConfirmedAppointments, enabled && isLocalDate(occupancyDate) ? { date: occupancyDate } : "skip");
   return <AvailabilityPanel businessName={businessName} services={results} loading={status === "LoadingFirstPage" || schedule === undefined}
     timeZone={timeZone} initialDate={singleDay} onSelectDate={(value) => navigate(dayHref(value))}
     agenda={<AppointmentSearch filters={filters} today={today} timeZone={timeZone} enabled={enabled && active}
       services={results} moreServices={status === "CanLoadMore" || status === "LoadingMore"} loadingServices={status === "LoadingMore"}
       onLoadServices={() => loadMore(20)} onSearch={(values) => navigate(appointmentSearchHref(params, values))}
       dayHref={dayHref} />}
-    onConsult={consult} onCreate={create} scheduleMissing={schedule === null}
+    onConsult={consult} onCreate={create} scheduleMissing={schedule === null} onDraftDateChange={setOccupancyDate}
     revision={JSON.stringify([results, schedule, appointments, timeZone])}
     active={active && enabled} more={status === "CanLoadMore" || status === "LoadingMore"}
     loadingMore={status === "LoadingMore"} onLoadMore={() => loadMore(20)} />;
 }
 
-export function AvailabilityPanel({ businessName, services, loading, timeZone, initialDate, onConsult, onCreate, onSelectDate, revision = "", more = false, loadingMore = false, onLoadMore, scheduleMissing = false, active = true, agenda }: {
+export function AvailabilityPanel({ businessName, services, loading, timeZone, initialDate, onConsult, onCreate, onSelectDate, onDraftDateChange, revision = "", more = false, loadingMore = false, onLoadMore, scheduleMissing = false, active = true, agenda }: {
   businessName: string; services: Service[]; loading: boolean; timeZone: string; initialDate: string; onConsult: Consult; revision?: string;
   onCreate: Create; onSelectDate: (date: string) => void; scheduleMissing?: boolean;
   more?: boolean; loadingMore?: boolean; onLoadMore?: () => void; active?: boolean;
   agenda: ReactNode;
+  onDraftDateChange?: (date: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [draftDate, setDraftDate] = useState<string | null>(null);
@@ -81,7 +84,7 @@ export function AvailabilityPanel({ businessName, services, loading, timeZone, i
   const [attempt, setAttempt] = useState(0);
   const trigger = useRef<HTMLButtonElement>(null);
   const selection = useMemo(() => serviceId && draftDate && isLocalDate(draftDate) ? { serviceId: serviceId as Id<"services">, date: draftDate } : null, [serviceId, draftDate]);
-  function start() { if (draftDate === null) setDraftDate(initialDate); setAttempt((value) => value + 1); setOpen(true); }
+  function start() { if (draftDate === null) { setDraftDate(initialDate); onDraftDateChange?.(initialDate); } setAttempt((value) => value + 1); setOpen(true); }
 
   return <>
     <h1 tabIndex={-1} className="sr-only">Agenda</h1>
@@ -104,7 +107,7 @@ export function AvailabilityPanel({ businessName, services, loading, timeZone, i
           {more && <Button type="button" variant="outline" disabled={loadingMore} onClick={onLoadMore}>{loadingMore ? "Cargando…" : "Cargar más servicios"}</Button>}
           {!loading && services.length === 0 && <p className="text-sm leading-6 text-muted">Necesitas <WorkspaceLink view="servicios">crear un servicio</WorkspaceLink> antes de confirmar una cita.</p>}
           <Field className="gap-2"><FieldLabel htmlFor="availability-date">Fecha de la cita</FieldLabel>
-            <Input id="availability-date" type="date" min="0001-01-01" max="9999-12-31" value={draftDate} onChange={(event) => { setDraftDate(event.target.value); setSelectionDirty(true); }} aria-invalid={draftDate !== "" && !isLocalDate(draftDate)} aria-describedby="appointment-zone" />
+            <Input id="availability-date" type="date" min="0001-01-01" max="9999-12-31" value={draftDate} onChange={(event) => { setDraftDate(event.target.value); onDraftDateChange?.(event.target.value); setSelectionDirty(true); }} aria-invalid={draftDate !== "" && !isLocalDate(draftDate)} aria-describedby="appointment-zone" />
           </Field>
         </fieldset>
         <p id="appointment-zone" className="mt-2 text-xs text-muted wrap-anywhere">Hora local · {timeZone}</p>
