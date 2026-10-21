@@ -1,6 +1,8 @@
 import { ConvexError } from "convex/values";
 import type { QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
+import { generateAvailability } from "./availability";
+import { isLocalDate } from "../../lib/local-date";
 
 export async function requireMyBusiness(ctx: QueryCtx) {
   const identity = await ctx.auth.getUserIdentity();
@@ -40,4 +42,22 @@ export async function confirmedAppointmentsForDate(ctx: QueryCtx, businessId: Id
 
 export function overlaps(a: { start: number; end: number }, b: { start: number; end: number }) {
   return a.start < b.end && b.start < a.end;
+}
+
+// Shared by private creation/moves and anonymous confirmation. The caller's
+// transaction reads the same complete business/day occupation range.
+export async function bookableSlot(ctx: QueryCtx, business: { _id: Id<"businesses">; timeZone: string },
+  serviceId: Id<"services">, date: string, start: number, now: number, exclude?: Id<"appointments">) {
+  if (!isLocalDate(date)) throw new ConvexError({ code: "INVALID_DATE" });
+  if (!Number.isSafeInteger(start) || start <= now) throw new ConvexError({ code: "SLOT_UNAVAILABLE" });
+  const service = await ctx.db.get("services", serviceId);
+  if (!service || service.businessId !== business._id) throw new ConvexError({ code: "SERVICE_NOT_FOUND" });
+  const schedule = await ctx.db.query("weeklySchedules")
+    .withIndex("by_businessId", (q) => q.eq("businessId", business._id)).unique();
+  const slot = generateAvailability({ date, timeZone: business.timeZone, days: schedule?.days ?? null,
+    durationMinutes: service.durationMinutes, now }).slots.find((option) => option.start === start);
+  if (!slot) throw new ConvexError({ code: "SLOT_UNAVAILABLE" });
+  const existing = await confirmedAppointmentsForDate(ctx, business._id, date);
+  if (existing.some((saved) => saved._id !== exclude && overlaps(slot, saved))) throw new ConvexError({ code: "SLOT_TAKEN" });
+  return { slot, service };
 }

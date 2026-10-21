@@ -7,7 +7,22 @@ export default defineSchema({
     ownerId: v.string(),
     name: v.string(),
     timeZone: v.string(),
-  }).index("by_ownerId", ["ownerId"]),
+    publicBookingSlug: v.optional(v.string()),
+    publicBookingEnabled: v.optional(v.boolean()),
+  }).index("by_ownerId", ["ownerId"])
+    .index("by_publicBookingSlug", ["publicBookingSlug"]),
+  publicBookingReceipts: defineTable({
+    businessId: v.id("businesses"),
+    attemptKey: v.string(),
+    appointmentId: v.id("appointments"),
+    serviceId: v.id("services"),
+    clientName: v.string(),
+    date: v.string(),
+    start: v.number(),
+    end: v.number(),
+    serviceName: v.string(),
+    timeZone: v.string(),
+  }).index("by_businessId_and_attemptKey", ["businessId", "attemptKey"]),
   services: defineTable({
     businessId: v.id("businesses"),
     name: v.string(),

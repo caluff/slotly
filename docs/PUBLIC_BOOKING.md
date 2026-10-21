@@ -1,0 +1,48 @@
+# Reservas por enlace — Reto 09
+
+## Enlace y gestión
+
+`/reservar/<slug>` se asigna al **activar por primera vez** desde Negocio. Los campos nuevos del negocio son opcionales: ausente equivale a desactivado, sin URL asignada. No hay backfill ni activación automática.
+
+El nombre se normaliza con NFKD, se retiran marcas diacríticas, se convierte a ASCII minúscula, se sustituyen otros grupos por `-` y se recortan extremos. Base máxima: 48 caracteres; base vacía: `negocio`. Colisiones: base, base-2, …, base-100 (máximo 52 caracteres). Al agotarlas se devuelve `LINK_NAMES_EXHAUSTED`, sin cambios. Cada candidato se lee por índice **en la misma transacción** que asigna el enlace: el índice no impone unicidad; OCC invalida lecturas concurrentes, incluso vacías. La URL es estable, no editable en este reto, y sigue reservada al desactivarla. Las lecturas exigen el segmento canónico exacto, sin aliases.
+
+`bookingLinks.getMyBookingLink` y `setMyBookingLink({enabled})` requieren identidad Clerk verificada por Convex y negocio de ese `identity.subject`. No reciben ownerId, businessId ni slug elegible. Activar es una publicación expresa del propietario; desactivar no borra citas ni recibos.
+
+## Contrato anónimo
+
+| Endpoint | Entrada | Salida permitida |
+| --- | --- | --- |
+| query `publicBooking.getBusiness` | slug | nombre y zona IANA, o null |
+| query `publicBooking.listServices` | slug, paginación | identificador de selección del servicio, nombre y duración; página y cursor |
+| action `publicBooking.getAvailability` | slug, serviceId, fecha | opciones libres con inicio/fin y etiquetas horarias, o null |
+| mutation `publicBooking.confirm` | slug, serviceId, fecha, inicio, nombre, attemptKey | confirmación original: servicio, fecha, inicio/fin y zona; o código de rechazo y espera opcional |
+
+No hay listado de negocios ni consulta pública de citas. Los DTO son listas explícitas: no devuelven propietarios, correos, nombres de clientes, documentos de citas, businessId, horarios semanales, versiones ni timestamps internos. El ID del servicio es únicamente un selector y no concede autorización. Inexistente y desactivado comparten respuesta; servicios ajenos no revelan sus datos. Las lecturas privadas conservan su autenticación.
+
+Servicios: páginas de hasta 100 documentos. Ocupación: mismo índice negocio/fecha/estado confirmado que la Agenda; máximo físico de 1440 citas por día, lectura de 1441 para fallar cerrado si se viola. Nunca se recorta silenciosamente un conflicto. El historial cancelado no consume ese límite.
+
+La acción de disponibilidad obtiene una fuente interna consistente y aplica el reloj del servidor fuera de la caché de queries. La UI consulta cada 30 segundos y al recuperar foco. La confirmación vuelve a validar el enlace activo, pertenencia del servicio, nombre, fecha, futuro, semana, duración vigente, paso de 15 minutos desde apertura, cierre, IANA/DST y ocupación compartida, con fin excluido. Usa `bookableSlot`, compartido con creación/reprogramación privadas y `generateAvailability`. Lectura del rango y escritura de cita y recibo ocurren en **una mutación**; una confirmación rechazada no escribe citas parciales ni altera originales.
+
+## Reintentos y cuota
+
+`attemptKey` es UUID v4 aleatorio (122 bits aleatorios), una capacidad de idempotencia, **no una sesión de autenticación**. Un recibo interno por negocio/clave conserva payload normalizado y confirmación original; índice, lectura y escritura transaccionales impiden duplicados. Misma clave y payload devuelve el mismo recibo sin escribir otra cita; payload distinto devuelve `ATTEMPT_CONFLICT`. Se revalida enlace activo y pertenencia del servicio también en replay. La respuesta nunca consulta ni revela posteriores movimientos/cancelaciones privadas. Los recibos se conservan sin expiración en este reto, con crecimiento de un documento por reserva pública efectiva; no se publica una API para consultarlos por ID.
+
+La pestaña conserva el intento en `sessionStorage` antes de enviarlo. Una respuesta de transporte perdida o cuota agotada bloquea edición del payload y ofrece reintentar la misma clave, también tras recargar. Tras éxito, recargar permite recuperar ese mismo acuse. Si el navegador impide almacenamiento, se conserva en memoria mientras la pestaña siga abierta. Una pestaña nueva o borrado manual del almacenamiento no identifica a la misma persona y puede generar otra intención; no hay cuentas de clientes ni deduplicación por nombre.
+
+Se incorpora `@convex-dev/rate-limiter` **0.4.2**, componente oficial, para evitar mantener un contador propio. Token bucket sin shards: capacidad 10 intentos, reposición 10/minuto (uno/6000ms). Clave **businessId resuelto en servidor desde el enlace activo**, compartida por todos sus visitantes; no IP inventada, hostname, nonce, storage ni identidad elegida por el cliente. Un negocio no consume cuota de otro y las operaciones privadas no usan esta cuota.
+
+Cada confirmación admitida consume un token, incluidos replays y rechazos por nombre, fecha, clave, servicio o horario. Los rechazos esperados se **devuelven como valores**, sin lanzar: lanzar revertiría el débito del componente. Cuota agotada devuelve `RATE_LIMITED` y `retryAfter` en milisegundos, sin crear reserva. La lectura/escritura del contador comparte la transacción y sus conflictos OCC. Enlaces inexistentes/desactivados, RPC que no superan los validadores de Convex y fallos inesperados del motor no consumen tokens; estos últimos revierten toda la transacción. No se presenta como límite de solicitudes a la red.
+
+Esta cuota básica puede ser consumida por visitantes distintos del mismo negocio y no es protección completa contra spam, abuso de lectura ni DDoS. No hay captcha, IP fiable, servicios externos ni certificación de producción.
+
+## Evidencia y límite de cierre
+
+Ver `docs/PROJECT_CONTEXT.md` y los informes externos del Reto 09. La concurrencia se acredita en motor **Convex/SQLite real local aislado**, con HTTP independientes, barrera y `skipQueue`; las pruebas en memoria no acreditan OCC. Las pruebas UI usan componentes/proveedor reales y transporte WebSocket sintético. El fallo de respuesta de UI es inyectado tras aplicación sintética, no un fallo real de red contra cloud.
+
+El único sync cloud de código autorizado es desarrollo `daniel-caluff:slotly:dev/slotly` (`determined-poodle-377`). La implementación inicial solo leyó datos reales: enlace desactivado y citas históricas preservadas; dejó la activación/reserva E2E pendiente de autorización nueva. Ese pendiente histórico se resolvió el **21/10/2026**, mediante autorización expresa del usuario y ejecución real de **planificación**.
+
+Planificación activó una vez `/reservar/slotly` y creó una reserva pública «Prueba de validación Reto 09», servicio 2 (30 minutos), **26/10/2026, 14:00–14:30 America/Montevideo**, Confirmada. Usó la sesión Clerk existente para gestión/Agenda y el proveedor Convex anónimo real para reservar, sin fabricar tokens ni sesiones. Agenda y ocupación se actualizaron; las opciones de 30/46 minutos pasaron de **30/26 a 27/21**, también en una visita pública nueva, con 14:00 ocupado y 14:30 disponible. Esa visita no mostró nombres privados y tenía el campo del nombre vacío. Tras recargar literalmente la página pública y reintentar el mismo intento, se recuperó el mismo acuse sin duplicar: Agenda nueva y recargada conservaron tres filas, una sola del Reto 09 y las citas de los Retos 06/08 intactas. Enlace y cita permanecen guardados por autorización.
+
+El **Reto 09 está validado funcionalmente en desarrollo**, sin comprobaciones funcionales requeridas pendientes del alcance aprobado. Evidencia de planificación: `C:/Users/dcalu/.codex/visualizations/2026/10/21/01a15620-54fe-7153-a4ec-ca62821d3c15/reto09-cloud/verification.json` y once PNG. Cero errores de consola, cuatro pestañas propias cerradas y originales preservados. La concurrencia sigue acreditada solo por la suite anterior de implementación en motor real local aislado (**258 solicitudes/114 carreras/3 rondas**); los **399 tests/18 casos UI**, lint, tipos y build no se repitieron ni se atribuyen a planificación. No se inyectó fallo real de red ni se probaron carreras cloud, carga/abuso de producción o lector de pantalla; tampoco se extrajeron IDs/versiones internas o documentos de recibos desde la sesión. El frontend continúa en `http://localhost:3000`, sin publicación en Internet ni producción. Este pase documental no realiza más escrituras de datos, sync, commit, push ni PR.
+
+Fuentes consultadas: [transacciones y componentes de Convex](https://docs.convex.dev/components/using), [componente oficial de cuota](https://github.com/get-convex/rate-limiter), [paginación](https://docs.convex.dev/database/pagination), documentación local de Next 16.4.2 sobre segmentos dinámicos, límites cliente/servidor y Cache Components. APIs consultadas mediante Context7 y fuentes instaladas.

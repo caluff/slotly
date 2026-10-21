@@ -7,6 +7,7 @@ import { tmpdir, homedir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ConvexHttpClient } from "convex/browser";
+import { publicBookingScenarios } from "./public-booking-engine-scenarios.mjs";
 
 // REAL engine integration, entirely synthetic. Never reads .env.local or .convex.
 // Requires the Convex backend binary cached by the CLI, or SLOTLY_CONVEX_BACKEND.
@@ -76,7 +77,7 @@ try {
   // Test-only seed, generated ONLY in the owned temporary deployment. It is
   // never added to app functions or synchronized with a cloud deployment.
   await writeFile(path.join(workspace, "convex", "engineFixtures.ts"), `
-import { internalMutation } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { requireMyBusiness } from "./lib/appointmentData";
 export const cancelledHistory = internalMutation({
@@ -87,6 +88,16 @@ export const cancelledHistory = internalMutation({
     if (!service || service.businessId !== business._id) throw new Error("Synthetic fixture ownership");
     for (let i = 0; i < 1600; i++) await ctx.db.insert("appointments", { ...args, businessId: business._id, serviceName: service.name, clientName: "Synthetic cancelled history", end: args.start + 30 * 60000, status: "cancelled", cancelledAt: Date.now() });
     return 1600;
+  }
+});
+export const snapshot = internalQuery({
+  args: { date: v.string() }, returns: v.any(),
+  handler: async (ctx, { date }) => {
+    const business = await requireMyBusiness(ctx);
+    return { business,
+      appointments: await ctx.db.query("appointments").withIndex("by_businessId_and_date", q => q.eq("businessId", business._id).eq("date", date)).take(1500),
+      receipts: await ctx.db.query("publicBookingReceipts").withIndex("by_businessId_and_attemptKey", q => q.eq("businessId", business._id)).take(100),
+    };
   }
 });\n`);
   await writeFile(path.join(workspace, "convex.json"), '{"functions":"convex/"}\n');
@@ -111,14 +122,14 @@ export const cancelledHistory = internalMutation({
     if (identity) client.setAdminAuth(adminKey, identity);
     return client;
   };
-  async function setup() {
+  async function setup(name = "Synthetic engine test") {
     const identity = { subject: `synthetic_${randomUUID()}`, issuer: "https://synthetic.test" };
     const client = makeClient(identity);
-    await client.mutation("businesses:createMyBusiness", { name: "Synthetic engine test", timeZone: "America/Montevideo" });
+    const businessId = await client.mutation("businesses:createMyBusiness", { name, timeZone: "America/Montevideo" });
     const serviceId = await client.mutation("services:createMyService", { name: "Synthetic 30", durationMinutes: 30 });
     const secondServiceId = await client.mutation("services:createMyService", { name: "Synthetic 46", durationMinutes: 46 });
     await client.mutation("weeklySchedule:saveMyWeeklySchedule", { days });
-    return { identity, client, serviceId, secondServiceId };
+    return { identity, client, serviceId, secondServiceId, businessId };
   }
   let restartCheck;
   // Independent HTTP clients + transport barrier, also for cancellation races.
@@ -338,6 +349,7 @@ export const cancelledHistory = internalMutation({
   assert.notEqual(oldReplacement, staleId);
   assert.equal((await history(stale)).length, 2);
   report.oldIntervalCanBeReservedAfterMove = true;
+  await publicBookingScenarios({ setup, date, start, makeClient, race, history, report });
   const owner = await setup();
   const dense = await setup();
   assert.equal(await dense.client.mutation("engineFixtures:cancelledHistory", { serviceId: dense.serviceId, date, start }), 1600);

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useLastDefined } from "@/components/use-last-defined";
 import { BusinessProfileForm } from "@/components/business-profile-form";
+import { BusinessBookingLink } from "@/components/business-booking-link";
 import { BusinessServices } from "@/components/business-services";
 import { BusinessWeeklySchedule } from "@/components/business-weekly-schedule";
 import { BusinessAvailability } from "@/components/business-availability";
@@ -65,6 +66,7 @@ function AuthenticatedBusinessProfile({ timeZones, enabled }: { timeZones: strin
         <div className="py-5"><dt className="text-sm text-muted">Nombre del negocio o profesional</dt><dd className="mt-1 font-semibold wrap-anywhere">{business.name}</dd></div>
         <div className="py-5"><dt className="text-sm text-muted">Zona horaria</dt><dd className="mt-1 wrap-anywhere">{business.timeZone}</dd></div>
       </dl>
+      <BusinessBookingLink enabled={enabled && active === "negocio"} />
       <p className="mt-6 max-w-prose text-sm leading-6 text-muted">Las fechas y horas de tu <WorkspaceLink view="agenda">agenda</WorkspaceLink> y tu <WorkspaceLink view="horario">horario de atención</WorkspaceLink> se muestran en esta zona.</p>
     </section>
   </div>;

@@ -1,8 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { paginationOptsValidator, paginationResultValidator } from "convex/server";
 import { mutation, query } from "./_generated/server";
-import { checkVersion, confirmedAppointmentsForDate, overlaps, requireMyAppointment, requireMyBusiness } from "./lib/appointmentData";
-import { generateAvailability } from "./lib/availability";
+import { bookableSlot, checkVersion, confirmedAppointmentsForDate, requireMyAppointment, requireMyBusiness } from "./lib/appointmentData";
 import { appointmentSchema } from "../lib/appointment-schema";
 import { isLocalDate } from "../lib/local-date";
 import { appointmentDateBounds, appointmentFilterError, normalizeClientSearch } from "../lib/appointment-search";
@@ -101,21 +100,7 @@ export const createMyAppointment = mutation({
     if (!isLocalDate(date)) throw new ConvexError({ code: "INVALID_DATE" });
     const parsed = appointmentSchema.safeParse({ clientName, start: String(start) });
     if (!parsed.success) throw new ConvexError({ code: "INVALID_CLIENT_NAME" });
-    if (!Number.isSafeInteger(start) || start <= Date.now()) throw new ConvexError({ code: "SLOT_UNAVAILABLE" });
-    const service = await ctx.db.get("services", serviceId);
-    if (!service || service.businessId !== business._id) throw new ConvexError({ code: "SERVICE_NOT_FOUND" });
-    const schedule = await ctx.db.query("weeklySchedules")
-      .withIndex("by_businessId", (q) => q.eq("businessId", business._id)).unique();
-    // Reuse ALL temporal rules from the preview, including current weekly
-    // hours, 15-minute grid from opening, real duration, zone and DST policy.
-    const slot = generateAvailability({ date, timeZone: business.timeZone, days: schedule?.days ?? null,
-      durationMinutes: service.durationMinutes, now: Date.now() }).slots.find((option) => option.start === start);
-    if (!slot) throw new ConvexError({ code: "SLOT_UNAVAILABLE" });
-    // Read the COMPLETE business/day range (not service-scoped), including an
-    // empty range, in THIS mutation. An insertion into that range invalidates
-    // concurrent read sets; Convex OCC retries and rechecks before committing.
-    const existing = await confirmedAppointmentsForDate(ctx, business._id, date);
-    if (existing.some((saved) => overlaps(slot, saved))) throw new ConvexError({ code: "SLOT_TAKEN" });
+    const { slot, service } = await bookableSlot(ctx, business, serviceId, date, start, Date.now());
     return await ctx.db.insert("appointments", {
       businessId: business._id, serviceId, serviceName: service.name,
       clientName: parsed.data.clientName, date, start: slot.start, end: slot.end, status: "confirmed",
@@ -161,16 +146,7 @@ export const rescheduleMyAppointment = mutation({
     checkVersion(version, expectedVersion);
     const now = Date.now();
     if (saved.start <= now) throw new ConvexError({ code: "APPOINTMENT_STARTED" });
-    if (!isLocalDate(date)) throw new ConvexError({ code: "INVALID_DATE" });
-    if (!Number.isSafeInteger(start) || start <= now) throw new ConvexError({ code: "SLOT_UNAVAILABLE" });
-    const service = await ctx.db.get("services", saved.serviceId);
-    if (!service || service.businessId !== business._id) throw new ConvexError({ code: "SERVICE_NOT_FOUND" });
-    const schedule = await ctx.db.query("weeklySchedules").withIndex("by_businessId", (q) => q.eq("businessId", business._id)).unique();
-    const slot = generateAvailability({ date, timeZone: business.timeZone, days: schedule?.days ?? null,
-      durationMinutes: service.durationMinutes, now }).slots.find((option) => option.start === start);
-    if (!slot) throw new ConvexError({ code: "SLOT_UNAVAILABLE" });
-    const existing = await confirmedAppointmentsForDate(ctx, business._id, date);
-    if (existing.some((row) => row._id !== saved._id && overlaps(slot, row))) throw new ConvexError({ code: "SLOT_TAKEN" });
+    const { slot } = await bookableSlot(ctx, business, saved.serviceId, date, start, now, saved._id);
     if (saved.date === date && saved.start === start && saved.end === slot.end) return { ...response, outcome: "unchanged" as const };
     await ctx.db.patch("appointments", appointmentId, { date, start: slot.start, end: slot.end,
       version: version + 1, rescheduledAt: now, rescheduledFromVersion: version });
