@@ -2,6 +2,8 @@ import { ConvexError, v, type Infer } from "convex/values";
 import { internal } from "./_generated/api";
 import { action, internalQuery } from "./_generated/server";
 import { weeklyScheduleDay } from "./weeklyScheduleValidators";
+import { specialDay } from "./specialDateValidators";
+import { scheduleForDate } from "./lib/scheduleForDate";
 import { generateAvailability } from "./lib/availability";
 import { isLocalDate } from "../lib/local-date";
 import { confirmedAppointmentsForDate, overlaps, requireMyAppointment, requireMyBusiness } from "./lib/appointmentData";
@@ -19,19 +21,18 @@ const availabilityResult = v.object({
 // exposes derived options, never private schedules or another account's IDs.
 export const getSource = internalQuery({
   args: { serviceId: v.id("services"), date: v.string() },
-  returns: v.object({ timeZone: v.string(), service: selectedService, days: v.union(v.array(weeklyScheduleDay), v.null()),
+  returns: v.object({ timeZone: v.string(), service: selectedService, days: v.union(v.array(weeklyScheduleDay), v.null()), specialDay: v.union(specialDay, v.null()),
     occupied: v.array(v.object({ start: v.number(), end: v.number() })) }),
   handler: async (ctx, { serviceId, date }) => {
     const business = await requireMyBusiness(ctx);
     if (!isLocalDate(date)) throw new ConvexError({ code: "INVALID_DATE" });
     const service = await ctx.db.get("services", serviceId);
     if (!service || service.businessId !== business._id) throw new ConvexError({ code: "SERVICE_NOT_FOUND" });
-    const schedule = await ctx.db.query("weeklySchedules")
-      .withIndex("by_businessId", (q) => q.eq("businessId", business._id)).unique();
+    const schedule = await scheduleForDate(ctx, business._id, date);
     return {
       timeZone: business.timeZone,
       service: { id: service._id, name: service.name, durationMinutes: service.durationMinutes },
-      days: schedule?.days ?? null,
+      ...schedule,
       occupied: (await confirmedAppointmentsForDate(ctx, business._id, date)).map(({ start, end }) => ({ start, end })),
     };
   },
@@ -59,18 +60,18 @@ export const getMyAvailability = action({
 export const getRescheduleSource = internalQuery({
   args: { appointmentId: v.id("appointments"), date: v.string() },
   returns: v.object({ timeZone: v.string(), service: selectedService, originalStart: v.number(), version: v.number(),
-    days: v.union(v.array(weeklyScheduleDay), v.null()), occupied: v.array(v.object({ start: v.number(), end: v.number() })) }),
+    days: v.union(v.array(weeklyScheduleDay), v.null()), specialDay: v.union(specialDay, v.null()), occupied: v.array(v.object({ start: v.number(), end: v.number() })) }),
   handler: async (ctx, { appointmentId, date }) => {
     const { business, saved } = await requireMyAppointment(ctx, appointmentId);
     if (saved.status !== "confirmed") throw new ConvexError({ code: "APPOINTMENT_CANCELLED" });
     if (!isLocalDate(date)) throw new ConvexError({ code: "INVALID_DATE" });
     const service = await ctx.db.get("services", saved.serviceId);
     if (!service || service.businessId !== business._id) throw new ConvexError({ code: "SERVICE_NOT_FOUND" });
-    const schedule = await ctx.db.query("weeklySchedules").withIndex("by_businessId", (q) => q.eq("businessId", business._id)).unique();
+    const schedule = await scheduleForDate(ctx, business._id, date);
     const occupied = (await confirmedAppointmentsForDate(ctx, business._id, date))
       .filter((row) => row._id !== saved._id).map(({ start, end }) => ({ start, end }));
     return { timeZone: business.timeZone, service: { id: service._id, name: service.name, durationMinutes: service.durationMinutes },
-      originalStart: saved.start, version: saved.version ?? 0, days: schedule?.days ?? null, occupied };
+      originalStart: saved.start, version: saved.version ?? 0, ...schedule, occupied };
   },
 });
 

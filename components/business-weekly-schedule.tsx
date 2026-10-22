@@ -5,6 +5,7 @@ import { WeeklyScheduleForm } from "@/components/weekly-schedule-form";
 import { api } from "@/convex/_generated/api";
 import type { WeeklyScheduleValues } from "@/lib/weekly-schedule-schema";
 import { useLastDefined } from "@/components/use-last-defined";
+import { BusinessSpecialDates } from "@/components/business-special-dates";
 
 type WeeklySchedulePanelProps = {
   schedule: WeeklyScheduleValues | null | undefined;
@@ -15,7 +16,7 @@ type WeeklySchedulePanelProps = {
 export function BusinessWeeklySchedule({ timeZone, enabled = true }: { timeZone: string; enabled?: boolean }) {
   const schedule = useLastDefined(useQuery(api.weeklySchedule.getMyWeeklySchedule, enabled ? {} : "skip"));
   const saveSchedule = useMutation(api.weeklySchedule.saveMyWeeklySchedule);
-  return <WeeklySchedulePanel schedule={schedule} timeZone={timeZone} onSave={saveSchedule} />;
+  return <><WeeklySchedulePanel schedule={schedule} timeZone={timeZone} onSave={saveSchedule} /><BusinessSpecialDates timeZone={timeZone} enabled={enabled} /></>;
 }
 
 // The same panel/form can be exercised with local responses without a Convex

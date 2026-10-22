@@ -9,6 +9,8 @@ import { isBookingSlug } from "../lib/booking-slug";
 import { isLocalDate } from "../lib/local-date";
 import { appointmentSchema } from "../lib/appointment-schema";
 import { weeklyScheduleDay } from "./weeklyScheduleValidators";
+import { specialDay } from "./specialDateValidators";
+import { scheduleForDate } from "./lib/scheduleForDate";
 
 const limiter = new RateLimiter(components.rateLimiter, {
   publicConfirm: { kind: "token bucket", rate: 10, period: MINUTE, capacity: 10 },
@@ -45,20 +47,33 @@ export const listServices = query({
 });
 
 const slotDTO = v.object({ start: v.number(), end: v.number(), startTime: v.string(), endTime: v.string() });
+async function availabilitySource(ctx: QueryCtx, { slug, serviceId, date }: { slug: string; serviceId: import("./_generated/dataModel").Id<"services">; date: string }) {
+  const business = await activeBusiness(ctx, slug);
+  if (!business || !isLocalDate(date)) return null;
+  const service = await ctx.db.get("services", serviceId);
+  if (!service || service.businessId !== business._id) return null;
+  const schedule = await scheduleForDate(ctx, business._id, date);
+  const occupied = await confirmedAppointmentsForDate(ctx, business._id, date);
+  return { timeZone: business.timeZone, durationMinutes: service.durationMinutes, ...schedule,
+    occupied: occupied.map(({ start, end }) => ({ start, end })) };
+}
+
+// Opaque invalidation only, never a source of bookable instants or private IDs.
+// The uncached action still supplies server time; confirmation rechecks in OCC.
+export const getAvailabilityRevision = query({
+  args: { slug: v.string(), serviceId: v.id("services"), date: v.string() }, returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => {
+    const source = await availabilitySource(ctx, args);
+    if (!source) return null;
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(source)));
+    return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  },
+});
 export const getSource = internalQuery({
   args: { slug: v.string(), serviceId: v.id("services"), date: v.string() },
   returns: v.union(v.null(), v.object({ timeZone: v.string(), durationMinutes: v.number(),
-    days: v.union(v.array(weeklyScheduleDay), v.null()), occupied: v.array(v.object({ start: v.number(), end: v.number() })) })),
-  handler: async (ctx, { slug, serviceId, date }) => {
-    const business = await activeBusiness(ctx, slug);
-    if (!business || !isLocalDate(date)) return null;
-    const service = await ctx.db.get("services", serviceId);
-    if (!service || service.businessId !== business._id) return null;
-    const schedule = await ctx.db.query("weeklySchedules").withIndex("by_businessId", (q) => q.eq("businessId", business._id)).unique();
-    const occupied = await confirmedAppointmentsForDate(ctx, business._id, date);
-    return { timeZone: business.timeZone, durationMinutes: service.durationMinutes, days: schedule?.days ?? null,
-      occupied: occupied.map(({ start, end }) => ({ start, end })) };
-  },
+    days: v.union(v.array(weeklyScheduleDay), v.null()), specialDay: v.union(specialDay, v.null()), occupied: v.array(v.object({ start: v.number(), end: v.number() })) })),
+  handler: availabilitySource,
 });
 
 export const getAvailability = action({

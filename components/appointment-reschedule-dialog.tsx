@@ -38,14 +38,15 @@ const emptyMessages = {
   empty: "No hay horarios libres futuros para este servicio.", time_change: "El horario coincide con un cambio de hora. Elige otra fecha.",
 };
 
-export function AppointmentRescheduleDialog({ appointment: initial, latest = initial, timeZone, onConsult, onReschedule, revision = "", onDateChange, onClose, onReturnFocus, onMoved, dayHref }: {
+export function AppointmentRescheduleDialog({ appointment: initial, latest = initial, proposal, timeZone, onConsult, onReschedule, revision = "", onDateChange, onClose, onReturnFocus, onMoved, dayHref }: {
   appointment: CancelTarget; latest?: CancelTarget; timeZone: string; onConsult: ConsultReschedule; onReschedule: RescheduleAppointment;
   revision?: string; onDateChange?: (date: string) => void; onClose: () => void; onReturnFocus: () => void;
   onMoved: (result: MoveResult) => void; dayHref: (date: string) => string;
+  proposal?: { date: string; start: number };
 }) {
   const [appointment, setAppointment] = useState(initial);
-  const [date, setDate] = useState(initial.date);
-  const [start, setStart] = useState(String(initial.start));
+  const [date, setDate] = useState(proposal?.date ?? initial.date);
+  const [start, setStart] = useState(String(proposal?.start ?? initial.start));
   const [attempt, setAttempt] = useState(0);
   const [snapshot, setSnapshot] = useState<{ data: Availability; key: string; sent: number } | null>(null);
   const [failure, setFailure] = useState<{ key: string; message: string } | null>(null);
@@ -131,10 +132,11 @@ export function AppointmentRescheduleDialog({ appointment: initial, latest = ini
       <dl className="my-5 space-y-3 border-y border-line py-4 text-sm">
         <div><dt className="text-muted">Horario original revisado</dt><dd className="mt-1">{interval(appointment)}<br /><span className="text-muted wrap-anywhere">{timeZone}</span></dd></div>
       </dl>
+      {proposal && !result && <p className="mb-4 text-sm leading-6">Destino del arrastre: {formatLocalDate(proposal.date)}, {time.format(proposal.start)}. El horario original sigue reservado hasta confirmar.</p>}
       {result ? <div role="status" className="mb-5 space-y-3 text-sm leading-6">
         <p>{result.outcome === "unchanged" ? "Elegiste el mismo intervalo. La cita no cambió." : result.outcome === "already_rescheduled" ? "Este movimiento ya estaba aplicado. No se volvió a modificar la cita." : "El nuevo horario quedó guardado."}</p>
         <p>{latest.version > result.version ? `La cita volvió a cambiar después de este intento. ${cancelled ? "Ahora está cancelada." : `Horario actual: ${interval(latest)} (${timeZone}).`}` : `Horario de la cita: ${interval(result)} (${timeZone}).`}</p>
-        {!cancelled && <Button asChild variant="outline"><a href={dayHref(latest.version > result.version ? latest.date : result.date)} onClick={(event) => { close(); navigateWorkspace(event); }}>Ver día</a></Button>}
+        {!cancelled && <Button asChild variant="outline"><a href={dayHref(latest.version > result.version ? latest.date : result.date)} onClick={(event) => { close(); navigateWorkspace(event); }}>Localizar fecha</a></Button>}
       </div> : <form onSubmit={submit} className="space-y-4" aria-busy={pending}>
         {!pending && (changed || stalePreview || cancelled) && <div role="status" className="space-y-3 text-sm leading-6">
           <p>{cancelled ? "La cita fue cancelada y no se puede reprogramar." : `La cita cambió en otra pestaña. Horario actual: ${interval(latest)} (${timeZone}). Revisa el contexto actualizado antes de confirmar.`}</p>

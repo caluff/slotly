@@ -35,7 +35,7 @@ export function AppointmentActionsMenu({ label, date, dayHref, canReschedule, ca
           onAction(action, trigger.current);
         }}>
         <DropdownMenu.Item asChild className={itemClass}>
-          <a href={dayHref} onClick={(event) => { setOpen(false); navigateWorkspace(event); }} aria-label={`Ver día ${date}`}><CalendarDays aria-hidden="true" />Ver día</a>
+          <a href={dayHref} onClick={(event) => { setOpen(false); navigateWorkspace(event); }} aria-label={`Localizar fecha ${date}`}><CalendarDays aria-hidden="true" />Localizar fecha</a>
         </DropdownMenu.Item>
         {canReschedule && <DropdownMenu.Item className={itemClass} onSelect={() => { pendingAction.current = "reschedule"; }}>
           <CalendarClock aria-hidden="true" />Reprogramar

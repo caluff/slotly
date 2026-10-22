@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
+import type { FunctionReturnType } from "convex/server";
 import { Copy, ExternalLink } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -11,6 +12,10 @@ import { Button } from "@/components/ui/button";
 export function BusinessBookingLink({ enabled }: { enabled: boolean }) {
   const link = useQuery(api.bookingLinks.getMyBookingLink, enabled ? {} : "skip");
   const save = useMutation(api.bookingLinks.setMyBookingLink);
+  return <BookingLinkPanel enabled={enabled} link={link} save={save} />;
+}
+
+export function BookingLinkPanel({ enabled, link, save }: { enabled: boolean; link: FunctionReturnType<typeof api.bookingLinks.getMyBookingLink> | undefined; save: (args: { enabled: boolean }) => Promise<FunctionReturnType<typeof api.bookingLinks.setMyBookingLink>> }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const lock = useRef(false);
@@ -33,7 +38,7 @@ export function BusinessBookingLink({ enabled }: { enabled: boolean }) {
     try { await navigator.clipboard.writeText(new URL(`/reservar/${link.slug}`, window.location.origin).href); toast.success("Enlace copiado."); }
     catch { setError("No pudimos copiar el enlace. Puedes abrirlo y copiar su dirección."); }
   }
-  return <section aria-labelledby="booking-link-heading" className="mt-8 max-w-2xl border-b border-line pb-6">
+  return <section aria-labelledby="booking-link-heading" data-panel-mutation-busy={busy} className="mt-8 max-w-2xl border-b border-line pb-6">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h2 id="booking-link-heading" className="text-lg font-semibold tracking-tight">Reservas por enlace</h2>

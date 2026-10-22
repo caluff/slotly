@@ -3,7 +3,7 @@ import { shiftLocalDate } from "./agenda-date";
 
 export const appointmentPeriods = ["todas", "proximas", "pasadas"] as const;
 export type AppointmentPeriod = typeof appointmentPeriods[number];
-export type AppointmentFilters = { client: string; service: string; period: AppointmentPeriod; from: string; until: string };
+export type AppointmentFilters = { client: string; service: string; period: AppointmentPeriod; from: string; until: string; status?: string };
 export const emptyAppointmentFilters: AppointmentFilters = { client: "", service: "", period: "todas", from: "", until: "" };
 export const agendaPeriods = ["hoy", "todas", "proximas", "pasadas", "personalizado"] as const;
 export type AgendaPeriod = typeof agendaPeriods[number];
@@ -14,6 +14,7 @@ export function normalizeClientSearch(value: string) {
 }
 
 export function appointmentFilterError(filters: AppointmentFilters): string | null {
+  if (filters.status && !["confirmed", "cancelled", "none"].includes(filters.status)) return "El estado del enlace no es válido. Elige otro estado.";
   if (!appointmentPeriods.includes(filters.period)) return "El período del enlace no es válido. Elige otro y vuelve a buscar.";
   if (filters.client.length > 100 || /[\p{Cc}\p{Cf}]/u.test(filters.client)) return "El nombre de búsqueda admite hasta 100 caracteres, sin caracteres de control.";
   if ((filters.from && !isLocalDate(filters.from)) || (filters.until && !isLocalDate(filters.until))) return "Desde y Hasta deben ser fechas reales entre los años 0001 y 9999.";
@@ -43,7 +44,7 @@ export function readAppointmentFilters(params: Pick<URLSearchParams, "get">, tod
     period = "personalizado";
     dates = { from: params.get("fecha")!, until: params.get("fecha")! };
   }
-  return { client: params.get("cliente") ?? "", service: params.get("servicio") ?? "", period,
+  return { client: params.get("cliente") ?? "", service: params.get("servicio") ?? "", ...(params.get("estado") ? { status: params.get("estado")! } : {}), period,
     ...appointmentPeriodDates(period, today, dates) };
 }
 

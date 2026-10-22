@@ -3,6 +3,7 @@ import type { QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { generateAvailability } from "./availability";
 import { isLocalDate } from "../../lib/local-date";
+import { scheduleForDate } from "./scheduleForDate";
 
 export async function requireMyBusiness(ctx: QueryCtx) {
   const identity = await ctx.auth.getUserIdentity();
@@ -52,9 +53,8 @@ export async function bookableSlot(ctx: QueryCtx, business: { _id: Id<"businesse
   if (!Number.isSafeInteger(start) || start <= now) throw new ConvexError({ code: "SLOT_UNAVAILABLE" });
   const service = await ctx.db.get("services", serviceId);
   if (!service || service.businessId !== business._id) throw new ConvexError({ code: "SERVICE_NOT_FOUND" });
-  const schedule = await ctx.db.query("weeklySchedules")
-    .withIndex("by_businessId", (q) => q.eq("businessId", business._id)).unique();
-  const slot = generateAvailability({ date, timeZone: business.timeZone, days: schedule?.days ?? null,
+  const schedule = await scheduleForDate(ctx, business._id, date);
+  const slot = generateAvailability({ date, timeZone: business.timeZone, ...schedule,
     durationMinutes: service.durationMinutes, now }).slots.find((option) => option.start === start);
   if (!slot) throw new ConvexError({ code: "SLOT_UNAVAILABLE" });
   const existing = await confirmedAppointmentsForDate(ctx, business._id, date);

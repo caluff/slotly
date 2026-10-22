@@ -10,6 +10,8 @@ Clerk autentica las cuentas; Convex verifica sus JWT y guarda el perfil del nego
 
 Inicia el backend de desarrollo con `pnpm convex:dev`. Al cambiar el esquema o las funciones, la CLI valida, regenera tipos y actualiza ese backend. Para regenerar explícitamente los tipos, usa `pnpm exec convex codegen`.
 
-`pnpm test` ejecuta los tests de negocio y servicios con `convex-test` y los esquemas Zod del formulario, todos en memoria. `pnpm test:local` conserva la comprobación inicial de negocios de `scripts/test-businesses-local.mjs`: escribe perfiles sintéticos en el entorno local y no admite producción ni proyectos cloud.
+La suite unitaria de Vitest/`convex-test` se retiró por petición expresa del usuario el 22/10/2026: 16 archivos y configuración, con 471 casos ejecutados históricamente. No queda una suite de unitarios equivalente; se reduce esa cobertura automatizada. Los resultados anteriores conservan su valor como evidencia de su ejecución, sin acreditar que los tests sigan presentes.
+
+Se conservan `scripts/test-appointments-engine.mjs`, `scripts/public-booking-engine-scenarios.mjs`, `scripts/special-dates-engine-scenarios.mjs` y `scripts/test-businesses-local.mjs`: son integración/concurrencia real, no unitarios. `pnpm test:local` sigue siendo la comprobación inicial opcional de negocios: escribe perfiles sintéticos en el entorno local y no admite producción ni proyectos cloud. `pnpm test:appointments:engine` usa un motor temporal aislado. No se ejecutan ni repiten sus pruebas por esta retirada.
 
 El alcance actual es un negocio por cuenta con un único propietario y varios servicios por negocio, solo creación y consulta. No añadir otras operaciones o tablas sin autorización del siguiente reto.

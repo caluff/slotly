@@ -16,6 +16,7 @@ import { useRetryConvexAuth } from "@/components/convex-client-provider";
 import { Button } from "@/components/ui/button";
 import { readDashboardView } from "@/lib/dashboard-navigation";
 import { api } from "@/convex/_generated/api";
+import { WorkspacePanels } from "@/components/workspace-panel";
 
 export function BusinessProfile({ timeZones }: { timeZones: string[] }) {
   const { userId, isLoaded, isSignedIn } = useAuth();
@@ -38,7 +39,7 @@ export function BusinessProfile({ timeZones }: { timeZones: string[] }) {
     </div>
     <p className="text-sm text-muted">{signedOut ? "La sesión se cerró y se descartaron sus borradores." : "Los borradores siguen en esta pestaña mientras recuperas el acceso."}</p>
   </div>}
-  {opened && ownerId && !signedOut && <div hidden={!isAuthenticated}><AuthenticatedBusinessProfile key={ownerId} timeZones={timeZones} enabled={isAuthenticated} /></div>}
+  {opened && ownerId && !signedOut && <div className="workspace-auth-content" hidden={!isAuthenticated}><AuthenticatedBusinessProfile key={ownerId} timeZones={timeZones} enabled={isAuthenticated} /></div>}
   </>;
 }
 
@@ -53,13 +54,10 @@ function AuthenticatedBusinessProfile({ timeZones, enabled }: { timeZones: strin
     <BusinessProfileForm timeZones={timeZones} onCreate={createBusiness} />
   </section>;
 
-  return <div key={business._id}>
-    <p hidden={active === "agenda"} className="mb-5 text-sm font-medium text-muted wrap-anywhere">{business.name}</p>
+  return <div key={business._id} className="workspace-business-content">
     {/* Keep each view mounted: back/forward and navigation preserve unsaved work. */}
-    <section hidden={active !== "agenda"} aria-label="Agenda"><BusinessAvailability businessName={business.name} timeZone={business.timeZone} enabled={enabled} active={active === "agenda"} /></section>
-    <section hidden={active !== "servicios"} aria-label="Servicios"><BusinessServices enabled={enabled} /></section>
-    <section hidden={active !== "horario"} aria-label="Horario"><BusinessWeeklySchedule timeZone={business.timeZone} enabled={enabled} /></section>
-    <section hidden={active !== "negocio"} aria-labelledby="business-heading">
+    <section className="workspace-agenda" aria-label="Agenda"><BusinessAvailability businessName={business.name} timeZone={business.timeZone} enabled={enabled} /></section>
+    <WorkspacePanels services={<BusinessServices enabled={enabled} />} schedule={<BusinessWeeklySchedule timeZone={business.timeZone} enabled={enabled} />} business={<>
       <h1 id="business-heading" tabIndex={-1} className="workspace-title">Negocio</h1>
       <p className="workspace-description">Los datos que definen tu espacio de trabajo.</p>
       <dl className="mt-8 max-w-2xl divide-y divide-line border-y border-line">
@@ -68,6 +66,6 @@ function AuthenticatedBusinessProfile({ timeZones, enabled }: { timeZones: strin
       </dl>
       <BusinessBookingLink enabled={enabled && active === "negocio"} />
       <p className="mt-6 max-w-prose text-sm leading-6 text-muted">Las fechas y horas de tu <WorkspaceLink view="agenda">agenda</WorkspaceLink> y tu <WorkspaceLink view="horario">horario de atención</WorkspaceLink> se muestran en esta zona.</p>
-    </section>
+    </>} />
   </div>;
 }

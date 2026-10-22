@@ -18,6 +18,7 @@ function uniqueInstant(local: Temporal.PlainDateTime, timeZone: string) {
 
 export function generateAvailability(input: {
   date: string; timeZone: string; durationMinutes: number; days: Day[] | null; now: number;
+  specialDay?: { isOpen: boolean; start: string | null; end: string | null } | null;
 }) {
   if (!isLocalDate(input.date)) throw new Error("INVALID_DATE");
   if (!Number.isSafeInteger(input.durationMinutes) || input.durationMinutes <= 0) throw new Error("INVALID_DURATION");
@@ -26,10 +27,10 @@ export function generateAvailability(input: {
   const slots: Slot[] = [];
   let omittedForTimeChange = false;
   const result = (status: AvailabilityStatus) => ({ status, slots, omittedForTimeChange });
-  if (input.days === null) return result("unconfigured");
-  if (input.days.every((day) => !day.isOpen)) return result("week_closed");
+  if (!input.specialDay && input.days === null) return result("unconfigured");
+  if (!input.specialDay && input.days?.every((day) => !day.isOpen)) return result("week_closed");
   if (Temporal.PlainDate.compare(date, today) < 0) return result("past_date");
-  const day = input.days.find((item) => item.dayOfWeek === date.dayOfWeek);
+  const day = input.specialDay ?? input.days?.find((item) => item.dayOfWeek === date.dayOfWeek);
   if (!day?.isOpen) return result("day_closed");
   const openingLocal = date.toPlainDateTime(day.start!);
   const closingLocal = date.toPlainDateTime(day.end!);

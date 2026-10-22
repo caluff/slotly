@@ -2,12 +2,14 @@
 
 import { useMutation, usePaginatedQuery, type UsePaginatedQueryReturnType } from "convex/react";
 import { Plus, Clock3 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ServiceForm } from "@/components/service-form";
 import { ContextPanel } from "@/components/context-panel";
 import { Button } from "@/components/ui/button";
 import { api } from "@/convex/_generated/api";
 import type { ServiceValues } from "@/lib/service-schema";
+import { usePanelSurface } from "@/components/workspace-panel";
 
 type ServicesPanelProps = Pick<UsePaginatedQueryReturnType<typeof api.services.listMyServices>, "results" | "status"> & {
   onCreate: (values: ServiceValues) => Promise<unknown>;
@@ -21,18 +23,22 @@ export function BusinessServices({ enabled = true }: { enabled?: boolean }) {
 }
 
 export function ServicesPanel({ results, status, onCreate, onLoadMore }: ServicesPanelProps) {
-  const [open, setOpen] = useState(false);
-  const [started, setStarted] = useState(false);
+  const params = useSearchParams();
+  const embedded = usePanelSurface();
+  const [open, setOpen] = useState(params.get('crear') === 'servicio');
+  const [started, setStarted] = useState(params.get('crear') === 'servicio');
   const [busy, setBusy] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
+  useEffect(() => { const start = () => { setStarted(true); setOpen(true); }; window.addEventListener('slotly:new-service', start); return () => window.removeEventListener('slotly:new-service', start); }, []);
+  const close = () => { setOpen(false); const query = new URLSearchParams(window.location.search); if (query.get('crear') === 'servicio') { query.delete('crear'); window.history.replaceState(null, '', `${window.location.pathname}?${query}`); } };
   return <>
     <div className="flex flex-wrap items-start justify-between gap-5">
-      <div><h1 tabIndex={-1} className="workspace-title">Servicios</h1>
-        <p className="workspace-description">Lo que ofreces y el tiempo que necesita cada cita.</p></div>
-      <Button ref={trigger} aria-expanded={open} aria-controls="new-service" onClick={() => { setStarted(true); setOpen(true); }}><Plus aria-hidden="true" />Nuevo servicio</Button>
+      {!embedded && <div><h1 tabIndex={-1} className="workspace-title">Servicios</h1>
+        <p className="workspace-description">Lo que ofreces y el tiempo que necesita cada cita.</p></div>}
+      <Button hidden={embedded && open} ref={trigger} aria-expanded={open} aria-controls="new-service" onClick={() => { setStarted(true); setOpen(true); }}><Plus aria-hidden="true" />Nuevo servicio</Button>
     </div>
     <div className={`mt-8 ${open ? "workspace-grid" : ""}`}>
-      {started && <ContextPanel id="new-service" title="Nuevo servicio" open={open} onClose={() => setOpen(false)} busy={busy} trigger={trigger}>
+      {started && <ContextPanel id="new-service" title="Nuevo servicio" open={open} onClose={close} busy={busy} trigger={trigger}>
         <ServiceForm onCreate={onCreate} onSaving={setBusy} compact />
         <p className="mt-5 text-xs leading-5 text-muted">Puedes cerrar este panel: el borrador se conserva mientras sigas en tu espacio.</p>
       </ContextPanel>}

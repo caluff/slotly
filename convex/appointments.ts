@@ -50,13 +50,13 @@ export const listMyConfirmedAppointments = query({
 // page does NOT mean that the search is exhausted.
 export const searchMyAppointments = query({
   args: {
-    client: v.string(), serviceId: v.optional(v.id("services")),
+    client: v.string(), serviceId: v.optional(v.id("services")), status: v.optional(v.union(v.literal("confirmed"), v.literal("cancelled"), v.literal("none"))),
     period: v.union(v.literal("todas"), v.literal("proximas"), v.literal("pasadas")),
     from: v.string(), until: v.string(), referenceDate: v.optional(v.string()),
     paginationOpts: paginationOptsValidator,
   },
   returns: paginationResultValidator(historyAppointment),
-  handler: async (ctx, { client, serviceId, period, from, until, referenceDate, paginationOpts }) => {
+  handler: async (ctx, { client, serviceId, status, period, from, until, referenceDate, paginationOpts }) => {
     const business = await requireMyBusiness(ctx);
     const filters = { client, service: serviceId ?? "", period, from, until };
     if (appointmentFilterError(filters)) throw new ConvexError({ code: "INVALID_FILTERS" });
@@ -68,6 +68,7 @@ export const searchMyAppointments = query({
       const service = await ctx.db.get("services", serviceId);
       if (!service || service.businessId !== business._id) throw new ConvexError({ code: "SERVICE_NOT_FOUND" });
     }
+    if (status === "none") return { page: [], isDone: true, continueCursor: "" };
     const bounds = appointmentDateBounds(filters, referenceDate);
     if (bounds.empty) return { page: [], isDone: true, continueCursor: "" };
     const indexed = serviceId
@@ -87,7 +88,7 @@ export const searchMyAppointments = query({
       numItems: Math.min(paginationOpts.numItems, 100), maximumRowsRead: 200, maximumBytesRead: 256_000 });
     const needle = normalizeClientSearch(client);
     return { ...page, page: page.page
-      .filter((row) => !needle || normalizeClientSearch(row.clientName).includes(needle))
+      .filter((row) => (!status || row.status === status) && (!needle || normalizeClientSearch(row.clientName).includes(needle)))
       .map(publicAppointment) };
   },
 });

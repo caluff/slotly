@@ -66,6 +66,7 @@ export function PublicBooking({ slug }: { slug: string }) {
 
   const queryKey = `${fields.serviceId}:${fields.date}`;
   const canQuery = !!business && !!fields.serviceId && isLocalDate(fields.date) && !receipt;
+  const revision = useQuery(api.publicBooking.getAvailabilityRevision, canQuery ? { slug, serviceId: fields.serviceId as Id<"services">, date: fields.date } : "skip");
   useEffect(() => {
     if (!canQuery) return;
     let alive = true;
@@ -84,7 +85,7 @@ export function PublicBooking({ slug }: { slug: string }) {
     const interval = window.setInterval(fetchOptions, 30_000);
     window.addEventListener("focus", fetchOptions);
     return () => { alive = false; window.clearInterval(interval); window.removeEventListener("focus", fetchOptions); };
-  }, [availability, canQuery, fields.serviceId, fields.date, queryKey, refresh, slug]);
+  }, [availability, canQuery, fields.serviceId, fields.date, queryKey, refresh, slug, revision]);
 
   function change(field: keyof Fields, value: string) {
     setFields((old) => ({ ...old, [field]: value, ...(field === "serviceId" || field === "date" ? { start: "" } : {}) }));

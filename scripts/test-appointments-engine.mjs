@@ -8,6 +8,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ConvexHttpClient } from "convex/browser";
 import { publicBookingScenarios } from "./public-booking-engine-scenarios.mjs";
+import { specialDateScenarios } from "./special-dates-engine-scenarios.mjs";
 
 // REAL engine integration, entirely synthetic. Never reads .env.local or .convex.
 // Requires the Convex backend binary cached by the CLI, or SLOTLY_CONVEX_BACKEND.
@@ -95,6 +96,8 @@ export const snapshot = internalQuery({
   handler: async (ctx, { date }) => {
     const business = await requireMyBusiness(ctx);
     return { business,
+      specialDates: await ctx.db.query("specialDates").withIndex("by_businessId_and_date", q => q.eq("businessId", business._id)).take(100),
+      weeklySchedules: await ctx.db.query("weeklySchedules").withIndex("by_businessId", q => q.eq("businessId", business._id)).take(2),
       appointments: await ctx.db.query("appointments").withIndex("by_businessId_and_date", q => q.eq("businessId", business._id).eq("date", date)).take(1500),
       receipts: await ctx.db.query("publicBookingReceipts").withIndex("by_businessId_and_attemptKey", q => q.eq("businessId", business._id)).take(100),
     };
@@ -350,6 +353,7 @@ export const snapshot = internalQuery({
   assert.equal((await history(stale)).length, 2);
   report.oldIntervalCanBeReservedAfterMove = true;
   await publicBookingScenarios({ setup, date, start, makeClient, race, history, report });
+  await specialDateScenarios({ setup, date, start, makeClient, race, report });
   const owner = await setup();
   const dense = await setup();
   assert.equal(await dense.client.mutation("engineFixtures:cancelledHistory", { serviceId: dense.serviceId, date, start }), 1600);

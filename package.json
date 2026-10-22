@@ -7,7 +7,6 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run",
     "test:local": "node --env-file=.env.local scripts/test-businesses-local.mjs",
     "test:appointments:engine": "node scripts/test-appointments-engine.mjs",
     "convex:dev": "convex dev",
@@ -17,6 +16,7 @@
     "@clerk/localizations": "4.23.0",
     "@clerk/nextjs": "^7.9.17",
     "@convex-dev/rate-limiter": "^0.4.2",
+    "@fullcalendar/react": "7.1.3",
     "@hookform/resolvers": "^5.9.2",
     "@js-temporal/polyfill": "^0.5.1",
     "class-variance-authority": "^0.7.1",
@@ -29,20 +29,18 @@
     "react-dom": "19.3.0",
     "react-hook-form": "^7.90.0",
     "sonner": "^2.0.8",
+    "temporal-polyfill": "1.0.6",
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@edge-runtime/vm": "^5.0.0",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "convex-test": "^0.0.62",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
     "tailwindcss": "^4",
-    "typescript": "^5",
-    "vitest": "^5.0.5"
+    "typescript": "^5"
   },
   "packageManager": "pnpm@12.11.2"
 }
