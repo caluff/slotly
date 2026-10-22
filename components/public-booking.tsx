@@ -14,7 +14,8 @@ import { appointmentSchema } from "@/lib/appointment-schema";
 import { isLocalDate } from "@/lib/local-date";
 
 type Fields = { serviceId: string; date: string; start: string; clientName: string };
-type Attempt = { attemptKey: string; serviceId: Id<"services">; date: string; start: number; clientName: string };
+type ServiceContext = { name: string; durationMinutes: number; version: number };
+type Attempt = { attemptKey: string; serviceId: Id<"services">; date: string; start: number; clientName: string; expectedService?: ServiceContext };
 type Receipt = Extract<FunctionReturnType<typeof api.publicBooking.confirm>, { ok: true }>["receipt"];
 type Slot = { start: number; end: number; startTime: string; endTime: string };
 const blank: Fields = { serviceId: "", date: "", start: "", clientName: "" };
@@ -26,13 +27,14 @@ export function PublicBooking({ slug }: { slug: string }) {
   const confirm = useMutation(api.publicBooking.confirm);
   const [fields, setFields] = useState<Fields>(blank);
   const [pending, setPending] = useState<Attempt | null>(null);
+  const [chosenContext, setChosenContext] = useState<ServiceContext | undefined>();
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [restored, setRestored] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [invalid, setInvalid] = useState<keyof Fields | null>(null);
   const [refresh, setRefresh] = useState(0);
-  const [options, setOptions] = useState<{ key: string; slots: Slot[]; error: string }>({ key: "", slots: [], error: "" });
+  const [options, setOptions] = useState<{ key: string; slots: Slot[]; error: string; service?: ServiceContext; revision?: string | null }>({ key: "", slots: [], error: "" });
   const lock = useRef(false);
   const alert = useRef<HTMLParagraphElement>(null);
   const success = useRef<HTMLHeadingElement>(null);
@@ -75,7 +77,8 @@ export function PublicBooking({ slug }: { slug: string }) {
       const request = ++sequence;
       try {
         const result = await availability({ slug, serviceId: fields.serviceId as Id<"services">, date: fields.date });
-        if (alive && request === sequence) setOptions({ key: queryKey, slots: result?.slots ?? [],
+        if (alive && request === sequence) setOptions({ key: queryKey, slots: result?.slots ?? [], revision,
+          service: result ? { name: result.service.name, durationMinutes: result.service.durationMinutes, version: result.service.version } : undefined,
           error: result === null ? "El servicio o el enlace ya no está disponible." : "" });
       } catch {
         if (alive && request === sequence) setOptions({ key: queryKey, slots: [], error: "No pudimos cargar los horarios. Reintenta." });
@@ -88,25 +91,27 @@ export function PublicBooking({ slug }: { slug: string }) {
   }, [availability, canQuery, fields.serviceId, fields.date, queryKey, refresh, slug, revision]);
 
   function change(field: keyof Fields, value: string) {
+    if (field === "start") setChosenContext(options.service);
     setFields((old) => ({ ...old, [field]: value, ...(field === "serviceId" || field === "date" ? { start: "" } : {}) }));
     setInvalid(null); setError("");
   }
   function fail(message: string, field: keyof Fields | null = null) {
     setError(message); setInvalid(field);
   }
-  const readyOptions = canQuery && options.key === queryKey;
+  const readyOptions = canQuery && options.key === queryKey && options.revision === revision;
   const slots = readyOptions ? options.slots : [];
+  const serviceChanged = !!fields.start && readyOptions && JSON.stringify(chosenContext) !== JSON.stringify(options.service);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (lock.current || !business) return;
     if (!pending) {
       if (!fields.serviceId) return fail("Elige un servicio.", "serviceId");
       if (!isLocalDate(fields.date)) return fail("Elige una fecha válida.", "date");
-      if (!readyOptions || !slots.some((slot) => String(slot.start) === fields.start)) return fail("Elige un horario disponible.", "start");
+      if (!readyOptions || serviceChanged || !slots.some((slot) => String(slot.start) === fields.start)) return fail("Revisa el servicio y elige un horario disponible.", "start");
       if (!appointmentSchema.safeParse(fields).success) return fail("Escribe un nombre válido de entre 1 y 100 caracteres.", "clientName");
     }
     const attempt = pending ?? { attemptKey: crypto.randomUUID(), serviceId: fields.serviceId as Id<"services">,
-      date: fields.date, start: Number(fields.start), clientName: fields.clientName };
+      date: fields.date, start: Number(fields.start), clientName: fields.clientName, expectedService: options.service };
     lock.current = true; setBusy(true); setError(""); setInvalid(null); setPending(attempt);
     try { sessionStorage.setItem(storageKey, JSON.stringify(attempt)); } catch { /* optional persistence */ }
     try {
@@ -124,7 +129,10 @@ export function PublicBooking({ slug }: { slug: string }) {
         }
         if (result.code === "RATE_LIMITED") fail(`Demasiados intentos para este negocio. Reintenta en ${Math.max(1, Math.ceil((result.retryAfter ?? 6000) / 1000))} segundos.`);
         else if (result.code === "UNAVAILABLE") fail("Este enlace no está disponible. Contacta con el negocio.");
-        else if (result.code === "SLOT_TAKEN" || result.code === "SLOT_UNAVAILABLE") {
+        else if (result.code === "SERVICE_CHANGED" || result.code === "SERVICE_ARCHIVED") {
+          fail("El servicio cambió. Revisa el nombre, la duración y los horarios antes de confirmar.", "serviceId");
+          setFields(old => ({ ...old, start: "" })); setRefresh(value => value + 1);
+        } else if (result.code === "SLOT_TAKEN" || result.code === "SLOT_UNAVAILABLE") {
           fail("Ese horario ya no está disponible. Actualizamos las opciones; elige otro.", "start");
           setRefresh((value) => value + 1);
         } else if (result.code === "INVALID_CLIENT_NAME") fail("Escribe un nombre válido de entre 1 y 100 caracteres.", "clientName");
@@ -169,13 +177,14 @@ export function PublicBooking({ slug }: { slug: string }) {
           <Input id="public-date" name="date" type="date" value={fields.date} onChange={(e) => change("date", e.target.value)} required
             aria-invalid={invalid === "date"} aria-describedby={invalid === "date" ? "booking-error" : undefined} /></div>
         <div className="grid gap-2 [&>[data-slot=native-select-wrapper]]:w-full"><Label htmlFor="public-start">Horario disponible</Label>
-          <NativeSelect id="public-start" name="start" value={fields.start} onChange={(e) => change("start", e.target.value)} className="w-full"
+          <NativeSelect id="public-start" name="start" value={serviceChanged ? "" : fields.start} onChange={(e) => change("start", e.target.value)} className="w-full"
             disabled={!canQuery || !readyOptions} required aria-invalid={invalid === "start"} aria-describedby={invalid === "start" ? "booking-error" : undefined}>
             <option value="">{canQuery && !readyOptions ? "Cargando horarios…" : "Elige un horario"}</option>
             {fields.start && !slots.some((s) => String(s.start) === fields.start) && <option value={fields.start} disabled>Horario elegido no disponible</option>}
             {slots.map((s) => <option key={s.start} value={s.start}>{s.startTime} – {s.endTime}</option>)}
           </NativeSelect>
           {canQuery && !readyOptions && <p role="status" className="text-sm text-muted">Cargando horarios…</p>}
+          {serviceChanged && <p role="status" className="text-sm">El servicio cambió. Revisa su nombre y duración y vuelve a elegir un horario.</p>}
           {readyOptions && options.error ? <div><p role="alert" className="text-sm text-destructive">{options.error}</p>
             <Button type="button" variant="outline" className="mt-3" onClick={() => setRefresh((value) => value + 1)}>Reintentar horarios</Button></div>
             : readyOptions && !slots.length && <p role="status" className="text-sm text-muted">No hay horarios disponibles para esta fecha.</p>}

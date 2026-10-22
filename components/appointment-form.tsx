@@ -11,6 +11,7 @@ import { appointmentSchema, type AppointmentFormValues, type AppointmentValues }
 import { useDraftWarning } from "@/components/use-draft-warning";
 
 type Props = {
+  serviceKey?: string;
   initialStart?: number;
   draft?: AppointmentDraft;
   onDraftChange?: (draft: AppointmentDraft) => void;
@@ -27,7 +28,7 @@ type Props = {
 };
 export type AppointmentDraft = { start: string; clientName: string; uncertain?: boolean };
 
-export function AppointmentForm({ slots, ready, isFuture, onCreate, onRefresh, onSaving, initialStart, draft, onDraftChange, onCheck, onRecovered, selectionFields, compact = false }: Props) {
+export function AppointmentForm({ slots, ready, isFuture, onCreate, onRefresh, onSaving, initialStart, draft, onDraftChange, onCheck, onRecovered, selectionFields, serviceKey, compact = false }: Props) {
   const form = useForm<AppointmentFormValues, unknown, AppointmentValues>({
     resolver: zodResolver(appointmentSchema), defaultValues: { start: draft?.start ?? "", clientName: draft?.clientName ?? "" }, shouldFocusError: false,
   });
@@ -36,6 +37,8 @@ export function AppointmentForm({ slots, ready, isFuture, onCreate, onRefresh, o
   const selected = useWatch({ control: form.control, name: "start" });
   const clientName = useWatch({ control: form.control, name: "clientName" });
   const valid = appointmentSchema.safeParse({ start: selected, clientName }).success;
+  const [chosenServiceKey, setChosenServiceKey] = useState(serviceKey);
+  const serviceChanged = !!selected && chosenServiceKey !== serviceKey;
   const lock = useRef(false);
   const [uncertain, setUncertain] = useState(draft?.uncertain ?? false);
   const [checking, setChecking] = useState(false);
@@ -45,9 +48,9 @@ export function AppointmentForm({ slots, ready, isFuture, onCreate, onRefresh, o
   const { setValue } = form;
   useEffect(() => {
     if (!suggested.current && initialStart !== undefined && ready && !selected && slots.some(slot => slot.start === initialStart)) {
-      suggested.current = true; setValue("start", String(initialStart));
+      suggested.current = true; setValue("start", String(initialStart)); setChosenServiceKey(serviceKey);
     }
-  }, [initialStart, ready, selected, slots, setValue]);
+  }, [initialStart, ready, selected, slots, setValue, serviceKey]);
   useEffect(() => { onDraftChange?.({ start: selected ?? "", clientName: clientName ?? "", uncertain }); }, [selected, clientName, uncertain, onDraftChange]);
   const focus = useRef<keyof AppointmentFormValues | null>(null);
   const { setFocus } = form;
@@ -58,7 +61,7 @@ export function AppointmentForm({ slots, ready, isFuture, onCreate, onRefresh, o
 
   async function submit(values: AppointmentValues) {
     const start = Number(values.start);
-    if (!ready || !slots.some((slot) => slot.start === start) || !isFuture(start)) {
+    if (!ready || serviceChanged || !slots.some((slot) => slot.start === start) || !isFuture(start)) {
       form.setError("start", { message: "El horario venció o dejó de estar disponible. Elige otra opción." });
       focus.current = "start";
       onRefresh();
@@ -73,7 +76,10 @@ export function AppointmentForm({ slots, ready, isFuture, onCreate, onRefresh, o
       onRefresh();
     } catch (cause) {
       const code = cause instanceof ConvexError ? cause.data?.code : undefined;
-      if (code === "SLOT_TAKEN" || code === "SLOT_UNAVAILABLE") {
+      if (code === "SERVICE_CHANGED" || code === "SERVICE_ARCHIVED") {
+        form.setError("start", { message: "El servicio cambió. Revisa su nombre, duración y los nuevos horarios antes de confirmar." });
+        form.setValue("start", ""); focus.current = "start"; onRefresh();
+      } else if (code === "SLOT_TAKEN" || code === "SLOT_UNAVAILABLE") {
         form.setError("start", { message: code === "SLOT_TAKEN"
           ? "Otra cita ocupó ese horario. Actualizamos las opciones; elige otra."
           : "El horario venció o cambió la disponibilidad. Elige otra opción." });
@@ -131,17 +137,18 @@ export function AppointmentForm({ slots, ready, isFuture, onCreate, onRefresh, o
           <Controller name="start" control={form.control} render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid} className="gap-2 [&>[data-slot=native-select-wrapper]]:w-full">
               <FieldLabel htmlFor="appointment-start" className="font-semibold">Horario disponible</FieldLabel>
-              <NativeSelect {...field} id="appointment-start" required className="w-full" aria-invalid={fieldState.invalid}
+              <NativeSelect {...field} onChange={event => { field.onChange(event); setChosenServiceKey(serviceKey); }} value={serviceChanged ? "" : field.value} id="appointment-start" required className="w-full" aria-invalid={fieldState.invalid}
                 aria-describedby={fieldState.invalid ? "appointment-start-error" : undefined}>
                 <option value="">Elige un horario</option>
                 {selected && !slots.some((slot) => String(slot.start) === selected) && <option value={selected} disabled>Horario no disponible</option>}
                 {slots.map((slot) => <option key={slot.start} value={slot.start}>{slot.startTime} – {slot.endTime}</option>)}
               </NativeSelect>
               {fieldState.invalid && <FieldError id="appointment-start-error" errors={[fieldState.error]} />}
+              {serviceChanged && <p role="status" className="text-sm">El servicio cambió. Revisa su nombre y duración y vuelve a elegir un horario.</p>}
             </Field>
           )} />
           {errors.root?.server && <div ref={serverError} tabIndex={-1}><FieldError errors={[errors.root.server]} /></div>}
-          <Button type="submit" disabled={isSubmitting || uncertain || !ready || !valid || !slots.some((slot) => String(slot.start) === selected)} className="w-full">
+          <Button type="submit" disabled={isSubmitting || uncertain || !ready || serviceChanged || !valid || !slots.some((slot) => String(slot.start) === selected)} className="w-full">
             {isSubmitting ? "Guardando…" : compact ? "Guardar" : "Confirmar cita"}
           </Button>
           <p role="status" className="sr-only">{isSubmitting ? "Confirmando la cita." : ""}</p>

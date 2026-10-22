@@ -4,6 +4,7 @@ import { mutation, query } from "./_generated/server";
 import { bookableSlot, checkVersion, confirmedAppointmentsForDate, requireMyAppointment, requireMyBusiness } from "./lib/appointmentData";
 import { appointmentSchema } from "../lib/appointment-schema";
 import { isLocalDate } from "../lib/local-date";
+import { serviceContext } from "./serviceValidators";
 import { appointmentDateBounds, appointmentFilterError, normalizeClientSearch } from "../lib/appointment-search";
 
 const appointment = v.object({
@@ -94,14 +95,14 @@ export const searchMyAppointments = query({
 });
 
 export const createMyAppointment = mutation({
-  args: { serviceId: v.id("services"), date: v.string(), start: v.number(), clientName: v.string() },
+  args: { serviceId: v.id("services"), date: v.string(), start: v.number(), clientName: v.string(), expectedService: serviceContext },
   returns: v.id("appointments"),
-  handler: async (ctx, { serviceId, date, start, clientName }) => {
+  handler: async (ctx, { serviceId, date, start, clientName, expectedService }) => {
     const business = await requireMyBusiness(ctx);
     if (!isLocalDate(date)) throw new ConvexError({ code: "INVALID_DATE" });
     const parsed = appointmentSchema.safeParse({ clientName, start: String(start) });
     if (!parsed.success) throw new ConvexError({ code: "INVALID_CLIENT_NAME" });
-    const { slot, service } = await bookableSlot(ctx, business, serviceId, date, start, Date.now());
+    const { slot, service } = await bookableSlot(ctx, business, serviceId, date, start, Date.now(), undefined, expectedService);
     return await ctx.db.insert("appointments", {
       businessId: business._id, serviceId, serviceName: service.name,
       clientName: parsed.data.clientName, date, start: slot.start, end: slot.end, status: "confirmed",
@@ -147,7 +148,7 @@ export const rescheduleMyAppointment = mutation({
     checkVersion(version, expectedVersion);
     const now = Date.now();
     if (saved.start <= now) throw new ConvexError({ code: "APPOINTMENT_STARTED" });
-    const { slot } = await bookableSlot(ctx, business, saved.serviceId, date, start, now, saved._id);
+    const { slot } = await bookableSlot(ctx, business, saved.serviceId, date, start, now, saved._id, undefined, (saved.end - saved.start) / 60_000);
     if (saved.date === date && saved.start === start && saved.end === slot.end) return { ...response, outcome: "unchanged" as const };
     await ctx.db.patch("appointments", appointmentId, { date, start: slot.start, end: slot.end,
       version: version + 1, rescheduledAt: now, rescheduledFromVersion: version });

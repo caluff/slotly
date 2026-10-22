@@ -168,9 +168,9 @@ export async function publicBookingScenarios({ setup, date, start, makeClient, r
   const businessDTO = await anon.query("publicBooking:getBusiness", { slug: privacy.slug });
   assert.deepEqual(Object.keys(businessDTO).sort(), ["name", "timeZone"]);
   const serviceDTO = await anon.query("publicBooking:listServices", { slug: privacy.slug, paginationOpts: { numItems: 20, cursor: null } });
-  for (const service of serviceDTO.page) assert.deepEqual(Object.keys(service).sort(), ["durationMinutes", "id", "name"]);
+  for (const service of serviceDTO.page) assert.deepEqual(Object.keys(service).sort(), ["durationMinutes", "id", "name", "version"]);
   const availabilityDTO = await anon.action("publicBooking:getAvailability", { slug: privacy.slug, serviceId: privacy.serviceId, date });
-  assert.deepEqual(Object.keys(availabilityDTO), ["slots"]);
+  assert.deepEqual(Object.keys(availabilityDTO).sort(), ["service", "slots"]);
   assert.ok(!availabilityDTO.slots.some((s) => s.start === start));
   assert.ok(!JSON.stringify({ businessDTO, serviceDTO, availabilityDTO }).includes(privateId));
   await assert.rejects(anon.query("bookingLinks:getMyBookingLink", {}), /UNAUTHENTICATED/);

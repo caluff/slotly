@@ -1,20 +1,22 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ConvexError } from "convex/values";
-import { useEffect, useRef, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { serviceSchema, type ServiceFormValues, type ServiceValues } from "@/lib/service-schema";
 import { useDraftWarning } from "@/components/use-draft-warning";
+import { durationError } from "@/lib/service-duration";
+import type { ServiceCreation } from "@/components/use-service-undo";
 
-type ServiceFormProps = { onCreate: (values: ServiceValues) => Promise<unknown>; onSaving?: (saving: boolean) => void; compact?: boolean };
+type CreateCommand = ServiceValues & { operationId: string };
+type ServiceFormProps = { onCreate: (values: CreateCommand) => Promise<ServiceCreation>; onSaved: (result: ServiceCreation) => void; onDiscard: () => void; onSaving?: (saving: boolean) => void; compact?: boolean; disabled?: boolean };
 const emptyValues: ServiceFormValues = { name: "", durationMinutes: "" };
 
 // The parent connects the mutation; a local callback can verify every form state
 // without writing synthetic services into a real account.
-export function ServiceForm({ onCreate, onSaving, compact = false }: ServiceFormProps) {
+export function ServiceForm({ onCreate, onSaved, onDiscard, onSaving, compact = false, disabled = false }: ServiceFormProps) {
   const form = useForm<ServiceFormValues, unknown, ServiceValues>({
     resolver: zodResolver(serviceSchema),
     defaultValues: emptyValues,
@@ -24,6 +26,8 @@ export function ServiceForm({ onCreate, onSaving, compact = false }: ServiceForm
   const { setFocus } = form;
   useDraftWarning(form.formState.isDirty || isSubmitting);
   const submissionLock = useRef(false);
+  const [pending, setPending] = useState<CreateCommand | null>(null);
+  const [recovering, setRecovering] = useState(false);
   const focusAfterSubmit = useRef<keyof ServiceFormValues | null>(null);
 
   useEffect(() => {
@@ -34,21 +38,26 @@ export function ServiceForm({ onCreate, onSaving, compact = false }: ServiceForm
   }, [isSubmitting, submitCount, setFocus]);
 
   async function onSubmit(values: ServiceValues) {
+    if (disabled) return;
     onSaving?.(true);
+    const command = pending ?? { ...values, operationId: crypto.randomUUID() };
     try {
-      await onCreate(values);
+      const result = await onCreate(command);
+      setPending(null);
       form.reset(emptyValues);
-      focusAfterSubmit.current = "name";
-      toast.success("Servicio creado");
+      focusAfterSubmit.current = null;
+      onSaved(result);
     } catch (cause) {
       const code = cause instanceof ConvexError ? cause.data?.code : undefined;
+      if (!code) setPending(command);
+      else setPending(null);
       if (code === "INVALID_NAME" || code === "INVALID_DURATION") {
         const field = code === "INVALID_NAME" ? "name" : "durationMinutes";
         form.setError(field, {
           type: "server",
           message: field === "name"
             ? "Escribe un nombre de entre 1 y 100 caracteres."
-            : "Escribe una duración en minutos enteros positivos, hasta 9007199254740991.",
+            : durationError,
         });
         focusAfterSubmit.current = field;
         return;
@@ -66,7 +75,7 @@ export function ServiceForm({ onCreate, onSaving, compact = false }: ServiceForm
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submissionLock.current) return;
+    if (submissionLock.current || pending || disabled) return;
     submissionLock.current = true;
     try {
       await form.handleSubmit(onSubmit, (fieldErrors) => {
@@ -79,7 +88,7 @@ export function ServiceForm({ onCreate, onSaving, compact = false }: ServiceForm
 
   return (
     <form onSubmit={handleSubmit} noValidate aria-label="Crear servicio" aria-busy={isSubmitting}>
-      <fieldset disabled={isSubmitting}>
+      <fieldset disabled={isSubmitting || !!pending || recovering || disabled}>
         <legend className="sr-only">Datos del servicio</legend>
         <FieldGroup className="gap-5">
           <div className={`grid gap-5 ${compact ? "" : "sm:grid-cols-[minmax(0,1fr)_12rem]"}`}>
@@ -95,7 +104,7 @@ export function ServiceForm({ onCreate, onSaving, compact = false }: ServiceForm
             <Controller name="durationMinutes" control={form.control} render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid} data-disabled={isSubmitting} className="gap-2">
                 <FieldLabel htmlFor="service-duration" className="font-semibold">Duración (minutos)</FieldLabel>
-                <Input {...field} id="service-duration" type="number" inputMode="numeric" min={1} step={1}
+                <Input {...field} id="service-duration" type="number" inputMode="numeric" min={15} step={5}
                   max={Number.MAX_SAFE_INTEGER} required autoComplete="off"
                   aria-invalid={fieldState.invalid}
                   aria-describedby={fieldState.invalid ? "service-duration-error" : undefined} />
@@ -104,12 +113,16 @@ export function ServiceForm({ onCreate, onSaving, compact = false }: ServiceForm
             )} />
           </div>
           {errors.root?.server && <FieldError errors={[errors.root.server]} />}
-          <Button type="submit" disabled={isSubmitting} className="w-full disabled:cursor-wait sm:w-auto sm:self-start">
-            {isSubmitting ? "Guardando servicio…" : "Crear servicio"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button type="submit" disabled={isSubmitting} className="px-2 disabled:cursor-wait">
+              {isSubmitting ? "Guardando…" : "Crear servicio"}
+            </Button>
+            <Button type="button" variant="ghost" className="px-2" onClick={() => { if (submissionLock.current || pending || recovering || disabled) return; focusAfterSubmit.current = null; form.reset(emptyValues); onDiscard(); }}>Cancelar</Button>
+          </div>
           <p role="status" className="sr-only">{isSubmitting ? "Guardando el servicio." : ""}</p>
         </FieldGroup>
       </fieldset>
+      {pending && <div className="mt-4 space-y-3"><p role="status" className="text-sm">No recibimos la respuesta. Comprueba el mismo intento antes de crear otro servicio.</p><Button type="button" disabled={recovering || disabled} onClick={async () => { if (submissionLock.current) return; submissionLock.current = true; setRecovering(true); try { await onSubmit(pending); } finally { setRecovering(false); submissionLock.current = false; } }}>Comprobar creación</Button></div>}
     </form>
   );
 }

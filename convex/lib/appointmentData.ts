@@ -49,14 +49,21 @@ export function overlaps(a: { start: number; end: number }, b: { start: number; 
 // Shared by private creation/moves and anonymous confirmation. The caller's
 // transaction reads the same complete business/day occupation range.
 export async function bookableSlot(ctx: QueryCtx, business: { _id: Id<"businesses">; timeZone: string },
-  serviceId: Id<"services">, date: string, start: number, now: number, exclude?: Id<"appointments">) {
+  serviceId: Id<"services">, date: string, start: number, now: number, exclude?: Id<"appointments">,
+  expectedService?: { name: string; durationMinutes: number; version: number }, historicalDuration?: number) {
   if (!isLocalDate(date)) throw new ConvexError({ code: "INVALID_DATE" });
   if (!Number.isSafeInteger(start) || start <= now) throw new ConvexError({ code: "SLOT_UNAVAILABLE" });
   const service = await ctx.db.get("services", serviceId);
   if (!service || service.businessId !== business._id) throw new ConvexError({ code: "SERVICE_NOT_FOUND" });
+  if (!exclude) {
+    if (service.archived === true) throw new ConvexError({ code: "SERVICE_ARCHIVED" });
+    if (!expectedService || expectedService.name !== service.name || expectedService.durationMinutes !== service.durationMinutes
+      || expectedService.version !== (service.version ?? 0)) throw new ConvexError({ code: "SERVICE_CHANGED" });
+  }
+  if (exclude && (!Number.isSafeInteger(historicalDuration) || historicalDuration! <= 0)) throw new ConvexError({ code: "INVALID_APPOINTMENT_STATE" });
   const schedule = await scheduleForDate(ctx, business._id, date);
   const slot = generateAvailability({ date, timeZone: business.timeZone, ...schedule,
-    durationMinutes: service.durationMinutes, now }).slots.find((option) => option.start === start);
+    durationMinutes: historicalDuration ?? service.durationMinutes, now }).slots.find((option) => option.start === start);
   if (!slot) throw new ConvexError({ code: "SLOT_UNAVAILABLE" });
   const existing = await confirmedAppointmentsForDate(ctx, business._id, date);
   if (existing.some((saved) => saved._id !== exclude && overlaps(slot, saved))) throw new ConvexError({ code: "SLOT_TAKEN" });

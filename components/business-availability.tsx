@@ -24,10 +24,10 @@ import { isLocalDate } from "@/lib/local-date";
 import { todayInZone } from "@/lib/agenda-date";
 
 type Availability = FunctionReturnType<typeof api.availability.getMyAvailability>;
-type Service = { _id: Id<"services">; name: string; durationMinutes: number };
+type Service = { _id: Id<"services">; name: string; durationMinutes: number; archived?: boolean };
 type Selection = { serviceId: Id<"services">; date: string };
 type Consult = (values: Selection) => Promise<Availability>;
-type Create = (values: Selection & { start: number; clientName: string }) => Promise<unknown>;
+type Create = (values: Selection & { start: number; clientName: string; expectedService: Omit<Availability["service"], "id"> }) => Promise<unknown>;
 type CheckCreation = (values: Selection & { start: number; clientName: string }) => Promise<"found" | "absent">;
 
 function useToday(timeZone: string) {
@@ -119,7 +119,7 @@ export function AvailabilityPanel({ businessName, services, loading, timeZone, i
   const newButton = <Button ref={trigger} disabled={saving} onClick={() => start()} aria-expanded={open} aria-haspopup="dialog"><Plus aria-hidden="true" />Nueva cita</Button>;
   const selectionFields = <>
     <Field className="gap-2"><FieldLabel htmlFor="availability-service">Servicio</FieldLabel><NativeSelect id="availability-service" value={serviceId} onChange={event => { setServiceId(event.target.value); setSelectionDirty(true); }} className="w-full">
-      <option value="">Elige un servicio</option>{services.map(service => <option key={service._id} value={service._id}>{service.name} · {service.durationMinutes} min</option>)}
+      <option value="">Elige un servicio</option>{services.filter(service => !service.archived).map(service => <option key={service._id} value={service._id}>{service.name} · {service.durationMinutes} min</option>)}
     </NativeSelect></Field>
     {more && <Button type="button" variant="outline" disabled={loadingMore} onClick={onLoadMore}>{loadingMore ? "Cargando…" : "Cargar más servicios"}</Button>}
     <Field className="gap-2"><FieldLabel htmlFor="availability-date">Fecha de la cita</FieldLabel><Input id="availability-date" type="date" min="0001-01-01" max="9999-12-31" value={draftDate ?? ""} onChange={event => { setDraftDate(event.target.value); onDraftDateChange?.(event.target.value); setSelectionDirty(true); }} /></Field>
@@ -161,6 +161,7 @@ function readError(cause: unknown) {
   if (code === "UNAUTHENTICATED") return "Tu sesión dejó de estar disponible. Vuelve a iniciar sesión.";
   if (code === "BUSINESS_NOT_FOUND") return "Tu cuenta no tiene un negocio asociado. Recarga y crea su perfil.";
   if (code === "SERVICE_NOT_FOUND") return "El servicio no está disponible en tu negocio. Elige otro servicio.";
+  if (code === "SERVICE_ARCHIVED") return "El servicio está archivado. Elige un servicio activo.";
   if (code === "INVALID_DATE") return "La fecha no es válida. Elige una fecha real.";
   return "No pudimos cargar los horarios. Comprueba tu conexión y reintenta; conservamos el borrador.";
 }
@@ -224,8 +225,9 @@ function AvailabilityResults({ selection, onConsult, onCreate, revision, onSavin
           : <><p role="status" className="text-sm leading-6 text-muted">{slots.length ? `${slots.length} ${slots.length === 1 ? "horario disponible" : "horarios disponibles"}` : snapshot.data.status === "available" ? messages.empty : messages[snapshot.data.status]}</p>
             {snapshot.data.omittedForTimeChange && <p className="mt-2 text-xs leading-5 text-muted">Se omiten las horas ambiguas o inexistentes por cambios de hora.</p>}</>}
     <AppointmentForm initialStart={initialStart} draft={draft} onDraftChange={onDraftChange} selectionFields={selectionFields} compact={compact} onCheck={onCheck} onRecovered={onRecovered} slots={slots} ready={ready && !error}
+      serviceKey={snapshot ? `${snapshot.data.service.id}:${snapshot.data.service.version}:${snapshot.data.service.name}:${snapshot.data.service.durationMinutes}` : undefined}
       isFuture={(start) => snapshot !== null && start > snapshot.data.generatedAt + performance.now() - snapshot.sent}
-      onCreate={(values) => selection ? onCreate({ ...selection, ...values }) : Promise.reject(new Error("Missing selection"))}
+      onCreate={(values) => selection && snapshot ? onCreate({ ...selection, ...values, expectedService: { name: snapshot.data.service.name, durationMinutes: snapshot.data.service.durationMinutes, version: snapshot.data.service.version } }) : Promise.reject(new Error("Missing selection"))}
       onRefresh={() => setRefresh((value) => value + 1)} onSaving={onSaving} />
   </div>;
 }

@@ -41,11 +41,12 @@ export async function timeBlockScenarios({ setup, date, start, makeClient, race,
       assert.deepEqual(publicResult.slots, privateResult.slots);
       const occupied = [...saved.timeBlocks.filter(r => r.active && r.date === day), ...saved.appointments.filter(r => r.status === "confirmed" && r.date === day)];
       assert.ok(privateResult.slots.every(s => occupied.every(r => s.end <= r.start || r.end <= s.start)));
-      assert.deepEqual(Object.keys(publicResult), ["slots"]);
-      assert.ok(!JSON.stringify(publicResult).includes("Synthetic"));
+      assert.deepEqual(Object.keys(publicResult).sort(), ["service", "slots"]);
+      assert.ok(!JSON.stringify(publicResult).includes("Synthetic private reason"));
+      assert.deepEqual(Object.keys(publicResult.service).sort(), ["durationMinutes", "id", "name", "version"]);
     }
     const source = await who.client.query("publicBooking:getSource", { slug: who.slug, date: day, serviceId: who.serviceId });
-    assert.deepEqual(Object.keys(source).sort(), ["days", "durationMinutes", "occupied", "specialDay", "timeZone"]);
+    assert.deepEqual(Object.keys(source).sort(), ["days", "durationMinutes", "occupied", "service", "specialDay", "timeZone"]);
     assert.ok(source.occupied.every(r => JSON.stringify(Object.keys(r).sort()) === '["end","start"]'));
   }
   const scenarios = ["block-private", "block-public", "block-reschedule", "overlap-blocks", "adjacent-blocks", "duplicate-create",

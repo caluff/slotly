@@ -8,8 +8,9 @@ import { generateAvailability } from "./lib/availability";
 import { isLocalDate } from "../lib/local-date";
 import { confirmedAppointmentsForDate, overlaps, requireMyAppointment, requireMyBusiness } from "./lib/appointmentData";
 import { activeBlocksForDate } from "./lib/timeBlocks";
+import { serviceOption } from "./serviceValidators";
 
-const selectedService = v.object({ id: v.id("services"), name: v.string(), durationMinutes: v.number() });
+const selectedService = serviceOption;
 const availabilityResult = v.object({
   status: v.union(v.literal("available"), v.literal("unconfigured"), v.literal("week_closed"),
     v.literal("day_closed"), v.literal("past_date"), v.literal("empty"), v.literal("time_change")),
@@ -29,10 +30,11 @@ export const getSource = internalQuery({
     if (!isLocalDate(date)) throw new ConvexError({ code: "INVALID_DATE" });
     const service = await ctx.db.get("services", serviceId);
     if (!service || service.businessId !== business._id) throw new ConvexError({ code: "SERVICE_NOT_FOUND" });
+    if (service.archived === true) throw new ConvexError({ code: "SERVICE_ARCHIVED" });
     const schedule = await scheduleForDate(ctx, business._id, date);
     return {
       timeZone: business.timeZone,
-      service: { id: service._id, name: service.name, durationMinutes: service.durationMinutes },
+      service: { id: service._id, name: service.name, durationMinutes: service.durationMinutes, version: service.version ?? 0 },
       ...schedule,
       occupied: [...await confirmedAppointmentsForDate(ctx, business._id, date), ...await activeBlocksForDate(ctx, business._id, date)].map(({ start, end }) => ({ start, end })),
     };
@@ -72,7 +74,7 @@ export const getRescheduleSource = internalQuery({
     const occupied = (await confirmedAppointmentsForDate(ctx, business._id, date))
       .filter((row) => row._id !== saved._id).map(({ start, end }) => ({ start, end }));
     occupied.push(...(await activeBlocksForDate(ctx, business._id, date)).map(({ start, end }) => ({ start, end })));
-    return { timeZone: business.timeZone, service: { id: service._id, name: service.name, durationMinutes: service.durationMinutes },
+    return { timeZone: business.timeZone, service: { id: service._id, name: saved.serviceName, durationMinutes: (saved.end - saved.start) / 60_000, version: service.version ?? 0 },
       originalStart: saved.start, version: saved.version ?? 0, ...schedule, occupied };
   },
 });

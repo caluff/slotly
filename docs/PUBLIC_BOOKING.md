@@ -1,5 +1,7 @@
 # Reservas por enlace — Reto 09
 
+**Extensión vigente Reto12 (22/10/2026), validada funcionalmente en desarrollo:** catálogo solo activo, archivado lógico y contexto visto de nombre/duración/revisión en las opciones y su confirmación transaccional. Nombre/duración/revisión distintos obligan a revisar horarios (`SERVICE_CHANGED`); servicio archivado rechaza nuevas reservas (`SERVICE_ARCHIVED`). Recibos previamente aceptados siguen acusando el original, incluso intentos Reto09 sin contexto guardado; una confirmación nueva sin contexto no crea cita. No cambia enlace, cuota o permisos. Contrato, concurrencia, evidencia por capa y E2E real autorizado en [SERVICES.md](SERVICES.md).
+
 **Extensión Reto11 (22/10/2026):** disponibilidad/digest incorporan únicamente intervalos `{start,end}` de bloqueos activos. La confirmación anónima vuelve a leerlos en su propia mutación mediante `bookableSlot`, con las mismas reglas privadas y rechazo genérico `SLOT_TAKEN`. No salen motivos, IDs/documentos de bloqueo ni propietarios en DTO/fuente/digest/mensajes. El enlace activo, cuota, servicio propio y recibos originales conservan su contrato. Motor local real prueba reserva contra bloqueo y replay de una reserva cancelada cuyo intervalo se bloquea después, sin nueva cita ni cambios de recibo. Planificación completó después el E2E real autorizado de creación/edición/eliminación del bloqueo, verificando opciones públicas/privadas y restauración exacta, sin confirmar nuevas reservas; [contrato y evidencia](TIME_BLOCKS.md).
 
 ## Enlace y gestión
@@ -15,11 +17,11 @@ El nombre se normaliza con NFKD, se retiran marcas diacríticas, se convierte a 
 | Endpoint | Entrada | Salida permitida |
 | --- | --- | --- |
 | query `publicBooking.getBusiness` | slug | nombre y zona IANA, o null |
-| query `publicBooking.listServices` | slug, paginación | identificador de selección del servicio, nombre y duración; página y cursor |
-| action `publicBooking.getAvailability` | slug, serviceId, fecha | opciones libres con inicio/fin y etiquetas horarias, o null |
-| mutation `publicBooking.confirm` | slug, serviceId, fecha, inicio, nombre, attemptKey | confirmación original: servicio, fecha, inicio/fin y zona; o código de rechazo y espera opcional |
+| query `publicBooking.listServices` | slug, paginación | ID selector, nombre, duración y revisión de catálogo de activos; página y cursor |
+| action `publicBooking.getAvailability` | slug, serviceId, fecha | opciones libres y servicio `{id,name,durationMinutes,version}`, o null |
+| mutation `publicBooking.confirm` | slug, serviceId, fecha, inicio, nombre, attemptKey, expectedService | confirmación original: servicio, fecha, inicio/fin y zona; o código de rechazo y espera opcional |
 
-No hay listado de negocios ni consulta pública de citas. Los DTO son listas explícitas: no devuelven propietarios, correos, nombres de clientes, documentos de citas, businessId, horarios semanales, versiones ni timestamps internos. El ID del servicio es únicamente un selector y no concede autorización. Inexistente y desactivado comparten respuesta; servicios ajenos no revelan sus datos. Las lecturas privadas conservan su autenticación.
+No hay listado de negocios ni consulta pública de citas. Los DTO son listas explícitas: no devuelven propietarios, correos, nombres de clientes, documentos de citas, businessId, horarios semanales, revisiones de citas/comandos ni timestamps internos. La revisión de catálogo es el contexto público mínimo para no confirmar cambios silenciosos. El ID del servicio es únicamente un selector y no concede autorización. Inexistente y desactivado comparten respuesta; servicios ajenos no revelan sus datos. Las lecturas privadas conservan su autenticación.
 
 Servicios: páginas de hasta 100 documentos. Ocupación: mismo índice negocio/fecha/estado confirmado que la Agenda; máximo físico de 1440 citas por día, lectura de 1441 para fallar cerrado si se viola. Nunca se recorta silenciosamente un conflicto. El historial cancelado no consume ese límite.
 

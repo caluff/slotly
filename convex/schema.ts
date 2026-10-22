@@ -35,7 +35,21 @@ export default defineSchema({
     businessId: v.id("businesses"),
     name: v.string(),
     durationMinutes: v.number(),
-  }).index("by_businessId", ["businessId"]),
+    archived: v.optional(v.boolean()),
+    version: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
+    creationKey: v.optional(v.string()),
+    creationValue: v.optional(v.string()),
+    lastOperationId: v.optional(v.string()),
+    lastExpectedVersion: v.optional(v.number()),
+    lastValue: v.optional(v.string()),
+    undoSnapshot: v.optional(v.object({
+      operationId: v.string(), version: v.number(), kind: v.union(v.literal("create"), v.literal("edit")),
+      name: v.string(), durationMinutes: v.number(), archived: v.boolean(),
+    })),
+  }).index("by_businessId", ["businessId"])
+    .index("by_businessId_and_archived", ["businessId", "archived"])
+    .index("by_businessId_and_creationKey", ["businessId", "creationKey"]),
   weeklySchedules: defineTable({
     businessId: v.id("businesses"),
     days: v.array(weeklyScheduleDay),

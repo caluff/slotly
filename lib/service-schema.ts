@@ -1,6 +1,6 @@
 import * as z from "zod";
+import { durationError, validServiceDuration } from "./service-duration";
 
-const durationError = "Escribe una duración en minutos enteros positivos, hasta 9007199254740991.";
 
 export const serviceSchema = z.object({
   name: z.string().trim()
@@ -11,7 +11,7 @@ export const serviceSchema = z.object({
   durationMinutes: z.string().trim()
     .regex(/^\d+$/, { error: durationError })
     .transform(Number)
-    .refine((value) => Number.isSafeInteger(value) && value > 0, { error: durationError }),
+    .refine(validServiceDuration, { error: durationError }),
 });
 
 export type ServiceFormValues = z.input<typeof serviceSchema>;

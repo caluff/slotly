@@ -48,3 +48,14 @@
 @media (max-width: 1199px) { .workspace-sidepanel { inset: 0 0 0 auto; width: min(408px, 100vw); padding-right: 48px; } }
 @media (max-width: 639px) { .workspace-panel-content { padding: 12px; } }
 @media (prefers-reduced-motion: reduce) { .workspace-main, .workspace-sidepanel::backdrop { transition: none; } }
+
+/* Only the service form region: the catalogue and shell keep their own surface. */
+.workspace-panel-content .context-panel.service-form-region {
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface) 58%, var(--background));
+}
+.workspace-root .workspace-panel-content .service-form-region [data-slot="input"] {
+  background: var(--background);
+  border: 1px solid var(--line);
+}

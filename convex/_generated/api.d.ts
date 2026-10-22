@@ -18,6 +18,7 @@ import type * as lib_availability from "../lib/availability.js";
 import type * as lib_scheduleForDate from "../lib/scheduleForDate.js";
 import type * as lib_timeBlocks from "../lib/timeBlocks.js";
 import type * as publicBooking from "../publicBooking.js";
+import type * as serviceValidators from "../serviceValidators.js";
 import type * as services from "../services.js";
 import type * as specialDateValidators from "../specialDateValidators.js";
 import type * as specialDates from "../specialDates.js";
@@ -43,6 +44,7 @@ declare const fullApi: ApiFromModules<{
   "lib/scheduleForDate": typeof lib_scheduleForDate;
   "lib/timeBlocks": typeof lib_timeBlocks;
   publicBooking: typeof publicBooking;
+  serviceValidators: typeof serviceValidators;
   services: typeof services;
   specialDateValidators: typeof specialDateValidators;
   specialDates: typeof specialDates;

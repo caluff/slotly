@@ -10,6 +10,8 @@ import { ConvexHttpClient } from "convex/browser";
 import { publicBookingScenarios } from "./public-booking-engine-scenarios.mjs";
 import { specialDateScenarios } from "./special-dates-engine-scenarios.mjs";
 import { timeBlockScenarios } from "./time-block-engine-scenarios.mjs";
+import { serviceScenarios } from "./service-engine-scenarios.mjs";
+import { serviceUndoScenarios } from "./service-undo-engine-scenarios.mjs";
 
 // REAL engine integration, entirely synthetic. Never reads .env.local or .convex.
 // Requires the Convex backend binary cached by the CLI, or SLOTLY_CONVEX_BACKEND.
@@ -86,6 +88,9 @@ export const timeZone = internalMutation({
   args: { timeZone: v.string() }, returns: v.null(),
   handler: async (ctx, { timeZone }) => { const business = await requireMyBusiness(ctx); await ctx.db.patch("businesses", business._id, { timeZone }); return null; }
 });
+export const legacyService = internalMutation({
+  args: {}, returns: v.id("services"), handler: async ctx => { const business = await requireMyBusiness(ctx); return await ctx.db.insert("services", { businessId: business._id, name: "Synthetic 46", durationMinutes: 46 }); }
+});
 export const cancelledHistory = internalMutation({
   args: { serviceId: v.id("services"), date: v.string(), start: v.number() }, returns: v.number(),
   handler: async (ctx, args) => {
@@ -101,6 +106,7 @@ export const snapshot = internalQuery({
   handler: async (ctx, { date }) => {
     const business = await requireMyBusiness(ctx);
     return { business,
+      services: await ctx.db.query("services").withIndex("by_businessId", q => q.eq("businessId", business._id)).take(500),
       timeBlocks: await ctx.db.query("timeBlocks").withIndex("by_businessId_and_active_and_date", q => q.eq("businessId", business._id)).take(5000),
       specialDates: await ctx.db.query("specialDates").withIndex("by_businessId_and_date", q => q.eq("businessId", business._id)).take(100),
       weeklySchedules: await ctx.db.query("weeklySchedules").withIndex("by_businessId", q => q.eq("businessId", business._id)).take(2),
@@ -126,17 +132,29 @@ export const snapshot = internalQuery({
   const date = dateObject.toISOString().slice(0, 10);
   const start = Date.parse(`${date}T09:30:00-03:00`);
   const days = Array.from({ length: 7 }, (_, i) => ({ dayOfWeek: i + 1, isOpen: i === 0, start: i === 0 ? "09:00" : null, end: i === 0 ? "12:00" : null }));
-  const makeClient = (identity, customFetch) => {
+  // Prior scenarios capture catalogue context at setup, never re-read it at
+  // submission. New service scenarios send explicit frozen contexts, including
+  // stale ones. This adapter only updates the older stable-catalogue callers.
+  const viewedServices = new Map();
+  const makeClient = (identity, customFetch, includeViewed = true) => {
     const client = new ConvexHttpClient(url, { logger: false, fetch: customFetch });
     if (identity) client.setAdminAuth(adminKey, identity);
+    if (includeViewed) {
+      const mutation = client.mutation.bind(client);
+      client.mutation = (name, args, options) => mutation(name,
+        (name === "appointments:createMyAppointment" || name === "publicBooking:confirm") && !args.expectedService && viewedServices.has(args.serviceId)
+          ? { ...args, expectedService: viewedServices.get(args.serviceId) } : args, options);
+    }
     return client;
   };
   async function setup(name = "Synthetic engine test") {
     const identity = { subject: `synthetic_${randomUUID()}`, issuer: "https://synthetic.test" };
     const client = makeClient(identity);
     const businessId = await client.mutation("businesses:createMyBusiness", { name, timeZone: "America/Montevideo" });
-    const serviceId = await client.mutation("services:createMyService", { name: "Synthetic 30", durationMinutes: 30 });
-    const secondServiceId = await client.mutation("services:createMyService", { name: "Synthetic 46", durationMinutes: 46 });
+    const serviceId = await client.mutation("services:createMyService", { name: "Synthetic 30", durationMinutes: 30, operationId: randomUUID() });
+    const secondServiceId = await client.mutation("engineFixtures:legacyService", {});
+    viewedServices.set(serviceId, { name: "Synthetic 30", durationMinutes: 30, version: 0 });
+    viewedServices.set(secondServiceId, { name: "Synthetic 46", durationMinutes: 46, version: 0 });
     await client.mutation("weeklySchedule:saveMyWeeklySchedule", { days });
     return { identity, client, serviceId, secondServiceId, businessId };
   }
@@ -155,6 +173,9 @@ export const snapshot = internalQuery({
     assert.equal(maxInFlight, operations.length);
     return { results, maxInFlight };
   }
+  if (process.argv.includes("--service-undo-only")) {
+    await serviceUndoScenarios({ setup, date, start, makeClient, race, report });
+  } else {
   const createOperation = (who, serviceId = who.serviceId, offset = 0) => ({ who, name: "appointments:createMyAppointment", args: { date, start: start + offset, serviceId, clientName: "Synthetic race" } });
   const cancelOperation = (who, appointmentId) => ({ who, name: "appointments:cancelMyAppointment", args: { appointmentId, expectedVersion: 0 } });
   async function history(who) {
@@ -361,6 +382,7 @@ export const snapshot = internalQuery({
   await publicBookingScenarios({ setup, date, start, makeClient, race, history, report });
   await specialDateScenarios({ setup, date, start, makeClient, race, report });
   await timeBlockScenarios({ setup, date, start, makeClient, race, report });
+  await serviceScenarios({ setup, date, start, makeClient, race, report });
   const owner = await setup();
   const dense = await setup();
   assert.equal(await dense.client.mutation("engineFixtures:cancelledHistory", { serviceId: dense.serviceId, date, start }), 1600);
@@ -400,6 +422,7 @@ export const snapshot = internalQuery({
   report.persistenceAfterRestart = true;
   report.weekChangePreservesInstants = true;
   report.anonymousRejected = true;
+  }
   report.limits = "Synthetic independent HTTP clients against real isolated local Convex/SQLite; not cloud races, Clerk, network fault injection, or load certification.";
   report.totalRequestsInRaces = report.scenarios.reduce((sum, s) => sum + s.requests, 0);
   report.success = true;
