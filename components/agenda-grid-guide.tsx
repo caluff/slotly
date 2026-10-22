@@ -87,7 +87,7 @@ function useAgendaGridGuide({ date, view, timeZone, appointments, schedule, bloc
     if (view === "mes") return;
     if (hint?.element.contains(document.activeElement)) return;
     leaveHint();
-    if (target.closest("button,a,[role=dialog],.agenda-more-link,.agenda-more-popover")) { setCell(null); return; }
+    if (target.closest("button,a,[role=dialog],[data-agenda-block],.agenda-more-link,.agenda-more-popover")) { setCell(null); return; }
     const lane = [...lanes.current].find(([el]) => { const r = visibleRect(el, root.current!); return event.clientX >= r.left && event.clientX < r.right && event.clientY >= r.top && event.clientY < r.bottom; });
     const slot = [...slots.current].find(([el]) => { const r = el.getBoundingClientRect(); return event.clientY >= r.top && event.clientY < r.bottom; });
     if (!lane || !slot) { setCell(null); return; }

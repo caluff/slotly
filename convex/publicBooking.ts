@@ -11,6 +11,7 @@ import { appointmentSchema } from "../lib/appointment-schema";
 import { weeklyScheduleDay } from "./weeklyScheduleValidators";
 import { specialDay } from "./specialDateValidators";
 import { scheduleForDate } from "./lib/scheduleForDate";
+import { activeBlocksForDate } from "./lib/timeBlocks";
 
 const limiter = new RateLimiter(components.rateLimiter, {
   publicConfirm: { kind: "token bucket", rate: 10, period: MINUTE, capacity: 10 },
@@ -53,7 +54,7 @@ async function availabilitySource(ctx: QueryCtx, { slug, serviceId, date }: { sl
   const service = await ctx.db.get("services", serviceId);
   if (!service || service.businessId !== business._id) return null;
   const schedule = await scheduleForDate(ctx, business._id, date);
-  const occupied = await confirmedAppointmentsForDate(ctx, business._id, date);
+  const occupied = [...await confirmedAppointmentsForDate(ctx, business._id, date), ...await activeBlocksForDate(ctx, business._id, date)];
   return { timeZone: business.timeZone, durationMinutes: service.durationMinutes, ...schedule,
     occupied: occupied.map(({ start, end }) => ({ start, end })) };
 }

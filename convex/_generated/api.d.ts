@@ -16,10 +16,13 @@ import type * as calendar from "../calendar.js";
 import type * as lib_appointmentData from "../lib/appointmentData.js";
 import type * as lib_availability from "../lib/availability.js";
 import type * as lib_scheduleForDate from "../lib/scheduleForDate.js";
+import type * as lib_timeBlocks from "../lib/timeBlocks.js";
 import type * as publicBooking from "../publicBooking.js";
 import type * as services from "../services.js";
 import type * as specialDateValidators from "../specialDateValidators.js";
 import type * as specialDates from "../specialDates.js";
+import type * as timeBlockValidators from "../timeBlockValidators.js";
+import type * as timeBlocks from "../timeBlocks.js";
 import type * as weeklySchedule from "../weeklySchedule.js";
 import type * as weeklyScheduleValidators from "../weeklyScheduleValidators.js";
 
@@ -38,10 +41,13 @@ declare const fullApi: ApiFromModules<{
   "lib/appointmentData": typeof lib_appointmentData;
   "lib/availability": typeof lib_availability;
   "lib/scheduleForDate": typeof lib_scheduleForDate;
+  "lib/timeBlocks": typeof lib_timeBlocks;
   publicBooking: typeof publicBooking;
   services: typeof services;
   specialDateValidators: typeof specialDateValidators;
   specialDates: typeof specialDates;
+  timeBlockValidators: typeof timeBlockValidators;
+  timeBlocks: typeof timeBlocks;
   weeklySchedule: typeof weeklySchedule;
   weeklyScheduleValidators: typeof weeklyScheduleValidators;
 }>;

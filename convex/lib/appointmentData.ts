@@ -4,6 +4,7 @@ import type { Id } from "../_generated/dataModel";
 import { generateAvailability } from "./availability";
 import { isLocalDate } from "../../lib/local-date";
 import { scheduleForDate } from "./scheduleForDate";
+import { activeBlocksForDate } from "./timeBlocks";
 
 export async function requireMyBusiness(ctx: QueryCtx) {
   const identity = await ctx.auth.getUserIdentity();
@@ -59,5 +60,6 @@ export async function bookableSlot(ctx: QueryCtx, business: { _id: Id<"businesse
   if (!slot) throw new ConvexError({ code: "SLOT_UNAVAILABLE" });
   const existing = await confirmedAppointmentsForDate(ctx, business._id, date);
   if (existing.some((saved) => saved._id !== exclude && overlaps(slot, saved))) throw new ConvexError({ code: "SLOT_TAKEN" });
+  if ((await activeBlocksForDate(ctx, business._id, date)).some(saved => overlaps(slot, saved))) throw new ConvexError({ code: "SLOT_TAKEN" });
   return { slot, service };
 }

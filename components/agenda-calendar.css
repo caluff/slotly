@@ -55,6 +55,11 @@
 .agenda-event-content .agenda-event-end-hidden { display: none; }
 .agenda-cancelled { --fc-classic-event: #fbefed; --fc-classic-event-contrast: var(--destructive); border-style: dashed !important; }
 .agenda-cancelled .agenda-event-content { border-inline-start-color: var(--destructive); }
+.agenda-time-block { --fc-classic-event: #ecefe9; --fc-classic-event-contrast: #354638; }
+.agenda-time-block .agenda-event-content { border-inline-start: 1px solid #52665b; }
+.agenda-time-block time svg { display: inline-block; margin-right: 3px; vertical-align: -1px; }
+.agenda-time-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.agenda-create-options { display: flex; flex-wrap: wrap; justify-content: center; }
 .agenda-month-event { display: flex; height: auto; align-items: baseline; gap: 4px; padding: 2px 4px; line-height: 18px; }
 .agenda-month-event time { flex-shrink: 0; }
 .agenda-month-event strong { min-width: 0; font-size: 12px; }

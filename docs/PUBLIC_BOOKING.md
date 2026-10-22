@@ -1,5 +1,7 @@
 # Reservas por enlace — Reto 09
 
+**Extensión Reto11 (22/10/2026):** disponibilidad/digest incorporan únicamente intervalos `{start,end}` de bloqueos activos. La confirmación anónima vuelve a leerlos en su propia mutación mediante `bookableSlot`, con las mismas reglas privadas y rechazo genérico `SLOT_TAKEN`. No salen motivos, IDs/documentos de bloqueo ni propietarios en DTO/fuente/digest/mensajes. El enlace activo, cuota, servicio propio y recibos originales conservan su contrato. Motor local real prueba reserva contra bloqueo y replay de una reserva cancelada cuyo intervalo se bloquea después, sin nueva cita ni cambios de recibo. Planificación completó después el E2E real autorizado de creación/edición/eliminación del bloqueo, verificando opciones públicas/privadas y restauración exacta, sin confirmar nuevas reservas; [contrato y evidencia](TIME_BLOCKS.md).
+
 ## Enlace y gestión
 
 `/reservar/<slug>` se asigna al **activar por primera vez** desde Negocio. Los campos nuevos del negocio son opcionales: ausente equivale a desactivado, sin URL asignada. No hay backfill ni activación automática.

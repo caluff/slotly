@@ -69,6 +69,7 @@ export function BusinessAvailability({ businessName, timeZone, enabled = true, a
   // day. Cancellations in another tab invalidate the preview immediately.
   const appointments = useQuery(api.appointments.listMyConfirmedAppointments, enabled && isLocalDate(occupancyDate) ? { date: occupancyDate } : "skip");
   const specialDate = useQuery(api.specialDates.getMySpecialDate, enabled && isLocalDate(occupancyDate) ? { date: occupancyDate } : "skip");
+  const blocks = useQuery(api.timeBlocks.getMyOccupation, enabled && isLocalDate(occupancyDate) ? { date: occupancyDate } : "skip");
   return <AvailabilityPanel businessName={businessName} services={results} loading={status === "LoadingFirstPage" || schedule === undefined}
     timeZone={timeZone} initialDate={singleDay} onSelectDate={(value) => navigate(dayHref(value))}
     agenda={onNew => <AgendaCalendar {...state} today={today} timeZone={timeZone} enabled={enabled && active} onNew={onNew}
@@ -76,7 +77,7 @@ export function BusinessAvailability({ businessName, timeZone, enabled = true, a
       onLoadServices={() => loadMore(20)} onSearch={(values) => navigate(calendarSearchHref(new URLSearchParams(window.location.search), values, today))}
       onNavigate={(date, view) => navigate(calendarHref(new URLSearchParams(window.location.search), date, view))} dayHref={dayHref} />}
     onConsult={consult} onCreate={create} onCheckCreation={checkCreation} initialService={state.filters.service} scheduleMissing={schedule === null} onDraftDateChange={setOccupancyDate}
-    revision={JSON.stringify([results, schedule, specialDate, appointments, timeZone])}
+    revision={JSON.stringify([results, schedule, specialDate, appointments, blocks, timeZone])}
     active={active && enabled} more={status === "CanLoadMore" || status === "LoadingMore"}
     loadingMore={status === "LoadingMore"} onLoadMore={() => loadMore(20)} />;
 }

@@ -7,6 +7,7 @@ import { scheduleForDate } from "./lib/scheduleForDate";
 import { generateAvailability } from "./lib/availability";
 import { isLocalDate } from "../lib/local-date";
 import { confirmedAppointmentsForDate, overlaps, requireMyAppointment, requireMyBusiness } from "./lib/appointmentData";
+import { activeBlocksForDate } from "./lib/timeBlocks";
 
 const selectedService = v.object({ id: v.id("services"), name: v.string(), durationMinutes: v.number() });
 const availabilityResult = v.object({
@@ -33,7 +34,7 @@ export const getSource = internalQuery({
       timeZone: business.timeZone,
       service: { id: service._id, name: service.name, durationMinutes: service.durationMinutes },
       ...schedule,
-      occupied: (await confirmedAppointmentsForDate(ctx, business._id, date)).map(({ start, end }) => ({ start, end })),
+      occupied: [...await confirmedAppointmentsForDate(ctx, business._id, date), ...await activeBlocksForDate(ctx, business._id, date)].map(({ start, end }) => ({ start, end })),
     };
   },
 });
@@ -70,6 +71,7 @@ export const getRescheduleSource = internalQuery({
     const schedule = await scheduleForDate(ctx, business._id, date);
     const occupied = (await confirmedAppointmentsForDate(ctx, business._id, date))
       .filter((row) => row._id !== saved._id).map(({ start, end }) => ({ start, end }));
+    occupied.push(...(await activeBlocksForDate(ctx, business._id, date)).map(({ start, end }) => ({ start, end })));
     return { timeZone: business.timeZone, service: { id: service._id, name: service.name, durationMinutes: service.durationMinutes },
       originalStart: saved.start, version: saved.version ?? 0, ...schedule, occupied };
   },

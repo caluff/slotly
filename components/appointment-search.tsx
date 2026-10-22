@@ -32,13 +32,14 @@ export function ConnectedAppointmentAction({ appointment, mode, proposal, onClos
   const occupied = useQuery(api.appointments.listMyConfirmedAppointments, mode === "reschedule" && isLocalDate(date) ? { date } : "skip");
   const schedule = useQuery(api.weeklySchedule.getMyWeeklySchedule, mode === "reschedule" ? {} : "skip");
   const specialDate = useQuery(api.specialDates.getMySpecialDate, mode === "reschedule" && isLocalDate(date) ? { date } : "skip");
+  const blocks = useQuery(api.timeBlocks.getMyOccupation, mode === "reschedule" && isLocalDate(date) ? { date } : "skip");
   const services = usePaginatedQuery(api.services.listMyServices, mode === "reschedule" ? {} : "skip", { initialNumItems: 100 });
   const cancel = useMutation(api.appointments.cancelMyAppointment);
   const move = useMutation(api.appointments.rescheduleMyAppointment);
   const consult = useAction(api.availability.getMyRescheduleAvailability);
   if (mode === "cancel") return <AppointmentCancelDialog appointment={appointment} latest={latest ?? appointment} timeZone={timeZone} onCancel={cancel} onClose={onClose} onReturnFocus={onReturnFocus} />;
   return <AppointmentRescheduleDialog appointment={appointment} latest={latest ?? appointment} proposal={proposal} timeZone={timeZone} onConsult={consult} onReschedule={move}
-    revision={JSON.stringify([occupied, schedule, specialDate, services.results, latest, timeZone])} onDateChange={setDate} onClose={onClose} onReturnFocus={onReturnFocus} onMoved={onMoved} dayHref={dayHref} />;
+    revision={JSON.stringify([occupied, schedule, specialDate, blocks, services.results, latest, timeZone])} onDateChange={setDate} onClose={onClose} onReturnFocus={onReturnFocus} onMoved={onMoved} dayHref={dayHref} />;
 }
 
 export function AppointmentSearch({ filters, today, timeZone, enabled, services, moreServices, loadingServices, onLoadServices, onSearch, dayHref, hideFilters = false, onLocate }: {

@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import { ConvexHttpClient } from "convex/browser";
 import { publicBookingScenarios } from "./public-booking-engine-scenarios.mjs";
 import { specialDateScenarios } from "./special-dates-engine-scenarios.mjs";
+import { timeBlockScenarios } from "./time-block-engine-scenarios.mjs";
 
 // REAL engine integration, entirely synthetic. Never reads .env.local or .convex.
 // Requires the Convex backend binary cached by the CLI, or SLOTLY_CONVEX_BACKEND.
@@ -81,6 +82,10 @@ try {
 import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import { requireMyBusiness } from "./lib/appointmentData";
+export const timeZone = internalMutation({
+  args: { timeZone: v.string() }, returns: v.null(),
+  handler: async (ctx, { timeZone }) => { const business = await requireMyBusiness(ctx); await ctx.db.patch("businesses", business._id, { timeZone }); return null; }
+});
 export const cancelledHistory = internalMutation({
   args: { serviceId: v.id("services"), date: v.string(), start: v.number() }, returns: v.number(),
   handler: async (ctx, args) => {
@@ -96,6 +101,7 @@ export const snapshot = internalQuery({
   handler: async (ctx, { date }) => {
     const business = await requireMyBusiness(ctx);
     return { business,
+      timeBlocks: await ctx.db.query("timeBlocks").withIndex("by_businessId_and_active_and_date", q => q.eq("businessId", business._id)).take(5000),
       specialDates: await ctx.db.query("specialDates").withIndex("by_businessId_and_date", q => q.eq("businessId", business._id)).take(100),
       weeklySchedules: await ctx.db.query("weeklySchedules").withIndex("by_businessId", q => q.eq("businessId", business._id)).take(2),
       appointments: await ctx.db.query("appointments").withIndex("by_businessId_and_date", q => q.eq("businessId", business._id).eq("date", date)).take(1500),
@@ -354,6 +360,7 @@ export const snapshot = internalQuery({
   report.oldIntervalCanBeReservedAfterMove = true;
   await publicBookingScenarios({ setup, date, start, makeClient, race, history, report });
   await specialDateScenarios({ setup, date, start, makeClient, race, report });
+  await timeBlockScenarios({ setup, date, start, makeClient, race, report });
   const owner = await setup();
   const dense = await setup();
   assert.equal(await dense.client.mutation("engineFixtures:cancelledHistory", { serviceId: dense.serviceId, date, start }), 1600);

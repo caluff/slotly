@@ -9,9 +9,10 @@ export type CreateContext = { element: HTMLElement; x?: number; y?: number };
 function subscribe(notify: () => void) { const m = window.matchMedia("(max-width: 639px)"); m.addEventListener("change", notify); return () => m.removeEventListener("change", notify); }
 const readMobile = () => window.matchMedia("(max-width: 639px)").matches;
 
-export function AppointmentEditor({ open, context, trigger, busy, saving, dirty, created, onClose, children }: {
+export function AppointmentEditor({ open, context, trigger, busy, saving, dirty, created, onClose, children, title = "Nueva cita", description = "Elige cliente, servicio, fecha y horario disponible. El borrador se conserva al cerrar.", initialFocusId = "appointment-client" }: {
   open: boolean; context: CreateContext | null; trigger: RefObject<HTMLButtonElement | null>; busy: RefObject<boolean>;
   saving: boolean; dirty: boolean; created: boolean; onClose: () => void; children: ReactNode;
+  title?: string; description?: string; initialFocusId?: string;
 }) {
   const mobile = useSyncExternalStore(subscribe, readMobile, () => false);
   const virtualRef = useMemo(() => {
@@ -24,10 +25,10 @@ export function AppointmentEditor({ open, context, trigger, busy, saving, dirty,
   }, [context, trigger]);
   function returnFocus() {
     const target = context?.element.isConnected && context.element.matches("button,[tabindex]") ? context.element : trigger.current;
-    requestAnimationFrame(() => target?.focus());
+    requestAnimationFrame(() => (target ?? document.querySelector<HTMLElement>(".agenda-toolbar button"))?.focus());
   }
   const handlers = {
-    onOpenAutoFocus: (event: Event) => { event.preventDefault(); document.querySelector<HTMLInputElement>("#appointment-client")?.focus(); },
+    onOpenAutoFocus: (event: Event) => { event.preventDefault(); document.getElementById(initialFocusId)?.focus(); },
     onCloseAutoFocus: (event: Event) => { event.preventDefault(); returnFocus(); },
     onEscapeKeyDown: (event: KeyboardEvent) => { if (busy.current) event.preventDefault(); },
     onInteractOutside: (event: Event) => { if (busy.current || dirty) event.preventDefault(); },
@@ -37,14 +38,14 @@ export function AppointmentEditor({ open, context, trigger, busy, saving, dirty,
   const body = <>{children}{footer}</>;
   if (mobile) return <Dialog.Root open={open} onOpenChange={value => { if (!value) close(); }}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-50 bg-foreground/30" />
     <Dialog.Content {...handlers} className="appointment-editor fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-line bg-background p-4">
-      <div className="mb-4 flex items-center justify-between gap-3"><Dialog.Title className="text-lg font-semibold">Nueva cita</Dialog.Title><Button size="icon" variant="ghost" aria-label="Cerrar nueva cita" disabled={saving} onClick={close}><X aria-hidden="true" /></Button></div>
-      <Dialog.Description className="sr-only">Elige cliente, servicio, fecha y horario disponible. El borrador se conserva al cerrar.</Dialog.Description>{body}
+      <div className="mb-4 flex items-center justify-between gap-3"><Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title><Button size="icon" variant="ghost" aria-label={`Cerrar ${title.toLowerCase()}`} disabled={saving} onClick={close}><X aria-hidden="true" /></Button></div>
+      <Dialog.Description className="sr-only">{description}</Dialog.Description>{body}
     </Dialog.Content></Dialog.Portal></Dialog.Root>;
   return <Popover.Root open={open} modal onOpenChange={value => { if (!value) close(); }}><Popover.Anchor virtualRef={virtualRef} /><Popover.Portal>
     <Popover.Content {...handlers} aria-labelledby="new-appointment-title" aria-describedby="new-appointment-description" side="right" align="start" sideOffset={12} collisionPadding={16}
       className="appointment-editor z-50 max-h-[min(calc(100dvh-2rem),var(--radix-popover-content-available-height))] w-[min(23rem,calc(100vw-2rem))] overflow-y-auto rounded-md border border-line bg-background p-5 text-foreground">
-      <div className="mb-4 flex items-center justify-between gap-3"><h2 id="new-appointment-title" className="text-lg font-semibold">Nueva cita</h2><Button size="icon" variant="ghost" aria-label="Cerrar nueva cita" disabled={saving} onClick={close}><X aria-hidden="true" /></Button></div>
-      <p id="new-appointment-description" className="sr-only">Elige cliente, servicio, fecha y horario disponible. El borrador se conserva al cerrar.</p>{body}
+      <div className="mb-4 flex items-center justify-between gap-3"><h2 id="new-appointment-title" className="text-lg font-semibold">{title}</h2><Button size="icon" variant="ghost" aria-label={`Cerrar ${title.toLowerCase()}`} disabled={saving} onClick={close}><X aria-hidden="true" /></Button></div>
+      <p id="new-appointment-description" className="sr-only">{description}</p>{body}
     </Popover.Content>
   </Popover.Portal></Popover.Root>;
 }

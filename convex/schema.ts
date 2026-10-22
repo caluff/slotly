@@ -2,8 +2,12 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { weeklyScheduleDay } from "./weeklyScheduleValidators";
 import { specialDateFields } from "./specialDateValidators";
+import { timeBlockFields } from "./timeBlockValidators";
 
 export default defineSchema({
+  timeBlocks: defineTable(timeBlockFields)
+    .index("by_businessId_and_active_and_date", ["businessId", "active", "date"])
+    .index("by_businessId_and_creationKey", ["businessId", "creationKey"]),
   specialDates: defineTable(specialDateFields)
     .index("by_businessId_and_date", ["businessId", "date"])
     .index("by_businessId_and_active_and_date", ["businessId", "active", "date"]),
