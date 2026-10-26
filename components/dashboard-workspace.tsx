@@ -39,7 +39,7 @@ export function DashboardWorkspace({ account, children }: { account: ReactNode; 
     document.title = `Agenda${active !== 'agenda' ? ` · ${active[0].toUpperCase()}${active.slice(1)}` : ''} · Slotly`;
   }, [active]);
 
-  return <div className="workspace-root" data-panel-open={active !== 'agenda'}>
+  return <div className="workspace-root" data-panel-open={active !== 'agenda' && active !== 'personalizar'}>
     <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-white focus:p-3">Saltar al contenido</a>
     <div className="workspace-stage"><main id="main-content" className="workspace-main">{children}</main><WorkspaceRail /></div>
     <WorkspaceAccount>{account}</WorkspaceAccount>

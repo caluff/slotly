@@ -13,7 +13,7 @@ const PanelSurface = createContext(false);
 export const usePanelSurface = () => useContext(PanelSurface);
 function subscribe(notify: () => void) { const query = window.matchMedia('(max-width: 1199px)'); query.addEventListener('change', notify); return () => query.removeEventListener('change', notify); }
 function isCompact() { return window.matchMedia('(max-width: 1199px)').matches; }
-export function panelBusy() { return !!document.querySelector('.workspace-sidepanel [data-panel-section]:not([hidden]) form[aria-busy="true"],.workspace-sidepanel [data-panel-section]:not([hidden]) [data-panel-mutation-busy="true"]'); }
+export function panelBusy() { return !!document.querySelector('.workspace-sidepanel [data-panel-section]:not([hidden]) form[aria-busy="true"],.workspace-sidepanel [data-panel-section]:not([hidden]) [data-panel-mutation-busy="true"],.workspace-customization:not([hidden]) [data-panel-mutation-busy="true"]'); }
 
 export function openWorkspaceSection(view: DashboardView, createService = false) {
   if (panelBusy()) return;
@@ -35,12 +35,12 @@ export function WorkspaceRail({ insidePanel = false }: { insidePanel?: boolean }
 }
 
 export function WorkspacePanels({ clients, services, schedule, business }: { clients?: ReactNode; services: ReactNode; schedule: ReactNode; business: ReactNode }) {
-  const params = useSearchParams(), active = readDashboardView(params.get('vista')), open = active !== 'agenda';
+  const params = useSearchParams(), active = readDashboardView(params.get('vista')), open = active !== 'agenda' && active !== 'personalizar';
   const creatingService = params.get('crear') === 'servicio';
   const compact = useSyncExternalStore(subscribe, isCompact, () => false);
   const host = useRef<HTMLDivElement>(null), previous = useRef<DashboardView>('agenda');
-  const [lastSection, setLastSection] = useState(active);
-  if (active !== 'agenda' && lastSection !== active) setLastSection(active);
+  const [lastSection, setLastSection] = useState<DashboardView>(active === 'personalizar' ? 'negocio' : active);
+  if (open && lastSection !== active) setLastSection(active);
   const displayedSection = open ? active : lastSection;
   const panel = usePanelMotion({ open, modal: compact, side: 'right',
     onShow: dialog => {
@@ -48,7 +48,7 @@ export function WorkspacePanels({ clients, services, schedule, business }: { cli
       window.dispatchEvent(new CustomEvent('slotly:account-host', { detail: compact ? dialog.querySelector('[data-workspace-account-modal-host]') : null }));
     },
     onHide: () => { window.dispatchEvent(new CustomEvent('slotly:toast-host', { detail: null })); window.dispatchEvent(new CustomEvent('slotly:account-host', { detail: null })); },
-    onClosed: () => { document.querySelector<HTMLElement>(`[data-workspace-trigger="${previous.current}"]`)?.focus(); previous.current = 'agenda'; },
+    onClosed: () => { const customizing = new URLSearchParams(window.location.search).get('vista') === 'personalizar'; document.querySelector<HTMLElement>(customizing ? '#appearance-heading' : `[data-workspace-trigger="${previous.current}"]`)?.focus(); previous.current = 'agenda'; },
   });
   const [busy, setBusy] = useState(false);
   useEffect(() => {

@@ -1,4 +1,4 @@
-export const dashboardViews = ["agenda", "clientes", "servicios", "horario", "negocio"] as const;
+export const dashboardViews = ["agenda", "clientes", "servicios", "horario", "negocio", "personalizar"] as const;
 export type DashboardView = typeof dashboardViews[number];
 
 export function readDashboardView(value: string | null): DashboardView {

@@ -13,12 +13,13 @@ import { BusinessServices } from "@/components/business-services";
 import { BusinessClients } from "@/components/business-clients";
 import { BusinessWeeklySchedule } from "@/components/business-weekly-schedule";
 import { BusinessAvailability } from "@/components/business-availability";
-import { WorkspaceLink } from "@/components/dashboard-workspace";
+import { WorkspaceLink, navigateWorkspace } from "@/components/dashboard-workspace";
 import { useRetryConvexAuth } from "@/components/convex-client-provider";
 import { Button } from "@/components/ui/button";
-import { readDashboardView } from "@/lib/dashboard-navigation";
+import { dashboardHref, readDashboardView } from "@/lib/dashboard-navigation";
 import { api } from "@/convex/_generated/api";
 import { WorkspacePanels } from "@/components/workspace-panel";
+import { PublicAppearanceEditor } from "@/components/public-appearance-editor";
 
 export function BusinessProfile({ timeZones }: { timeZones: string[] }) {
   const { userId, isLoaded, isSignedIn } = useAuth();
@@ -49,6 +50,8 @@ function AuthenticatedBusinessProfile({ timeZones, enabled }: { timeZones: strin
   const business = useLastDefined(useQuery(api.businesses.getMyBusiness, enabled ? {} : "skip"));
   const params = useSearchParams();
   const active = readDashboardView(params.get("vista"));
+  const [customizationOpened, setCustomizationOpened] = useState(active === "personalizar");
+  if (active === "personalizar" && !customizationOpened) setCustomizationOpened(true);
   const createBusiness = useMutation(api.businesses.createMyBusiness);
   if (business === undefined) return <p role="status" className="py-10 text-muted">Cargando tu negocio…</p>;
   if (business === null) return <section className="max-w-xl py-4">
@@ -58,7 +61,8 @@ function AuthenticatedBusinessProfile({ timeZones, enabled }: { timeZones: strin
 
   return <div key={business._id} className="workspace-business-content">
     {/* Keep each view mounted: back/forward and navigation preserve unsaved work. */}
-    <section className="workspace-agenda" aria-label="Agenda"><BusinessAvailability businessId={business._id} businessName={business.name} timeZone={business.timeZone} enabled={enabled} /></section>
+    <section className="workspace-agenda" aria-label="Agenda" hidden={active === "personalizar"}><BusinessAvailability businessId={business._id} businessName={business.name} timeZone={business.timeZone} enabled={enabled} /></section>
+    {customizationOpened && <div className="workspace-customization" hidden={active !== "personalizar"}><PublicAppearanceEditor businessName={business.name} timeZone={business.timeZone} enabled={enabled && active === "personalizar"} /></div>}
     <WorkspacePanels clients={<BusinessClients businessId={business._id} timeZone={business.timeZone} enabled={enabled && active === "clientes"} />} services={<BusinessServices enabled={enabled} />} schedule={<BusinessWeeklySchedule timeZone={business.timeZone} enabled={enabled} />} business={<>
       <h1 id="business-heading" tabIndex={-1} className="workspace-title">Negocio</h1>
       <p className="workspace-description">Los datos que definen tu espacio de trabajo.</p>
@@ -67,6 +71,7 @@ function AuthenticatedBusinessProfile({ timeZones, enabled }: { timeZones: strin
         <div className="py-5"><dt className="text-sm text-muted">Zona horaria</dt><dd className="mt-1 wrap-anywhere">{business.timeZone}</dd></div>
       </dl>
       <BusinessBookingLink enabled={enabled && active === "negocio"} />
+      <div className="mt-6"><Button asChild variant="outline"><a href={dashboardHref("personalizar", params.get("fecha"), params)} onClick={navigateWorkspace}>Personalizar vista pública</a></Button></div>
       <BusinessEmailConfirmations enabled={enabled && active === "negocio"} />
       <p className="mt-6 max-w-prose text-sm leading-6 text-muted">Las fechas y horas de tu <WorkspaceLink view="agenda">agenda</WorkspaceLink> y tu <WorkspaceLink view="horario">horario de atención</WorkspaceLink> se muestran en esta zona.</p>
     </>} />

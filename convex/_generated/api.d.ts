@@ -29,6 +29,8 @@ import type * as lib_publicManagement from "../lib/publicManagement.js";
 import type * as lib_scheduleForDate from "../lib/scheduleForDate.js";
 import type * as lib_timeBlocks from "../lib/timeBlocks.js";
 import type * as noticeValidators from "../noticeValidators.js";
+import type * as publicAppearance from "../publicAppearance.js";
+import type * as publicAppearanceValidators from "../publicAppearanceValidators.js";
 import type * as publicBooking from "../publicBooking.js";
 import type * as publicManagement from "../publicManagement.js";
 import type * as publicManagementValidators from "../publicManagementValidators.js";
@@ -71,6 +73,8 @@ declare const fullApi: ApiFromModules<{
   "lib/scheduleForDate": typeof lib_scheduleForDate;
   "lib/timeBlocks": typeof lib_timeBlocks;
   noticeValidators: typeof noticeValidators;
+  publicAppearance: typeof publicAppearance;
+  publicAppearanceValidators: typeof publicAppearanceValidators;
   publicBooking: typeof publicBooking;
   publicManagement: typeof publicManagement;
   publicManagementValidators: typeof publicManagementValidators;

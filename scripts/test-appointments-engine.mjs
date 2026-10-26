@@ -25,6 +25,7 @@ import { publicManagementFixtureSource } from "./public-management-engine-fixtur
 import { publicManagementScenarios, redactManagementEvidence } from "./public-management-engine-scenarios.mjs";
 import { publicReschedulingFixtureSource } from "./public-rescheduling-engine-fixtures.mjs";
 import { publicReschedulingScenarios, redactReschedulingEvidence } from "./public-rescheduling-engine-scenarios.mjs";
+import { appearanceFixtureSource, appearanceScenarios } from "./public-appearance-engine-scenarios.mjs";
 
 // REAL engine integration, entirely synthetic. Never reads .env.local or .convex.
 // Requires the Convex backend binary cached by the CLI, or SLOTLY_CONVEX_BACKEND.
@@ -208,6 +209,7 @@ export const snapshot = internalQuery({
   if (process.argv.includes("--confirmations-only") || process.argv.includes("--public-management-only") || process.argv.includes("--public-rescheduling-only")) await writeFile(path.join(workspace, "convex", "engineFixtures.ts"), (await readFile(path.join(workspace, "convex", "engineFixtures.ts"), "utf8")) + confirmationFixtureSource);
   if (process.argv.includes("--public-management-only") || process.argv.includes("--public-rescheduling-only")) await writeFile(path.join(workspace, "convex", "engineFixtures.ts"), (await readFile(path.join(workspace, "convex", "engineFixtures.ts"), "utf8")) + publicManagementFixtureSource);
   if (process.argv.includes("--public-rescheduling-only")) await writeFile(path.join(workspace, "convex", "engineFixtures.ts"), (await readFile(path.join(workspace, "convex", "engineFixtures.ts"), "utf8")) + publicReschedulingFixtureSource);
+  if (process.argv.includes("--public-appearance-only")) await writeFile(path.join(workspace, "convex", "engineFixtures.ts"), (await readFile(path.join(workspace, "convex", "engineFixtures.ts"), "utf8")) + appearanceFixtureSource);
   await writeFile(path.join(workspace, "convex.json"), '{"functions":"convex/"}\n');
   await symlink(path.join(repo, "node_modules"), path.join(workspace, "node_modules"), process.platform === "win32" ? "junction" : "dir");
   const envFile = path.join(workspace, "isolated.env");
@@ -310,6 +312,8 @@ export const snapshot = internalQuery({
     }
     await rm(destination,{force:true});await rm(destination+".stop",{force:true});
     report.previewOnly=true;
+  } else if (process.argv.includes("--public-appearance-only")) {
+    await appearanceScenarios({ setup, makeClient, race, report, date, start, restart: async () => { await stopBackend(); await startBackend(); } });
   } else if (process.argv.includes("--public-rescheduling-only")) {
     report.providerStages = [];
     await publicReschedulingScenarios({setup,date,start,makeClient,race,report,workspace,provider:mailProvider,setEmailEnvironment,restart:async()=>{await stopBackend();await startBackend();}});

@@ -7,8 +7,10 @@ import { noticeAppointmentSnapshot } from "./noticeValidators";
 import { emailEventFields } from "./emailConfirmationValidators";
 import { publicAccessFields } from "./publicManagementValidators";
 import { rescheduleReceiptFields } from "./publicReschedulingValidators";
+import { appearanceProfileFields } from "./publicAppearanceValidators";
 
 export default defineSchema({
+  publicBookingProfiles: defineTable(appearanceProfileFields).index("by_businessId", ["businessId"]),
   publicRescheduleReceipts: defineTable(rescheduleReceiptFields).index("by_accessId_and_operationId", ["accessId", "operationId"]),
   publicBookingAccesses: defineTable(publicAccessFields).index("by_secretHash", ["secretHash"]).index("by_appointmentId", ["appointmentId"]),
   emailConfirmations: defineTable(emailEventFields).index("by_appointmentId", ["appointmentId"]),

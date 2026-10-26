@@ -7,9 +7,8 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/native-select";
-import { Label } from "@/components/ui/label";
+import { PublicBookingSurface, PublicReservationFields } from "@/components/public-booking-presentation";
+import { defaultPublicAppearance } from "@/lib/public-appearance";
 import { clientEmailSchema } from "@/lib/client-email";
 import { appointmentSchema } from "@/lib/appointment-schema";
 import { isLocalDate } from "@/lib/local-date";
@@ -25,6 +24,7 @@ const blank: Fields = { serviceId: "", date: "", start: "", clientName: "", emai
 
 export function PublicBooking({ slug }: { slug: string }) {
   const business = useQuery(api.publicBooking.getBusiness, { slug });
+  const appearance = useQuery(api.publicAppearance.getPublic, { slug });
   const services = usePaginatedQuery(api.publicBooking.listServices, business ? { slug } : "skip", { initialNumItems: 30 });
   const availability = useAction(api.publicBooking.getAvailability);
   const confirm = useMutation(api.publicBooking.confirm);
@@ -169,14 +169,12 @@ export function PublicBooking({ slug }: { slug: string }) {
     } finally { lock.current = false; setBusy(false); }
   }
 
-  if (business === undefined || !restored) return <p role="status" className="text-muted">Cargando reservas…</p>;
+  if (business === undefined || appearance === undefined || !restored) return <p role="status" className="text-muted">Cargando reservas…</p>;
   if (!business) return <section><h1 className="workspace-title">Enlace no disponible</h1>
     <p role="status" className="mt-4 text-muted">Comprueba la dirección o contacta con el negocio.</p></section>;
   const time = new Intl.DateTimeFormat("es-UY", { timeStyle: "short", timeZone: business.timeZone });
   const pendingSlot = pending ? `${time.format(pending.start)}${pending.expectedService ? ` – ${time.format(pending.start + pending.expectedService.durationMinutes * 60_000)}` : ""}` : "";
-  return <section>
-    <h1 className="workspace-title wrap-anywhere">{business.name}</h1>
-    <p className="mt-2 text-sm text-muted wrap-anywhere">{business.timeZone}</p>
+  return <PublicBookingSurface businessName={business.name} timeZone={business.timeZone} appearance={appearance ?? { settings: defaultPublicAppearance, photoUrl: null }}>
     {receipt ? <div className="mt-8 border-y border-line py-6">
       <CalendarCheck aria-hidden="true" className="mb-4 size-7 text-accent" />
       <h2 ref={success} tabIndex={-1} className="text-xl font-semibold tracking-tight">Confirmación original</h2>
@@ -193,49 +191,16 @@ export function PublicBooking({ slug }: { slug: string }) {
       <h2 className="mb-6 text-xl font-semibold tracking-tight">Reservar cita</h2>
       <fieldset disabled={busy || !!pending} className="grid gap-5">
         <legend className="sr-only">Datos de la reserva</legend>
-        <div className="grid gap-2 [&>[data-slot=native-select-wrapper]]:w-full">
-          <Label htmlFor="public-service">Servicio</Label>
-          <NativeSelect id="public-service" name="serviceId" value={fields.serviceId} onChange={(e) => change("serviceId", e.target.value)}
-            className="w-full" required aria-invalid={invalid === "serviceId"} aria-describedby={invalid === "serviceId" ? "booking-error" : undefined}>
-            <option value="">{services.status === "LoadingFirstPage" ? "Cargando servicios…" : "Elige un servicio"}</option>
-            {pending ? <option value={pending.serviceId}>{pending.expectedService ? `${pending.expectedService.name} · ${pending.expectedService.durationMinutes} min` : "Servicio elegido"}</option> : <>
-              {fields.serviceId && !services.results.some((s) => s.id === fields.serviceId) && <option value={fields.serviceId}>Servicio elegido</option>}
-              {services.results.map((s) => <option key={s.id} value={s.id}>{s.name} · {s.durationMinutes} min</option>)}
-            </>}
-          </NativeSelect>
-          {!pending && services.status === "Exhausted" && !services.results.length && <p role="status" className="text-sm text-muted">No hay servicios disponibles.</p>}
-          {!pending && (services.status === "CanLoadMore" || services.status === "LoadingMore") && <Button type="button" variant="outline"
-            disabled={services.status !== "CanLoadMore"} onClick={() => services.loadMore(30)}>{services.status === "LoadingMore" ? "Cargando…" : "Ver más servicios"}</Button>}
-        </div>
-        <div className="grid gap-2"><Label htmlFor="public-date">Fecha</Label>
-          <Input id="public-date" name="date" type="date" value={fields.date} onChange={(e) => change("date", e.target.value)} required
-            aria-invalid={invalid === "date"} aria-describedby={invalid === "date" ? "booking-error" : undefined} /></div>
-        <div className="grid gap-2 [&>[data-slot=native-select-wrapper]]:w-full"><Label htmlFor="public-start">Horario disponible</Label>
-          <NativeSelect id="public-start" name="start" value={serviceChanged ? "" : fields.start} onChange={(e) => change("start", e.target.value)} className="w-full"
-            disabled={!canQuery || !readyOptions} required aria-invalid={invalid === "start"} aria-describedby={invalid === "start" ? "booking-error" : undefined}>
-            <option value="">{canQuery && !readyOptions ? "Cargando horarios…" : "Elige un horario"}</option>
-            {pending ? <option value={String(pending.start)}>{pendingSlot}</option> : <>
-              {fields.start && !slots.some((s) => String(s.start) === fields.start) && <option value={fields.start} disabled>Horario elegido no disponible</option>}
-              {slots.map((s) => <option key={s.start} value={s.start}>{s.startTime} – {s.endTime}</option>)}
-            </>}
-          </NativeSelect>
-          {canQuery && !readyOptions && <p role="status" className="text-sm text-muted">Cargando horarios…</p>}
-          {serviceChanged && <p role="status" className="text-sm">El servicio cambió. Revisa su nombre y duración y vuelve a elegir un horario.</p>}
-          {readyOptions && options.error ? <div><p role="alert" className="text-sm text-destructive">{options.error}</p>
-            <Button type="button" variant="outline" className="mt-3" onClick={() => setRefresh((value) => value + 1)}>Reintentar horarios</Button></div>
-            : readyOptions && !slots.length && <p role="status" className="text-sm text-muted">No hay horarios disponibles para esta fecha.</p>}
-        </div>
-        <div className="grid gap-2"><Label htmlFor="public-name">Tu nombre</Label>
-          <Input id="public-name" name="clientName" autoComplete="name" maxLength={100} value={fields.clientName}
-            onChange={(e) => change("clientName", e.target.value)} required aria-invalid={invalid === "clientName"}
-            aria-describedby={invalid === "clientName" ? "booking-error" : undefined} /></div>
-        <div className="grid gap-2"><Label htmlFor="public-email">Correo electrónico</Label>
-          <Input id="public-email" name="email" type="email" inputMode="email" autoComplete="email" maxLength={254} value={fields.email}
-            onChange={event => change("email", event.target.value)} required aria-invalid={invalid === "email"}
-            aria-describedby={invalid === "email" ? "booking-error" : undefined} /></div>
+        <PublicReservationFields fields={{ ...fields, start: serviceChanged ? "" : fields.start }} change={change} timeZone={business.timeZone} datePicker={(appearance?.settings ?? defaultPublicAppearance).datePicker} invalid={invalid}
+          services={pending ? [] : services.results} servicesLoading={services.status === "LoadingFirstPage"}
+          fallbackService={pending ? { id: pending.serviceId, label: pending.expectedService ? `${pending.expectedService.name} · ${pending.expectedService.durationMinutes} min` : "Servicio elegido" } : fields.serviceId && !services.results.some(s => s.id === fields.serviceId) ? { id: fields.serviceId, label: "Servicio elegido" } : undefined}
+          serviceHelp={<>{!pending && services.status === "Exhausted" && !services.results.length && <p role="status" className="text-sm text-muted">No hay servicios disponibles.</p>}{!pending && (services.status === "CanLoadMore" || services.status === "LoadingMore") && <Button type="button" variant="outline" disabled={services.status !== "CanLoadMore"} onClick={() => services.loadMore(30)}>{services.status === "LoadingMore" ? "Cargando…" : "Ver más servicios"}</Button>}</>}
+          starts={pending ? [{ value: String(pending.start), label: pendingSlot }] : [...(fields.start && !slots.some(s => String(s.start) === fields.start) ? [{ value: fields.start, label: "Horario elegido no disponible", disabled: true }] : []), ...slots.map(slot => ({ value: String(slot.start), label: `${slot.startTime} – ${slot.endTime}` }))]}
+          startDisabled={!canQuery || !readyOptions} startPlaceholder={canQuery && !readyOptions ? "Cargando horarios…" : "Elige un horario"}
+          startHelp={<>{canQuery && !readyOptions && <p role="status" className="text-sm text-muted">Cargando horarios…</p>}{serviceChanged && <p role="status" className="text-sm">El servicio cambió. Revisa su nombre y duración y vuelve a elegir un horario.</p>}{readyOptions && options.error ? <div><p role="alert" className="text-sm text-destructive">{options.error}</p><Button type="button" variant="outline" className="mt-3" onClick={() => setRefresh(value => value + 1)}>Reintentar horarios</Button></div> : readyOptions && !slots.length && <p role="status" className="text-sm text-muted">No hay horarios disponibles para esta fecha.</p>}</>} />
       </fieldset>
       {error && <p ref={alert} id="booking-error" role="alert" tabIndex={-1} className="mt-5 text-sm leading-6 text-destructive">{error}</p>}
       <Button type="submit" disabled={busy} className="mt-6 w-full sm:w-auto">{busy ? "Confirmando…" : pending ? "Reintentar confirmación" : "Confirmar cita"}</Button>
     </form>}
-  </section>;
+  </PublicBookingSurface>;
 }
