@@ -1,6 +1,8 @@
 # Contexto de Slotly
 
-## Estado actual — una única app en main,25/10/2026
+## Estado actual — una única app en main
+
+**Ajuste visual,26/10/2026:** Día/Semana/Mes se presentan como pestañas con línea base común y subrayado verde en la activa. Cambio limitado al CSS de Agenda; conserva controles de36px, Radix Tabs con activación manual, URL, filtros y borradores. Comprobación en la app real a1280×720,390×720 y320×720: sin desbordamiento documental, foco visible, flechas mueven foco y Enter activa la vista. Cero errores de consola observados. Capturas móviles válidas obtenidas directamente por CDP; se excluyeron y retiraron dos capturas reducidas del helper. No se guardaron datos ni se modificaron backend, reloj, trabajos o seguimientos de R13. Evidencia privada: `C:/Users/dcalu/.codex/slotly-evidence/agenda-tabs-20261026/verification.json`.
 
 El humano autorizó unificar Slotly en una única aplicación para practicar, con la rama `main` y solo Clerk/Convex de desarrollo, y subir todos los cambios actuales. Se conservan el proyecto Vercel existente y el servidor local3001. Vercel etiqueta como Production la publicación pública desde main; sus variables ahora contienen las claves de Clerk Development y el backend `determined-poodle-377`, compartidos con local. Proxy anterior desactivado, sin modificar `.env.local` ni el emisor JWT del backend. No se creó otro proyecto, app o base. Los recursos anteriores de producción dejaron de ser el destino de la configuración; no se borraron.
 

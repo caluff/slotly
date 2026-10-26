@@ -1,9 +1,10 @@
 .agenda-layout { display: grid; grid-template-columns: 252px minmax(0, 1fr); gap: 24px; align-items: start; min-width: 0; }
 .agenda-sidebar { min-width: 0; }
 .agenda-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
-.agenda-view-tabs { display: flex; gap: 2px; border-radius: 6px; background: var(--surface); }
-.agenda-view-tabs [role="tab"] { padding-inline: 12px; font-weight: 500; }
-.agenda-view-tabs [aria-selected="true"] { background: var(--accent); color: white; }
+.agenda-view-tabs { display: flex; border-bottom: 1px solid var(--line); }
+.agenda-view-tabs [role="tab"] { margin-bottom: -1px; border-radius: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--muted); padding-inline: 12px; font-weight: 500; }
+.agenda-view-tabs [role="tab"]:hover { color: var(--accent); }
+.agenda-view-tabs [aria-selected="true"] { border-bottom-color: var(--accent); color: var(--accent); }
 .agenda-tab-panel { min-width: 0; }
 .agenda-tab-panel:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 .agenda-title { font-size: 18px; font-weight: 600; text-transform: capitalize; }
