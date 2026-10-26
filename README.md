@@ -24,7 +24,7 @@ No incluye pagos, marketplace, múltiples empleados ni sincronización con calen
 
 **Una única app, rama `main` y servicios de desarrollo.** Local y la publicación de Vercel comparten la instancia Clerk Development y el mismo backend Convex de desarrollo. No se mantienen perfiles de aplicación separados para practicar. Vercel llama Production al despliegue público de `main`; las claves y los datos utilizados son de desarrollo.
 
-Google está configurado en Clerk Development con el cliente propio de Slotly. Se comprobó acceso real con la cuenta autorizada y persistencia tras recarga en la app local. La comprobación de la publicación desde Git se registra en [RELEASE.md](docs/RELEASE.md). Las pruebas del lunes26/10 conservan su alcance y están pendientes de su ejecución programada.
+Google está configurado en Clerk Development con el cliente propio de Slotly. Se comprobó acceso real con Google en local y en la app publicada, persistencia tras recarga, cierre de sesión y redirección al entrar sin sesión al dashboard. La cuenta aprobada corresponde a un único usuario Clerk, con correo verificado y Google vinculado. La publicación desde Git y su evidencia se registran en [RELEASE.md](docs/RELEASE.md). Las pruebas del lunes26/10 conservan su alcance y están pendientes de su ejecución programada.
 
 La cancelación y reprogramación públicas sí tienen E2E real de **desarrollo**, ejecutado por planificación con autorización: dos reservas, una ficha, movimiento conservando identidad y ambas citas finalmente canceladas. Las carreras y pérdidas de respuesta se probaron por separado contra el motor Convex/SQLite local; no se presentan como carreras cloud ni fallos de red del navegador.
 
