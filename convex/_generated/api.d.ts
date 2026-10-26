@@ -23,6 +23,7 @@ import type * as lib_appointmentCancellation from "../lib/appointmentCancellatio
 import type * as lib_appointmentData from "../lib/appointmentData.js";
 import type * as lib_appointmentRescheduling from "../lib/appointmentRescheduling.js";
 import type * as lib_availability from "../lib/availability.js";
+import type * as lib_bookingCalendar from "../lib/bookingCalendar.js";
 import type * as lib_clientIdentity from "../lib/clientIdentity.js";
 import type * as lib_emailConfirmation from "../lib/emailConfirmation.js";
 import type * as lib_privateCreation from "../lib/privateCreation.js";
@@ -68,6 +69,7 @@ declare const fullApi: ApiFromModules<{
   "lib/appointmentData": typeof lib_appointmentData;
   "lib/appointmentRescheduling": typeof lib_appointmentRescheduling;
   "lib/availability": typeof lib_availability;
+  "lib/bookingCalendar": typeof lib_bookingCalendar;
   "lib/clientIdentity": typeof lib_clientIdentity;
   "lib/emailConfirmation": typeof lib_emailConfirmation;
   "lib/privateCreation": typeof lib_privateCreation;

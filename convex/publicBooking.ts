@@ -20,6 +20,7 @@ import { serviceContext, serviceOption } from "./serviceValidators";
 import { enqueueConfirmation } from "./lib/emailConfirmation";
 import { isManagementSecret, managementSecretHash } from "../lib/public-management";
 import { registerManagementAccess } from "./lib/publicManagement";
+import { availableBookingDates, bookingMonth, openBookingDates } from "./lib/bookingCalendar";
 
 const limiter = new RateLimiter(components.rateLimiter, {
   publicConfirm: { kind: "token bucket", rate: 10, period: MINUTE, capacity: 10 },
@@ -94,6 +95,23 @@ export const getAvailability = action({
     const now = Date.now();
     const result = generateAvailability({ ...source, date: args.date, now });
     return { service: source.service, slots: result.slots.filter((slot) => slot.start > now && !source.occupied.some((saved) => overlaps(slot, saved))) };
+  },
+});
+
+export const getCalendarSource = internalQuery({
+  args: { slug: v.string(), serviceId: v.id("services"), month: v.string() }, returns: v.union(v.null(), v.array(v.string())),
+  handler: async (ctx, { slug, serviceId, month }) => {
+    bookingMonth(month);
+    const business = await activeBusiness(ctx, slug);
+    return business ? openBookingDates(ctx, business._id, serviceId, month) : null;
+  },
+});
+export const getAvailableDates = action({
+  args: { slug: v.string(), serviceId: v.id("services"), month: v.string() }, returns: v.union(v.null(), v.array(v.string())),
+  handler: async (ctx, args): Promise<string[] | null> => {
+    const dates = await ctx.runQuery(internal.publicBooking.getCalendarSource, args);
+    if (!dates) return null;
+    return availableBookingDates(dates, date => ctx.runQuery(internal.publicBooking.getSource, { slug: args.slug, serviceId: args.serviceId, date }), Date.now());
   },
 });
 

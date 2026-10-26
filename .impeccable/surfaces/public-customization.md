@@ -1,5 +1,13 @@
 # Personalizar vista pública
 
+## Refinamiento vigente —26/10/2026
+
+El usuario solicita primera sección desplegada y resto contraídas, calendario predeterminado, días disponibles reales y habilitación de horas tras elegir día, conservando pasos15min y duración del servicio. El nuevo layout agrupa servicio, calendario/horas y contacto; en escritorio calendario y radios horarios comparten fila, y nombre/correo otra. En móvil cada grupo conserva su orden. El formulario público y preview comparten controles. Se conserva el mundo visual y la altura36px; no se rediseña el shell. Una regla acotada evita que el foco desplace el shell del editor, manteniendo los scrollers interiores.
+
+Verificación del refinamiento:1280×720,390/320×720, secciones iniciales, calendario y horas reales, sin escritura de reservas ni preferencias; teclado, alternancia de selector, reinicio por servicio y cabecera estable. `detect --scope layout` antes/después sin hallazgos. Motor real local nuevo:6grupos seriales,0carreras, sin atribuir las9carreras de la entrega inicial a este cambio. Contrato vigente y límites en `docs/PUBLIC_APPEARANCE.md`; capturas nuevas en `.impeccable/review/booking-calendar/`.
+
+El registro inferior describe la entrega inicial: su selector nativo por ausencia queda sustituido por el calendario predeterminado de este refinamiento.
+
 MODE: Operate. Extensión ordinaria de Slotly, con diseño establecido y montaje code-led. El humano fijó la estructura mediante una imagen: controles a la izquierda y vista previa a la derecha. La referencia aporta distribución, nunca su contenido personal ni sus colores.
 
 THESIS: el propietario configura qué presenta su página de reservas y comprueba el resultado antes de guardarlo.

@@ -19,7 +19,7 @@ export const publicAppearanceSchema = z.object({
 
 export type PublicAppearanceSettings = z.infer<typeof publicAppearanceSchema>;
 export const defaultPublicAppearance: PublicAppearanceSettings = {
-  publicName: "", professionalName: "", welcome: "", address: "", phone: "", showPhone: false, showPhoto: false, theme: "green", datePicker: "native",
+  publicName: "", professionalName: "", welcome: "", address: "", phone: "", showPhone: false, showPhoto: false, theme: "green", datePicker: "calendar",
 };
 export type PublicAppearanceView = { settings: PublicAppearanceSettings; photoUrl: string | null };
 export type PrivatePublicAppearance = PublicAppearanceView & { version: number; hasPhoto: boolean };

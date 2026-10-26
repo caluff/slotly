@@ -2,7 +2,7 @@
 
 import { useAction, usePaginatedQuery, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { Tabs } from "radix-ui";
 import { toast } from "sonner";
@@ -114,12 +114,12 @@ function Editor({ initial, latest, businessName, timeZone, enabled }: { initial:
           <form ref={form} id="public-appearance-form" onSubmit={submit} noValidate aria-busy={busy}>
             <fieldset disabled={frozen} className="appearance-fieldset"><legend className="sr-only">Personalización</legend>
               <details open className="appearance-section"><summary>Presentación<ChevronDown aria-hidden="true" /></summary><div className="appearance-fields">
-                <EditorField label="Nombre público" name="publicName" max={100} value={settings.publicName} placeholder={businessName} invalid={invalid} onChange={value => update("publicName", value)} />
-                <EditorField label="Nombre de la persona" name="professionalName" max={100} value={settings.professionalName} invalid={invalid} onChange={value => update("professionalName", value)} />
+                <div className="appearance-field-pair"><EditorField label="Nombre público" name="publicName" max={100} value={settings.publicName} placeholder={businessName} invalid={invalid} onChange={value => update("publicName", value)} />
+                <EditorField label="Nombre de la persona" name="professionalName" max={100} value={settings.professionalName} invalid={invalid} onChange={value => update("professionalName", value)} /></div>
                 <div className="grid gap-2"><Label htmlFor="appearance-welcome">Bienvenida</Label><textarea id="appearance-welcome" name="welcome" rows={3} maxLength={500} className="form-control appearance-textarea" value={settings.welcome} onChange={event => update("welcome", event.target.value)} aria-invalid={invalid === "welcome"} aria-describedby={invalid === "welcome" ? "appearance-error" : undefined} /></div>
                 <EditorField label="Dirección" name="address" max={200} value={settings.address} invalid={invalid} onChange={value => update("address", value)} />
               </div></details>
-              <details open className="appearance-section"><summary>Contacto y foto<ChevronDown aria-hidden="true" /></summary><div className="appearance-fields">
+              <details className="appearance-section"><summary>Contacto y foto<ChevronDown aria-hidden="true" /></summary><div className="appearance-fields">
                 <EditorField label="Teléfono del negocio" name="phone" max={40} type="tel" value={settings.phone} invalid={invalid} onChange={value => update("phone", value)} />
                 <label className="appearance-check"><input type="checkbox" checked={settings.showPhone} onChange={event => update("showPhone", event.target.checked)} />Mostrar teléfono</label>
                 <div className="appearance-photo"><div className="appearance-photo-space">{photoUrl ?
@@ -131,9 +131,9 @@ function Editor({ initial, latest, businessName, timeZone, enabled }: { initial:
                 </div></div>
                 <label className="appearance-check"><input type="checkbox" checked={settings.showPhoto} onChange={event => update("showPhoto", event.target.checked)} />Mostrar foto</label>
               </div></details>
-              <details open className="appearance-section"><summary>Reservas y estilo<ChevronDown aria-hidden="true" /></summary><div className="appearance-fields">
+              <details className="appearance-section"><summary>Reservas y estilo<ChevronDown aria-hidden="true" /></summary><div className="appearance-fields">
                 <fieldset><legend className="mb-2 text-sm font-medium">Color</legend><div className="appearance-colors">{Object.entries(publicThemes).map(([key, color]) => <label key={key} title={color.label}><input type="radio" name="theme" value={key} checked={settings.theme === key} onChange={() => update("theme", key as PublicAppearanceSettings["theme"])} /><span style={{ background: color.accent }} /><span className="sr-only">{color.label}</span></label>)}</div></fieldset>
-                <div className="grid gap-2"><Label htmlFor="appearance-date-picker">Selector de fecha</Label><NativeSelect id="appearance-date-picker" name="datePicker" value={settings.datePicker} onChange={event => update("datePicker", event.target.value as PublicAppearanceSettings["datePicker"])}><option value="native">Campo de fecha actual</option><option value="calendar">Calendario visible</option></NativeSelect></div>
+                <div className="grid gap-2"><Label htmlFor="appearance-date-picker">Selector de fecha</Label><NativeSelect id="appearance-date-picker" name="datePicker" value={settings.datePicker} onChange={event => update("datePicker", event.target.value as PublicAppearanceSettings["datePicker"])}><option value="calendar">Calendario visible</option><option value="native">Campo de fecha</option></NativeSelect></div>
               </div></details>
             </fieldset>
           </form>
@@ -152,7 +152,8 @@ function Preview({ businessName, timeZone, settings, photoUrl, enabled }: { busi
   const services = usePaginatedQuery(api.publicAppearance.listPreviewServices, enabled ? {} : "skip", { initialNumItems: 30 });
   const [fields, setFields] = useState<ReservationFields>({ serviceId: "", date: "", start: "", clientName: "", email: "" });
   const [options, setOptions] = useState<{ key: string; slots: { start: number; startTime: string; endTime: string }[]; error: string }>({ key: "", slots: [], error: "" });
-  const availability = useAction(api.availability.getMyAvailability), canQuery = !!fields.serviceId && isLocalDate(fields.date), key = `${fields.serviceId}:${fields.date}`;
+  const availability = useAction(api.availability.getMyAvailability), calendar = useAction(api.availability.getMyAvailableDates), canQuery = !!fields.serviceId && isLocalDate(fields.date), key = `${fields.serviceId}:${fields.date}`;
+  const loadDays = useCallback((month: string) => calendar({ serviceId: fields.serviceId as Id<"services">, month }), [calendar, fields.serviceId]);
   useEffect(() => {
     if (!enabled || !canQuery) return;
     let current = true;
@@ -162,7 +163,7 @@ function Preview({ businessName, timeZone, settings, photoUrl, enabled }: { busi
   const ready = canQuery && key === options.key;
   return <PublicBookingSurface businessName={businessName} timeZone={timeZone} appearance={{ settings, photoUrl }}>
     <form className="mt-8" aria-label="Reserva de vista previa" onSubmit={event => event.preventDefault()}><h2 className="mb-6 text-xl font-semibold tracking-tight">Reservar cita</h2><fieldset className="grid gap-5"><legend className="sr-only">Datos de la reserva</legend>
-      <PublicReservationFields prefix="preview" fields={fields} change={(field, value) => setFields(old => ({ ...old, [field]: value, ...(field === "date" || field === "serviceId" ? { start: "" } : {}) }))}
+      <PublicReservationFields prefix="preview" fields={fields} change={(field, value) => setFields(old => ({ ...old, [field]: value, ...(field === "date" || field === "serviceId" ? { start: "" } : {}), ...(field === "serviceId" ? { date: "" } : {}) }))} loadDays={enabled && fields.serviceId ? loadDays : undefined}
         services={services.results} servicesLoading={services.status === "LoadingFirstPage"}
         serviceHelp={<>{services.status === "CanLoadMore" && <Button type="button" variant="outline" onClick={() => services.loadMore(30)}>Ver más servicios</Button>}{services.status === "Exhausted" && !services.results.length && <p role="status" className="text-sm text-muted">No hay servicios disponibles.</p>}</>}
         starts={ready ? options.slots.map(slot => ({ value: String(slot.start), label: `${slot.startTime} – ${slot.endTime}` })) : []} startDisabled={!ready} startPlaceholder={canQuery && !ready ? "Cargando horarios…" : "Elige un horario"}

@@ -4,7 +4,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Label } from "@/components/ui/label";
-import { PublicBookingDate } from "@/components/public-booking-date";
+import { PublicBookingDate, type BookingDaysLoader } from "@/components/public-booking-date";
 import { publicPhoneHref, publicThemeStyle, type PublicAppearanceView } from "@/lib/public-appearance";
 import "@/components/public-booking-presentation.css";
 
@@ -34,10 +34,11 @@ type Props = {
   services: { id: string; name: string; durationMinutes: number }[]; servicesLoading?: boolean; serviceHelp?: ReactNode; fallbackService?: { id: string; label: string };
   starts: { value: string; label: string; disabled?: boolean }[]; startPlaceholder?: string; startDisabled?: boolean; startHelp?: ReactNode;
   timeZone: string; datePicker: "native" | "calendar"; invalid?: keyof ReservationFields | null; errorId?: string;
+  loadDays?: BookingDaysLoader; recovering?: boolean;
 };
 // The editor preview and the booking route use these exact controls. Submission,
 // recovery, authoritative availability and receipts remain in PublicBooking.
-export function PublicReservationFields({ prefix = "public", fields, change, services, servicesLoading, serviceHelp, fallbackService, starts, startPlaceholder = "Elige un horario", startDisabled, startHelp, timeZone, datePicker, invalid, errorId = "booking-error" }: Props) {
+export function PublicReservationFields({ prefix = "public", fields, change, services, servicesLoading, serviceHelp, fallbackService, starts, startPlaceholder = "Elige un horario", startDisabled, startHelp, timeZone, datePicker, invalid, errorId = "booking-error", loadDays, recovering }: Props) {
   return <>
     <div className="grid gap-2 [&>[data-slot=native-select-wrapper]]:w-full"><Label htmlFor={`${prefix}-service`}>Servicio</Label>
       <NativeSelect id={`${prefix}-service`} name="serviceId" value={fields.serviceId} onChange={event => change("serviceId", event.target.value)} className="w-full" required aria-invalid={invalid === "serviceId"} aria-describedby={invalid === "serviceId" ? errorId : undefined}>
@@ -46,13 +47,18 @@ export function PublicReservationFields({ prefix = "public", fields, change, ser
         {services.map(service => <option key={service.id} value={service.id}>{service.name} · {service.durationMinutes} min</option>)}
       </NativeSelect>{serviceHelp}
     </div>
-    <div className="grid gap-2"><Label htmlFor={`${prefix}-date`}>Fecha</Label><PublicBookingDate id={`${prefix}-date`} value={fields.date} onChange={value => change("date", value)} mode={datePicker} timeZone={timeZone} invalid={invalid === "date"} errorId={errorId} /></div>
-    <div className="grid gap-2 [&>[data-slot=native-select-wrapper]]:w-full"><Label htmlFor={`${prefix}-start`}>Horario disponible</Label>
-      <NativeSelect id={`${prefix}-start`} name="start" value={fields.start} onChange={event => change("start", event.target.value)} className="w-full" required disabled={startDisabled} aria-invalid={invalid === "start"} aria-describedby={invalid === "start" ? errorId : undefined}>
-        <option value="">{startPlaceholder}</option>{starts.map(slot => <option key={slot.value} value={slot.value} disabled={slot.disabled}>{slot.label}</option>)}
-      </NativeSelect>{startHelp}
+    <div className="public-reservation-schedule">
+      <div className="public-reservation-date"><Label htmlFor={`${prefix}-date`}>Fecha</Label>{recovering ? <Input id={`${prefix}-date`} name="date" type="date" value={fields.date} readOnly /> : <PublicBookingDate id={`${prefix}-date`} value={fields.date} onChange={value => change("date", value)} mode={datePicker} timeZone={timeZone} invalid={invalid === "date"} errorId={errorId} availabilityKey={fields.serviceId} loadDays={loadDays} />}</div>
+      <fieldset id={`${prefix}-start`} name="start" tabIndex={-1} className="public-reservation-time" disabled={startDisabled} aria-busy={!!fields.date && startDisabled} aria-invalid={invalid === "start"} aria-describedby={invalid === "start" ? errorId : undefined}>
+        <legend>Horario disponible</legend>
+        {!fields.date || startDisabled || !starts.length ? <p role="status" className="public-time-placeholder">{!fields.date ? "Elige un día disponible en el calendario." : startDisabled ? startPlaceholder : "Sin horarios disponibles."}</p> : <div className="public-time-grid">{starts.map(slot => <label key={slot.value} className="public-time-option"><input type="radio" name="start" value={slot.value} checked={fields.start === slot.value} onChange={() => change("start", slot.value)} disabled={slot.disabled} aria-label={slot.label} required /><span>{slot.label.split(" – ")[0]}</span></label>)}</div>}
+        {fields.start && starts.some(slot => slot.value === fields.start && !slot.disabled) && <p className="public-time-selected">{starts.find(slot => slot.value === fields.start)?.label}</p>}
+        {startHelp}
+      </fieldset>
     </div>
-    <div className="grid gap-2"><Label htmlFor={`${prefix}-name`}>Tu nombre</Label><Input id={`${prefix}-name`} name="clientName" autoComplete="name" maxLength={100} value={fields.clientName} onChange={event => change("clientName", event.target.value)} required aria-invalid={invalid === "clientName"} aria-describedby={invalid === "clientName" ? errorId : undefined} /></div>
-    <div className="grid gap-2"><Label htmlFor={`${prefix}-email`}>Correo electrónico</Label><Input id={`${prefix}-email`} name="email" type="email" inputMode="email" autoComplete="email" maxLength={254} value={fields.email} onChange={event => change("email", event.target.value)} required aria-invalid={invalid === "email"} aria-describedby={invalid === "email" ? errorId : undefined} /></div>
+    <fieldset className="public-reservation-contact"><legend>Tus datos</legend><div className="public-contact-fields">
+      <div className="grid gap-2"><Label htmlFor={`${prefix}-name`}>Tu nombre</Label><Input id={`${prefix}-name`} name="clientName" autoComplete="name" maxLength={100} value={fields.clientName} onChange={event => change("clientName", event.target.value)} required aria-invalid={invalid === "clientName"} aria-describedby={invalid === "clientName" ? errorId : undefined} /></div>
+      <div className="grid gap-2"><Label htmlFor={`${prefix}-email`}>Correo electrónico</Label><Input id={`${prefix}-email`} name="email" type="email" inputMode="email" autoComplete="email" maxLength={254} value={fields.email} onChange={event => change("email", event.target.value)} required aria-invalid={invalid === "email"} aria-describedby={invalid === "email" ? errorId : undefined} /></div>
+    </div></fieldset>
   </>;
 }

@@ -5,6 +5,7 @@ import { weeklyScheduleDay } from "./weeklyScheduleValidators";
 import { specialDay } from "./specialDateValidators";
 import { scheduleForDate } from "./lib/scheduleForDate";
 import { generateAvailability } from "./lib/availability";
+import { availableBookingDates, openBookingDates } from "./lib/bookingCalendar";
 import { isLocalDate } from "../lib/local-date";
 import { occupyingAppointmentsForDate, overlaps, requireMyAppointment, requireMyBusiness } from "./lib/appointmentData";
 import { activeBlocksForDate } from "./lib/timeBlocks";
@@ -57,6 +58,23 @@ export const getMyAvailability = action({
       ...result, slots, status: result.status === "available" && slots.length === 0 ? "empty" : result.status,
       generatedAt, date, timeZone: source.timeZone, service: source.service,
     };
+  },
+});
+
+export const getCalendarSource = internalQuery({
+  args: { serviceId: v.id("services"), month: v.string() }, returns: v.union(v.null(), v.array(v.string())),
+  handler: async (ctx, { serviceId, month }) => {
+    const business = await requireMyBusiness(ctx);
+    return openBookingDates(ctx, business._id, serviceId, month);
+  },
+});
+export const getMyAvailableDates = action({
+  args: { serviceId: v.id("services"), month: v.string() }, returns: v.union(v.null(), v.array(v.string())),
+  handler: async (ctx, args): Promise<string[] | null> => {
+    if (!await ctx.auth.getUserIdentity()) throw new ConvexError({ code: "UNAUTHENTICATED" });
+    const dates = await ctx.runQuery(internal.availability.getCalendarSource, args);
+    if (!dates) return null;
+    return availableBookingDates(dates, date => ctx.runQuery(internal.availability.getSource, { serviceId: args.serviceId, date }), Date.now());
   },
 });
 

@@ -3,7 +3,7 @@
 import { useAction, useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { CalendarCheck } from "@/components/ui/icons";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ export function PublicBooking({ slug }: { slug: string }) {
   const appearance = useQuery(api.publicAppearance.getPublic, { slug });
   const services = usePaginatedQuery(api.publicBooking.listServices, business ? { slug } : "skip", { initialNumItems: 30 });
   const availability = useAction(api.publicBooking.getAvailability);
+  const calendar = useAction(api.publicBooking.getAvailableDates);
   const confirm = useMutation(api.publicBooking.confirm);
   const [fields, setFields] = useState<Fields>(blank);
   const [pending, setPending] = useState<Attempt | null>(null);
@@ -44,6 +45,7 @@ export function PublicBooking({ slug }: { slug: string }) {
   const success = useRef<HTMLHeadingElement>(null);
   const form = useRef<HTMLFormElement>(null);
   const storageKey = `slotly:public-booking:${slug}`;
+  const loadDays = useCallback((month: string) => calendar({ slug, serviceId: fields.serviceId as Id<"services">, month }), [calendar, fields.serviceId, slug]);
   useEffect(() => {
     if (!error || busy) return;
     if (invalid) form.current?.querySelector<HTMLElement>(`[name="${invalid}"]`)?.focus();
@@ -100,7 +102,7 @@ export function PublicBooking({ slug }: { slug: string }) {
 
   function change(field: keyof Fields, value: string) {
     if (field === "start") setChosenContext(options.service);
-    setFields((old) => ({ ...old, [field]: value, ...(field === "serviceId" || field === "date" ? { start: "" } : {}) }));
+    setFields((old) => ({ ...old, [field]: value, ...(field === "serviceId" || field === "date" ? { start: "" } : {}), ...(field === "serviceId" ? { date: "" } : {}) }));
     setInvalid(null); setError("");
   }
   function fail(message: string, field: keyof Fields | null = null) {
@@ -191,13 +193,13 @@ export function PublicBooking({ slug }: { slug: string }) {
       <h2 className="mb-6 text-xl font-semibold tracking-tight">Reservar cita</h2>
       <fieldset disabled={busy || !!pending} className="grid gap-5">
         <legend className="sr-only">Datos de la reserva</legend>
-        <PublicReservationFields fields={{ ...fields, start: serviceChanged ? "" : fields.start }} change={change} timeZone={business.timeZone} datePicker={(appearance?.settings ?? defaultPublicAppearance).datePicker} invalid={invalid}
+        <PublicReservationFields fields={{ ...fields, start: serviceChanged ? "" : fields.start }} change={change} timeZone={business.timeZone} datePicker={(appearance?.settings ?? defaultPublicAppearance).datePicker} invalid={invalid} recovering={!!pending} loadDays={business && fields.serviceId && !pending ? loadDays : undefined}
           services={pending ? [] : services.results} servicesLoading={services.status === "LoadingFirstPage"}
           fallbackService={pending ? { id: pending.serviceId, label: pending.expectedService ? `${pending.expectedService.name} · ${pending.expectedService.durationMinutes} min` : "Servicio elegido" } : fields.serviceId && !services.results.some(s => s.id === fields.serviceId) ? { id: fields.serviceId, label: "Servicio elegido" } : undefined}
           serviceHelp={<>{!pending && services.status === "Exhausted" && !services.results.length && <p role="status" className="text-sm text-muted">No hay servicios disponibles.</p>}{!pending && (services.status === "CanLoadMore" || services.status === "LoadingMore") && <Button type="button" variant="outline" disabled={services.status !== "CanLoadMore"} onClick={() => services.loadMore(30)}>{services.status === "LoadingMore" ? "Cargando…" : "Ver más servicios"}</Button>}</>}
           starts={pending ? [{ value: String(pending.start), label: pendingSlot }] : [...(fields.start && !slots.some(s => String(s.start) === fields.start) ? [{ value: fields.start, label: "Horario elegido no disponible", disabled: true }] : []), ...slots.map(slot => ({ value: String(slot.start), label: `${slot.startTime} – ${slot.endTime}` }))]}
-          startDisabled={!canQuery || !readyOptions} startPlaceholder={canQuery && !readyOptions ? "Cargando horarios…" : "Elige un horario"}
-          startHelp={<>{canQuery && !readyOptions && <p role="status" className="text-sm text-muted">Cargando horarios…</p>}{serviceChanged && <p role="status" className="text-sm">El servicio cambió. Revisa su nombre y duración y vuelve a elegir un horario.</p>}{readyOptions && options.error ? <div><p role="alert" className="text-sm text-destructive">{options.error}</p><Button type="button" variant="outline" className="mt-3" onClick={() => setRefresh(value => value + 1)}>Reintentar horarios</Button></div> : readyOptions && !slots.length && <p role="status" className="text-sm text-muted">No hay horarios disponibles para esta fecha.</p>}</>} />
+          startDisabled={!pending && (!canQuery || !readyOptions)} startPlaceholder={canQuery && !readyOptions ? "Cargando horarios…" : "Elige un horario"}
+          startHelp={<>{serviceChanged && <p role="status" className="text-sm">El servicio cambió. Revisa su nombre y duración y vuelve a elegir un horario.</p>}{readyOptions && options.error ? <div><p role="alert" className="text-sm text-destructive">{options.error}</p><Button type="button" variant="outline" className="mt-3" onClick={() => setRefresh(value => value + 1)}>Reintentar horarios</Button></div> : readyOptions && !slots.length && <p role="status" className="text-sm text-muted">No hay horarios disponibles para esta fecha.</p>}</>} />
       </fieldset>
       {error && <p ref={alert} id="booking-error" role="alert" tabIndex={-1} className="mt-5 text-sm leading-6 text-destructive">{error}</p>}
       <Button type="submit" disabled={busy} className="mt-6 w-full sm:w-auto">{busy ? "Confirmando…" : pending ? "Reintentar confirmación" : "Confirmar cita"}</Button>
