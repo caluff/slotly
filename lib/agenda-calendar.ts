@@ -21,7 +21,7 @@ export function calendarRange(date: string, view: CalendarView): CalendarRange {
 
 export function readCalendarState(params: Pick<URLSearchParams, "get">, today: string) {
   const requested = params.get("calendario");
-  const view: CalendarView = requested === "semana" || requested === "mes" ? requested : "dia";
+  const view: CalendarView = requested === "dia" || requested === "mes" ? requested : "semana";
   const legacy = readAppointmentFilters(params, today);
   // Legacy temporal parameters supply a navigation anchor only. They never
   // remain hidden predicates after removing the range filter from the product.

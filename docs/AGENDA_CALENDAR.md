@@ -133,7 +133,7 @@ La región temporal recibe foco y permite flechas ±15min/día dentro del interv
 
 | Parámetro | Contrato |
 | --- | --- |
-| `calendario=dia\|semana\|mes` | Escala; por defecto Día. `vista` sigue reservado a Agenda/Servicios/Horario/Negocio. |
+| `calendario=dia\|semana\|mes` | Escala; por defecto Semana. Una escala válida explícita en la URL se conserva. `vista` sigue reservado a Agenda/Servicios/Horario/Negocio. |
 | `fecha=YYYY-MM-DD` | Fecha civil focal del negocio; no fecha del navegador. |
 | `cliente`, `servicio`, `estado=confirmed\|cancelled\|none` | Filtros combinados; ausente significa ambos. `none` no es un estado de cita. |
 | `desde`, `hasta`, `periodo`, `modo` | Solo enlaces antiguos para obtener un ancla de navegación; nunca filtros temporales invisibles. Se eliminan al navegar/buscar. |
