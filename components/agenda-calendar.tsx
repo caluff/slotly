@@ -19,6 +19,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { AppointmentEmailConfirmation } from "@/components/business-email-confirmations";
+import { AppointmentArchiveButton } from "@/components/appointment-archive";
 import { AgendaMiniCalendar } from "@/components/agenda-mini-calendar";
 import { AppointmentSearch, ConnectedAppointmentAction, type AppointmentActionProps } from "@/components/appointment-search";
 import { AgendaFiltersForm } from "@/components/agenda-filters";
@@ -71,6 +72,7 @@ function AgendaCalendarContent({ date, view, today, timeZone, filters, enabled, 
   const [showFilters, setShowFilters] = useState(false);
   const [leftVisible, setLeftVisible] = useState(true);
   const [resultsOpen, setResultsOpen] = useState(false);
+  const [archivedDetail, setArchivedDetail] = useState<CalendarAppointment | null>(null);
   const blocks = useTimeBlockActions();
   const blockTrigger = useRef<HTMLButtonElement>(null);
   const closeResults = useCallback((restoreFocus = true) => { setResultsOpen(false); if (restoreFocus) requestAnimationFrame(() => document.querySelector<HTMLInputElement>('#search-client')?.focus()); }, []);
@@ -87,6 +89,12 @@ function AgendaCalendarContent({ date, view, today, timeZone, filters, enabled, 
     <AgendaFiltersForm filters={filters} services={services} moreServices={moreServices} loadingServices={loadingServices} onLoadServices={onLoadServices} onSearch={onSearch} onNameSearch={values => { onSearch(values); setResultsOpen(true); }} /><div className="flex items-center gap-2 text-xs text-muted"><LockKeyhole size={14} aria-hidden="true" />Los bloqueos siguen visibles al filtrar.</div></>;
   const locate = (row: CalendarAppointment) => {
     setResultsOpen(false); if (mobile) closeFilters();
+    if (row.calendarArchivedAt !== undefined) {
+      const show = () => setArchivedDetail(row);
+      if (mobile && showFilters) pendingCreation.current = show;
+      else requestAnimationFrame(show);
+      return;
+    }
     const destination = new URL(calendarHref(new URLSearchParams(window.location.search), row.date, view), window.location.origin);
     destination.pathname = window.location.pathname; destination.searchParams.set('cita', row._id);
     window.history.pushState(null, '', `${destination.pathname}${destination.search}`);
@@ -117,6 +125,7 @@ function AgendaCalendarContent({ date, view, today, timeZone, filters, enabled, 
       </div>
     </div>
     <AgendaNameResults open={resultsOpen} modal={mobile} name={filters.client} onClose={closeResults}>{SearchComponent ? <SearchComponent onLocate={locate} /> : searchContent ?? <AppointmentSearch hideFilters filters={filters} today={today} timeZone={timeZone} enabled={enabled && resultsOpen} services={services} moreServices={moreServices} loadingServices={loadingServices} onLoadServices={onLoadServices} onSearch={onSearch} dayHref={dayHref} onLocate={locate} />}</AgendaNameResults>
+    {archivedDetail && <ConnectedDetail appointment={archivedDetail} latest={archivedDetail} timeZone={timeZone} now={0} onClose={() => setArchivedDetail(null)} onReturnFocus={() => { const input = document.querySelector<HTMLElement>('#search-client'); (input?.getBoundingClientRect().width ? input : filterTrigger.current)?.focus(); }} onAction={() => undefined} />}
   </Tabs.Root></CalendarCreationVisibility.Provider>;
 }
 
@@ -131,7 +140,7 @@ function ConnectedCalendar({ date, view, timeZone, enabled, filters, dayHref, on
 }) {
   const range = calendarRange(date, view);
   const { results, status, loadMore } = usePaginatedQuery(api.appointments.searchMyAppointments, enabled ? {
-    client: filters.client.trim(), serviceId: filters.service ? filters.service as Id<"services"> : undefined, status: filters.status || undefined, period: "todas", ...range,
+    client: filters.client.trim(), serviceId: filters.service ? filters.service as Id<"services"> : undefined, status: filters.status || undefined, period: "todas", calendarOnly: true, ...range,
   } : "skip", { initialNumItems: 100 });
   const schedule = useQuery(api.calendar.getMyCalendarSchedule, enabled ? range : "skip");
   const { results: blocks, status: blockStatus, loadMore: loadBlocks } = usePaginatedQuery(api.timeBlocks.listMyTimeBlocks, enabled ? range : "skip", { initialNumItems: 100 });
@@ -332,8 +341,8 @@ function CoincidencePreview({ date, preview, rows, timeZone, onOpenChange, onSel
     <Popover.Trigger asChild><Button ref={button} variant="ghost" className="agenda-time-more" aria-label={`${rows.length - 1} ${rows.length === 2 ? 'cita más' : 'citas más'}, ${rows.length} en el grupo, ${formatLocalDate(date)}. Ver lista completa`} onKeyDown={event => event.stopPropagation()} onPointerDown={event => event.stopPropagation()} onMouseDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}>+{rows.length - 1} más</Button></Popover.Trigger>
     <Popover.Portal><Popover.Content className="agenda-coincidence-panel" side="bottom" align="start" sideOffset={6} collisionPadding={16} aria-label={`Citas con horarios coincidentes, ${formatLocalDate(date)}`}
       onCloseAutoFocus={event => { if (next.current && button.current) { event.preventDefault(); const row = next.current; next.current = null; onSelect(row, button.current); } }}>
-      <div className="agenda-coincidence-heading"><div><h3>{rows.length} citas en este grupo</h3><p>{formatLocalDate(date)}</p></div><Popover.Close asChild><Button size="icon" variant="ghost" aria-label="Cerrar lista de citas"><X aria-hidden="true" /></Button></Popover.Close></div>
-      <ul className="agenda-coincidence-list" onPointerDown={event => event.stopPropagation()} onMouseDown={event => event.stopPropagation()}>{rows.map(row => <li key={row._id}><button type="button" className={`agenda-coincidence-item agenda-coincidence-${row.status}`} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") event.stopPropagation(); }} onClick={() => { next.current = row; change(false); }}><time>{time.format(row.start)}–{time.format(row.end)}</time><strong>{row.clientName}</strong><span>{row.serviceName} · {appointmentStatusLabels[row.status]}{row._id === preview._id ? ' · Visible en el calendario' : ''}</span></button></li>)}</ul>
+      <div className="agenda-coincidence-heading"><div><h3>{rows.length} citas en este grupo</h3><p>{formatLocalDate(date)}</p></div></div>
+      <ul className="agenda-coincidence-list" onPointerDown={event => event.stopPropagation()} onMouseDown={event => event.stopPropagation()}>{rows.map(row => <li key={row._id} className="agenda-coincidence-row" data-archivable={row.status === 'cancelled'}><button type="button" className={`agenda-coincidence-item agenda-coincidence-${row.status}`} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") event.stopPropagation(); }} onClick={() => { next.current = row; change(false); }}><time>{time.format(row.start)}–{time.format(row.end)}</time><strong>{row.clientName}</strong><span>{row.serviceName} · {appointmentStatusLabels[row.status]}{row._id === preview._id ? ' · Visible en el calendario' : ''}</span></button><AppointmentArchiveButton appointment={row} className="agenda-archive-button" onChanged={() => { change(false); requestAnimationFrame(() => document.querySelector<HTMLElement>(`.agenda-canvas [data-calendar-date="${date}"]`)?.focus()); }} /></li>)}</ul>
     </Popover.Content></Popover.Portal>
   </Popover.Root></div>;
 }
@@ -342,18 +351,20 @@ type DetailProps = { appointment: CalendarAppointment; latest: CalendarAppointme
 function ConnectedDetail(props: DetailProps) { const latest = useQuery(api.appointments.getMyAppointment, { appointmentId: props.appointment._id }); return <AppointmentDetail {...props} latest={latest ?? props.latest} emailStatus={<AppointmentEmailConfirmation appointmentId={props.appointment._id} />} />; }
 export function AppointmentDetail({ latest: row, timeZone, now, onClose, onReturnFocus, onAction, emailStatus }: DetailProps) {
   const [next, setNext] = useState<{ mode: "cancel" | "reschedule"; appointment: CalendarAppointment } | null>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
   const time = new Intl.DateTimeFormat("es-UY", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
   const future = now > 0 && row.status === "confirmed" && row.start > now;
   const outcomes = useAppointmentResults();
   const ended = now > 0 && row.status === "confirmed" && row.end <= now;
   return <Dialog.Root open={!next} onOpenChange={open => { if (!open) onClose(); }}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-50 bg-foreground/30" />
-    <Dialog.Content onEscapeKeyDown={event => event.stopPropagation()} className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-line bg-background p-5 sm:p-6"
+    <Dialog.Content onOpenAutoFocus={event => { event.preventDefault(); heading.current?.focus(); }} onEscapeKeyDown={event => event.stopPropagation()} className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-line bg-background p-5 sm:p-6"
       onCloseAutoFocus={event => { event.preventDefault(); if (next) onAction(next.mode, next.appointment); else onReturnFocus(); }}>
-      <div className="flex items-start justify-between gap-3"><Dialog.Title className="text-lg font-semibold">Detalle de la cita</Dialog.Title><Dialog.Close asChild><Button variant="ghost" size="icon" aria-label="Cerrar detalle"><X aria-hidden="true" /></Button></Dialog.Close></div>
+      <div className="flex items-start justify-between gap-3"><Dialog.Title ref={heading} tabIndex={-1} className="text-lg font-semibold focus:outline-none">Detalle de la cita</Dialog.Title><AppointmentArchiveButton appointment={row} onChanged={onClose} /></div>
       <Dialog.Description className="sr-only">Consulta los datos y las acciones disponibles de esta cita.</Dialog.Description>
       <dl className="my-5 space-y-4 text-sm"><div><dt className="text-muted">Cliente</dt><dd className="mt-1 font-semibold wrap-anywhere">{row.clientName}</dd></div><div><dt className="text-muted">Servicio</dt><dd className="mt-1 wrap-anywhere">{row.serviceName}</dd></div><div><dt className="text-muted">Fecha y horario</dt><dd className="mt-1">{formatLocalDate(row.date)}<br />{time.format(row.start)}–{time.format(row.end)}<br /><span className="text-muted wrap-anywhere">{timeZone}</span></dd></div><div><dt className="text-muted">Estado</dt><dd className={`mt-1 font-semibold appointment-status-${row.status}`}>{appointmentStatusLabels[row.status]}</dd></div>
         {emailStatus}
         {row.cancelledAt !== undefined && <div><dt className="text-muted">Cancelada el</dt><dd>{new Intl.DateTimeFormat("es-UY", { timeZone, dateStyle: "short", timeStyle: "short" }).format(row.cancelledAt)}</dd></div>}
+        {row.calendarArchivedAt !== undefined && <div><dt className="text-muted">Calendario</dt><dd>Archivada</dd></div>}
         {row.resultAt !== undefined && <div><dt className="text-muted">Resultado registrado el</dt><dd>{new Intl.DateTimeFormat("es-UY", { timeZone, dateStyle: "short", timeStyle: "short" }).format(row.resultAt)}</dd></div>}
         {row.rescheduledAt !== undefined && <div><dt className="text-muted">Última reprogramación</dt><dd>{new Intl.DateTimeFormat("es-UY", { timeZone, dateStyle: "short", timeStyle: "short" }).format(row.rescheduledAt)}</dd></div>}
       </dl>

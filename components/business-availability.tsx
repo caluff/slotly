@@ -1,4 +1,5 @@
 "use client";
+import { AppointmentArchiveWorkspace } from "@/components/appointment-archive";
 
 import { useAction, useConvex, useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
@@ -69,7 +70,7 @@ export function BusinessAvailability({ businessId, businessName, timeZone, enabl
   const appointments = useQuery(api.appointments.listMyOccupyingAppointments, enabled && isLocalDate(occupancyDate) ? { date: occupancyDate } : "skip");
   const specialDate = useQuery(api.specialDates.getMySpecialDate, enabled && isLocalDate(occupancyDate) ? { date: occupancyDate } : "skip");
   const blocks = useQuery(api.timeBlocks.getMyOccupation, enabled && isLocalDate(occupancyDate) ? { date: occupancyDate } : "skip");
-  return <AppointmentResultsWorkspace key={businessId} storageKey={businessId} onMark={mark} onUndo={undo} onArrive={arrive} onCancelWindow={cancelWindow}><ConnectedAppointmentAttention businessId={businessId} timeZone={timeZone} enabled={enabled}><AvailabilityPanel storageKey={businessId} businessName={businessName} services={results} loading={status === "LoadingFirstPage" || schedule === undefined}
+  return <AppointmentArchiveWorkspace key={businessId} storageKey={businessId}><AppointmentResultsWorkspace storageKey={businessId} onMark={mark} onUndo={undo} onArrive={arrive} onCancelWindow={cancelWindow}><ConnectedAppointmentAttention businessId={businessId} timeZone={timeZone} enabled={enabled}><AvailabilityPanel storageKey={businessId} businessName={businessName} services={results} loading={status === "LoadingFirstPage" || schedule === undefined}
     timeZone={timeZone} initialDate={singleDay} onSelectDate={(value) => navigate(dayHref(value))}
     agenda={onNew => <AgendaCalendar {...state} today={today} timeZone={timeZone} enabled={enabled && active} onNew={onNew}
       services={results} moreServices={status === "CanLoadMore" || status === "LoadingMore"} loadingServices={status === "LoadingMore"}
@@ -78,7 +79,7 @@ export function BusinessAvailability({ businessId, businessName, timeZone, enabl
     onConsult={consult} onCreate={create} onCheckCreation={checkCreation} initialService={state.filters.service} scheduleMissing={schedule === null} onDraftDateChange={setOccupancyDate}
     revision={JSON.stringify([results, schedule, specialDate, appointments, blocks, timeZone])}
     active={active && enabled} more={status === "CanLoadMore" || status === "LoadingMore"}
-    loadingMore={status === "LoadingMore"} onLoadMore={() => loadMore(20)} /></ConnectedAppointmentAttention></AppointmentResultsWorkspace>;
+    loadingMore={status === "LoadingMore"} onLoadMore={() => loadMore(20)} /></ConnectedAppointmentAttention></AppointmentResultsWorkspace></AppointmentArchiveWorkspace>;
 }
 
 export function AvailabilityPanel({ storageKey, businessName, services, loading, timeZone, initialDate, initialService = "", onConsult, onCreate, onCheckCreation, onSelectDate, onDraftDateChange, revision = "", more = false, loadingMore = false, onLoadMore, scheduleMissing = false, active = true, agenda }: {

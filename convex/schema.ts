@@ -105,6 +105,10 @@ export default defineSchema({
     rescheduledAt: v.optional(v.number()),
     rescheduledFromVersion: v.optional(v.number()),
     resultAt: v.optional(v.number()),
+    calendarArchived: v.optional(v.literal(true)),
+    calendarArchivedAt: v.optional(v.number()),
+    calendarArchiveVersion: v.optional(v.number()),
+    calendarArchiveCommand: v.optional(v.object({ operationId: v.string(), expectedVersion: v.number(), expectedArchiveVersion: v.number(), archived: v.boolean() })),
     automationEnabled: v.optional(v.boolean()),
     autoNoShowSuppressed: v.optional(v.boolean()),
     arrivedAt: v.optional(v.number()),
@@ -119,6 +123,8 @@ export default defineSchema({
     .index("by_businessId_and_date_and_holdsSlot", ["businessId", "date", "holdsSlot"])
     .index("by_businessId_and_status_and_start", ["businessId", "status", "start"])
     .index("by_businessId_and_date_and_start", ["businessId", "date", "start"])
+    .index("by_businessId_and_calendarArchived_and_date_and_start", ["businessId", "calendarArchived", "date", "start"])
+    .index("by_businessId_calendarArchived_serviceId_date_start", ["businessId", "calendarArchived", "serviceId", "date", "start"])
     .index("by_businessId_and_clientId_and_start", ["businessId", "clientId", "start"])
     .index("by_businessId_and_serviceId_and_date_and_start", ["businessId", "serviceId", "date", "start"]),
 });

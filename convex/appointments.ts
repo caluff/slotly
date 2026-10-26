@@ -26,12 +26,15 @@ const historyAppointment = v.object({
   clientName: v.string(), clientId: v.optional(v.id("clients")), date: v.string(), start: v.number(), end: v.number(),
   status: appointmentStatus, cancelledAt: v.optional(v.number()), resultAt: v.optional(v.number()),
   version: v.number(), rescheduledAt: v.optional(v.number()),
+  calendarArchivedAt: v.optional(v.number()), calendarArchiveVersion: v.optional(v.number()),
 });
 
 export function publicAppointment(row: import("./_generated/dataModel").Doc<"appointments">) {
   const { _id, serviceId, serviceName, clientName, date, start, end, status, cancelledAt, rescheduledAt, resultAt } = row;
   return { _id, serviceId, serviceName, clientName, date, start, end, status, version: row.version ?? 0,
     ...(row.clientId === undefined ? {} : { clientId: row.clientId }),
+    ...(row.calendarArchivedAt === undefined ? {} : { calendarArchivedAt: row.calendarArchivedAt }),
+    ...(row.calendarArchiveVersion === undefined ? {} : { calendarArchiveVersion: row.calendarArchiveVersion }),
     ...(cancelledAt === undefined ? {} : { cancelledAt }), ...(rescheduledAt === undefined ? {} : { rescheduledAt }),
     ...(resultAt === undefined ? {} : { resultAt }) };
 }
@@ -76,9 +79,10 @@ export const searchMyAppointments = query({
     period: v.union(v.literal("todas"), v.literal("proximas"), v.literal("pasadas")),
     from: v.string(), until: v.string(), referenceDate: v.optional(v.string()),
     paginationOpts: paginationOptsValidator,
+    calendarOnly: v.optional(v.boolean()),
   },
   returns: paginationResultValidator(historyAppointment),
-  handler: async (ctx, { client, serviceId, status, period, from, until, referenceDate, paginationOpts }) => {
+  handler: async (ctx, { client, serviceId, status, period, from, until, referenceDate, paginationOpts, calendarOnly }) => {
     const business = await requireMyBusiness(ctx);
     const filters = { client, service: serviceId ?? "", status, period, from, until };
     if (appointmentFilterError(filters)) throw new ConvexError({ code: "INVALID_FILTERS" });
@@ -93,7 +97,19 @@ export const searchMyAppointments = query({
     if (status === "none") return { page: [], isDone: true, continueCursor: "" };
     const bounds = appointmentDateBounds(filters, referenceDate);
     if (bounds.empty) return { page: [], isDone: true, continueCursor: "" };
-    const indexed = serviceId
+    const indexed = calendarOnly ? serviceId
+      ? ctx.db.query("appointments").withIndex("by_businessId_calendarArchived_serviceId_date_start", q => {
+        const owned = q.eq("businessId", business._id).eq("calendarArchived", undefined).eq("serviceId", serviceId);
+        const lower = bounds.from ? owned.gte("date", bounds.from) : owned;
+        if (bounds.before && (!bounds.until || bounds.before <= bounds.until)) return lower.lt("date", bounds.before);
+        return bounds.until ? lower.lte("date", bounds.until) : lower;
+      })
+      : ctx.db.query("appointments").withIndex("by_businessId_and_calendarArchived_and_date_and_start", q => {
+        const owned = q.eq("businessId", business._id).eq("calendarArchived", undefined);
+        const lower = bounds.from ? owned.gte("date", bounds.from) : owned;
+        if (bounds.before && (!bounds.until || bounds.before <= bounds.until)) return lower.lt("date", bounds.before);
+        return bounds.until ? lower.lte("date", bounds.until) : lower;
+      }) : serviceId
       ? ctx.db.query("appointments").withIndex("by_businessId_and_serviceId_and_date_and_start", (q) => {
         const owned = q.eq("businessId", business._id).eq("serviceId", serviceId);
         const lower = bounds.from ? owned.gte("date", bounds.from) : owned;

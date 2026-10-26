@@ -26,6 +26,7 @@ import { publicManagementScenarios, redactManagementEvidence } from "./public-ma
 import { publicReschedulingFixtureSource } from "./public-rescheduling-engine-fixtures.mjs";
 import { publicReschedulingScenarios, redactReschedulingEvidence } from "./public-rescheduling-engine-scenarios.mjs";
 import { appearanceFixtureSource, appearanceScenarios } from "./public-appearance-engine-scenarios.mjs";
+import { archiveFixtureSource, archiveScenarios } from "./appointment-archive-engine-scenarios.mjs";
 
 // REAL engine integration, entirely synthetic. Never reads .env.local or .convex.
 // Requires the Convex backend binary cached by the CLI, or SLOTLY_CONVEX_BACKEND.
@@ -210,6 +211,7 @@ export const snapshot = internalQuery({
   if (process.argv.includes("--public-management-only") || process.argv.includes("--public-rescheduling-only")) await writeFile(path.join(workspace, "convex", "engineFixtures.ts"), (await readFile(path.join(workspace, "convex", "engineFixtures.ts"), "utf8")) + publicManagementFixtureSource);
   if (process.argv.includes("--public-rescheduling-only")) await writeFile(path.join(workspace, "convex", "engineFixtures.ts"), (await readFile(path.join(workspace, "convex", "engineFixtures.ts"), "utf8")) + publicReschedulingFixtureSource);
   if (process.argv.includes("--public-appearance-only")) await writeFile(path.join(workspace, "convex", "engineFixtures.ts"), (await readFile(path.join(workspace, "convex", "engineFixtures.ts"), "utf8")) + appearanceFixtureSource);
+  if (process.argv.includes("--appointment-archive-only")) await writeFile(path.join(workspace, "convex", "engineFixtures.ts"), (await readFile(path.join(workspace, "convex", "engineFixtures.ts"), "utf8")) + archiveFixtureSource);
   await writeFile(path.join(workspace, "convex.json"), '{"functions":"convex/"}\n');
   await symlink(path.join(repo, "node_modules"), path.join(workspace, "node_modules"), process.platform === "win32" ? "junction" : "dir");
   const envFile = path.join(workspace, "isolated.env");
@@ -312,6 +314,8 @@ export const snapshot = internalQuery({
     }
     await rm(destination,{force:true});await rm(destination+".stop",{force:true});
     report.previewOnly=true;
+  } else if (process.argv.includes("--appointment-archive-only")) {
+    await archiveScenarios({ setup, makeClient, race, report, date, start, restart: async () => { await stopBackend(); await startBackend(); } });
   } else if (process.argv.includes("--public-appearance-only")) {
     await appearanceScenarios({ setup, makeClient, race, report, date, start, restart: async () => { await stopBackend(); await startBackend(); } });
   } else if (process.argv.includes("--public-rescheduling-only")) {
@@ -601,7 +605,7 @@ export const snapshot = internalQuery({
   report.weekChangePreservesInstants = true;
   report.anonymousRejected = true;
   }
-  report.limits = "Synthetic independent HTTP clients against real isolated local Convex/SQLite; not cloud races, Clerk, network fault injection, or load certification.";
+  report.limits ??= "Synthetic independent HTTP clients against real isolated local Convex/SQLite; not cloud races, Clerk, network fault injection, or load certification.";
   report.totalRequestsInRaces = report.scenarios.reduce((sum, s) => sum + s.requests, 0);
   report.success = true;
   console.log(redactReschedulingEvidence(redactManagementEvidence(JSON.stringify(report, null, 2))));

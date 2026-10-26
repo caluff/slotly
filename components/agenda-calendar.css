@@ -42,6 +42,10 @@
 .agenda-coincidence-item strong { display: block; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
 .agenda-coincidence-item:hover { outline: 1px solid currentColor; outline-offset: -1px; }
 .agenda-coincidence-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.agenda-coincidence-row { position: relative; }
+.agenda-coincidence-row[data-archivable="true"] > .agenda-coincidence-item { padding-right: 48px; }
+.agenda-coincidence-row > .agenda-archive-button { position: absolute; top: 2px; right: 2px; color: var(--destructive); }
+.agenda-coincidence-row > .agenda-archive-button:hover { background: color-mix(in srgb, var(--destructive) 9%, transparent); }
 .agenda-slot-guide { position: fixed; z-index: 30; pointer-events: none; border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 9%, transparent); }
 .agenda-slot-guide-closed { background: color-mix(in srgb, var(--muted) 8%, transparent); border-style: dashed; }
 .agenda-slot-guide span { position: fixed; max-width: calc(100vw - 32px); padding: 2px 6px; border-radius: 3px; color: white; background: var(--accent); font-size: 12px; line-height: 20px; font-variant-numeric: tabular-nums; white-space: nowrap; }
