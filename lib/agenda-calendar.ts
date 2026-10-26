@@ -1,6 +1,7 @@
 import { Temporal } from "@js-temporal/polyfill";
 import { isLocalDate } from "./local-date";
 import { readAppointmentFilters, type AgendaFilters } from "./appointment-search";
+import { appointmentStatuses, selectedAppointmentStatuses, type AppointmentStatus } from "./appointment-status";
 
 export const calendarViews = { dia: "timeGridDay", semana: "timeGridWeek", mes: "dayGridMonth" } as const;
 export type CalendarView = keyof typeof calendarViews;
@@ -48,11 +49,10 @@ export function calendarSearchHref(source: { toString(): string }, filters: Agen
   return `/dashboard?${next}`;
 }
 
-export function toggleCalendarStatus(status: string | undefined, target: "confirmed" | "cancelled") {
-  const confirmed = !status || status === "confirmed", cancelled = !status || status === "cancelled";
-  const nextConfirmed = target === "confirmed" ? !confirmed : confirmed;
-  const nextCancelled = target === "cancelled" ? !cancelled : cancelled;
-  return nextConfirmed && nextCancelled ? "" : nextConfirmed ? "confirmed" : nextCancelled ? "cancelled" : "none";
+export function toggleCalendarStatus(status: string | undefined, target: AppointmentStatus) {
+  const selected = new Set(selectedAppointmentStatuses(status) ?? []);
+  if (selected.has(target)) selected.delete(target); else selected.add(target);
+  return selected.size === appointmentStatuses.length ? "" : appointmentStatuses.filter(value => selected.has(value)).join(",") || "none";
 }
 
 export function stepCalendar(date: string, view: CalendarView, direction: number) {
@@ -79,7 +79,7 @@ export function civilInstant(date: string, time: string, timeZone: string) {
 
 // Connected components of intersecting intervals, not a booking/occupancy rule.
 // The visible preview retains its own interval; the list preserves every member.
-export function calendarCoincidences<T extends { _id: string; date: string; start: number; end: number; status: string }>(rows: T[]) {
+export function calendarCoincidences<T extends { _id: string; date: string; start: number; end: number; status: string }>(rows: T[], upcomingId?: string) {
   const unique = [...new Map(rows.map(row => [row._id, row])).values()];
   const ordered = unique.sort((a, b) => a.date.localeCompare(b.date) || a.start - b.start || a._id.localeCompare(b._id));
   const groups: T[][] = [];
@@ -90,7 +90,7 @@ export function calendarCoincidences<T extends { _id: string; date: string; star
   }
   if (current.length > 1) groups.push(current);
   const groupedIds = new Set(groups.flatMap(group => group.map(row => row._id)));
-  const previews = groups.map(group => group.find(row => row.status === 'confirmed') ?? group[0]);
+  const previews = groups.map(group => group.find(row => row._id === upcomingId) ?? group.find(row => row.status === 'confirmed') ?? group[0]);
   return { groups, groupedIds, previews };
 }
 

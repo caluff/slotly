@@ -3,11 +3,14 @@
 import { useAction, useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { ConvexError } from "convex/values";
-import { Search } from "lucide-react";
+import { Search } from "@/components/ui/icons";
 import { Component, useEffect, useRef, useState, type ComponentType, type ReactNode, type FormEvent } from "react";
 import { AppointmentCancelDialog, type CancelAppointment } from "@/components/appointment-cancel-dialog";
 import { AppointmentRescheduleDialog, type MoveResult } from "@/components/appointment-reschedule-dialog";
 import { AppointmentActionsMenu } from "@/components/appointment-actions-menu";
+import { AppointmentStatus } from "@/components/appointment-status";
+import { useAppointmentResults } from "@/components/appointment-results";
+import { appointmentStatusLabels } from "@/lib/appointment-status";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
@@ -29,7 +32,7 @@ export type AppointmentActionProps = { appointment: SearchAppointment; latest: S
 export function ConnectedAppointmentAction({ appointment, mode, proposal, onClose, onReturnFocus, onMoved, timeZone, dayHref }: AppointmentActionProps & { timeZone: string; dayHref: (date: string) => string }) {
   const latest = useQuery(api.appointments.getMyAppointment, { appointmentId: appointment._id });
   const [date, setDate] = useState(proposal?.date ?? appointment.date);
-  const occupied = useQuery(api.appointments.listMyConfirmedAppointments, mode === "reschedule" && isLocalDate(date) ? { date } : "skip");
+  const occupied = useQuery(api.appointments.listMyOccupyingAppointments, mode === "reschedule" && isLocalDate(date) ? { date } : "skip");
   const schedule = useQuery(api.weeklySchedule.getMyWeeklySchedule, mode === "reschedule" ? {} : "skip");
   const specialDate = useQuery(api.specialDates.getMySpecialDate, mode === "reschedule" && isLocalDate(date) ? { date } : "skip");
   const blocks = useQuery(api.timeBlocks.getMyOccupation, mode === "reschedule" && isLocalDate(date) ? { date } : "skip");
@@ -90,7 +93,7 @@ export function AppointmentSearchFilters({ filters, today, services, moreService
           {services.map((service) => <option key={service._id} value={service._id}>{service.name}</option>)}
         </NativeSelect>
       </Field>
-      {sidebar && <Field className="min-w-0 gap-2"><FieldLabel htmlFor="search-status">Estado</FieldLabel><NativeSelect id="search-status" name="status" className="w-full" defaultValue={filters.status ?? ""}><option value="">Todas</option><option value="confirmed">Confirmadas</option><option value="cancelled">Canceladas</option></NativeSelect></Field>}
+      {sidebar && <Field className="min-w-0 gap-2"><FieldLabel htmlFor="search-status">Estado</FieldLabel><NativeSelect id="search-status" name="status" className="w-full" defaultValue={filters.status ?? ""}><option value="">Todas</option><option value="confirmed">Confirmadas</option><option value="cancelled">Canceladas</option><option value="completed">Completadas</option><option value="no_show">No asistió</option></NativeSelect></Field>}
       {!sidebar && <Field className="min-w-0 gap-2"><FieldLabel htmlFor="search-period">Período</FieldLabel>
         <NativeSelect id="search-period" name="period" className="w-full" value={temporal.period} aria-describedby="search-period-help"
           onChange={(event) => { const period = event.target.value as AgendaPeriod; setTemporal((current) => ({ period, ...appointmentPeriodDates(period, today, current) })); }}>
@@ -132,7 +135,7 @@ export class SearchReadBoundary extends Component<{ children: ReactNode }, { err
 function SearchRead({ filters, today, timeZone, enabled, dayHref, onLocate }: { filters: AppointmentFilters; today: string; timeZone: string; enabled: boolean; dayHref: (date: string) => string; onLocate?: (appointment: SearchAppointment) => void }) {
   const cancel = useMutation(api.appointments.cancelMyAppointment);
   const { results, status, loadMore } = usePaginatedQuery(api.appointments.searchMyAppointments, enabled ? {
-    client: filters.client.trim(), serviceId: filters.service ? filters.service as Id<"services"> : undefined, status: filters.status ? filters.status as "confirmed" | "cancelled" | "none" : undefined,
+    client: filters.client.trim(), serviceId: filters.service ? filters.service as Id<"services"> : undefined, status: filters.status || undefined,
     period: filters.period, from: filters.from, until: filters.until, referenceDate: filters.period === "todas" ? undefined : today,
   } : "skip", { initialNumItems: 50 });
   if (onLocate) return <AppointmentLocateResults appointments={results} status={status} timeZone={timeZone} onLocate={onLocate} onLoadMore={() => loadMore(50)} />;
@@ -145,7 +148,7 @@ export function AppointmentLocateResults({ appointments, status, timeZone, onLoa
   const time = new Intl.DateTimeFormat('es-UY', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
   return <div aria-busy={loading}>
     <p role="status" className="agenda-find-status">{status === 'LoadingFirstPage' ? 'Buscando en todas las fechas…' : remaining ? `${appointments.length} citas cargadas · Quedan páginas` : appointments.length ? `${appointments.length} ${appointments.length === 1 ? 'cita encontrada' : 'citas encontradas'}` : 'Sin coincidencias con estos filtros.'}</p>
-    {status !== 'LoadingFirstPage' && <ul className="agenda-find-list">{appointments.map(row => <li key={row._id}><button type="button" className={row.status === 'cancelled' ? 'agenda-find-cancelled' : ''} onClick={() => onLocate(row)} aria-label={`Localizar ${row.clientName}, ${formatLocalDate(row.date)}, ${time.format(row.start)} a ${time.format(row.end)}`}><strong>{row.clientName}</strong><time>{formatLocalDate(row.date)} · {time.format(row.start)}–{time.format(row.end)}</time><span>{row.serviceName} · {row.status === 'cancelled' ? 'Cancelada' : 'Confirmada'}</span></button></li>)}</ul>}
+    {status !== 'LoadingFirstPage' && <ul className="agenda-find-list">{appointments.map(row => <li key={row._id}><button type="button" className={`agenda-find-${row.status}`} onClick={() => onLocate(row)} aria-label={`Localizar ${row.clientName}, ${formatLocalDate(row.date)}, ${time.format(row.start)} a ${time.format(row.end)}`}><strong>{row.clientName}</strong><time>{formatLocalDate(row.date)} · {time.format(row.start)}–{time.format(row.end)}</time><span>{row.serviceName} · {appointmentStatusLabels[row.status]}</span></button></li>)}</ul>}
     {remaining && <Button type="button" className="mt-3" variant="outline" disabled={loading} onClick={onLoadMore}>{loading ? 'Buscando…' : appointments.length ? 'Cargar más citas' : 'Seguir buscando'}</Button>}
   </div>;
 }
@@ -156,6 +159,7 @@ export function AppointmentSearchResults({ appointments, status, timeZone, dayHr
   actionComponent?: ComponentType<AppointmentActionProps & { timeZone: string; dayHref: (date: string) => string }>;
 }) {
   const [selected, setSelected] = useState<{ appointment: SearchAppointment; mode: "cancel" | "reschedule" } | null>(null);
+  const outcomes = useAppointmentResults();
   const [moved, setMoved] = useState<MoveResult | null>(null);
   const noticeLink = useRef<HTMLAnchorElement>(null);
   const [now, setNow] = useState(0);
@@ -191,15 +195,17 @@ export function AppointmentSearchResults({ appointments, status, timeZone, dayHr
         {appointments.map((item) => <li key={item._id} className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-3 py-5 sm:grid-cols-[minmax(12rem,1fr)_minmax(0,1.2fr)_auto] sm:items-center sm:gap-x-6">
           <div className="col-span-2 min-w-0 sm:col-span-1"><time dateTime={item.date} className="text-sm font-semibold first-letter:uppercase">{formatLocalDate(item.date)}</time>
             <p className="mt-1 tabular-nums"><time dateTime={new Date(item.start).toISOString()}>{time.format(item.start)}</time><span aria-hidden="true">–</span><span className="sr-only"> a </span><time dateTime={new Date(item.end).toISOString()}>{time.format(item.end)}</time></p></div>
-          <div className="min-w-0"><p className="wrap-anywhere font-semibold">{item.clientName}</p><p className="mt-1 wrap-anywhere text-sm text-muted">{item.serviceName} · <span className={item.status === "cancelled" ? "font-semibold text-destructive" : ""}>{item.status === "cancelled" ? "Cancelada" : "Confirmada"}</span></p>
+          <div className="min-w-0"><p className="wrap-anywhere font-semibold">{item.clientName}</p><p className="mt-1 wrap-anywhere text-sm text-muted">{item.serviceName} · <AppointmentStatus status={item.status} /></p>
             {item.cancelledAt !== undefined && <p className="mt-1 text-xs leading-5 text-muted">Cancelada el {new Intl.DateTimeFormat("es-UY", { timeZone, dateStyle: "short", timeStyle: "short" }).format(item.cancelledAt)} · {timeZone}</p>}
+            {item.resultAt !== undefined && <p className="mt-1 text-xs leading-5 text-muted">Resultado registrado el {new Intl.DateTimeFormat("es-UY", { timeZone, dateStyle: "short", timeStyle: "short" }).format(item.resultAt)} · {timeZone}</p>}
             {item.rescheduledAt !== undefined && <p className="mt-1 text-xs leading-5 text-muted">Última reprogramación: {new Intl.DateTimeFormat("es-UY", { timeZone, dateStyle: "short", timeStyle: "short" }).format(item.rescheduledAt)} · {timeZone}</p>}</div>
           <div className="flex justify-end">
             <AppointmentActionsMenu label={`Acciones de la cita de ${item.clientName}, ${item.date} a las ${time.format(item.start)}`}
               date={item.date} dayHref={dayHref(item.date)}
               canReschedule={!!Action && now > 0 && item.status === "confirmed" && item.start > now}
               canCancel={!!onCancel && now > 0 && item.status === "confirmed" && item.start > now}
-              onAction={(mode, button) => { trigger.current = button; setSelected({ appointment: item, mode }); }} />
+              canMarkResult={!!outcomes && now > 0 && item.status === "confirmed" && item.end <= now} resultBlocked={outcomes?.blocked}
+              onAction={(mode, button) => { trigger.current = button; if (mode === "completed" || mode === "no_show") { void outcomes?.mark(item, mode).then(returnFocus); } else setSelected({ appointment: item, mode }); }} />
           </div>
         </li>)}
       </ol>}

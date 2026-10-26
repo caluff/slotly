@@ -4,7 +4,7 @@ import { Brand } from "@/components/brand";
 import { PublicBooking } from "@/components/public-booking";
 import { PublicBookingProvider } from "@/components/public-booking-provider";
 
-export const metadata: Metadata = { title: "Reservar cita", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Reservar cita", robots: { index: false, follow: false }, referrer: "no-referrer" };
 
 async function Booking({ params }: Pick<PageProps<"/reservar/[slug]">, "params">) {
   const { slug } = await params;

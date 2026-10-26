@@ -25,6 +25,7 @@ function moveError(cause: unknown) {
   const code = cause instanceof ConvexError ? cause.data?.code : undefined;
   if (code === "UNAUTHENTICATED") return "Tu sesión dejó de estar disponible. Vuelve a iniciar sesión antes de reintentar.";
   if (code === "APPOINTMENT_CONFLICT") return "La cita cambió. Revisa el horario actualizado antes de confirmar otro movimiento.";
+  if (code === "APPOINTMENT_NOT_CONFIRMED") return "La cita ya tiene un resultado y no se puede reprogramar.";
   if (code === "APPOINTMENT_CANCELLED") return "La cita está cancelada y no se puede reprogramar.";
   if (code === "APPOINTMENT_STARTED") return "La cita ya comenzó. Solo puedes reprogramar antes de su inicio.";
   if (code === "SLOT_TAKEN" || code === "SLOT_UNAVAILABLE") return "El horario ya no está disponible. Elige otra opción; tu cita conserva su horario actual.";
@@ -60,7 +61,7 @@ export function AppointmentRescheduleDialog({ appointment: initial, latest = ini
   const dateRef = useRef<HTMLInputElement>(null);
   const errorRef = useRef<HTMLParagraphElement>(null);
   const changed = latest.version !== appointment.version;
-  const cancelled = latest.status === "cancelled";
+  const cancelled = latest.status !== "confirmed";
   const key = JSON.stringify([date, appointment.version, revision, attempt]);
   const time = new Intl.DateTimeFormat("es-UY", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
   const interval = (row: { date: string; start: number; end: number }) => `${formatLocalDate(row.date)}, ${time.format(row.start)}–${time.format(row.end)}`;
@@ -98,7 +99,7 @@ export function AppointmentRescheduleDialog({ appointment: initial, latest = ini
   const slot = data?.slots.find((item) => String(item.start) === start && item.start > serverNow);
   const stalePreview = data && data.version !== appointment.version;
   const blocked = pending || changed || cancelled || !!result;
-  const optionsMessage = cancelled ? "Consulta detenida: esta cita está cancelada." : failure?.key === key ? failure.message : !isLocalDate(date) ? "Elige una fecha válida." : !data ? "Consultando horarios…" : data.status !== "available" ? emptyMessages[data.status] : null;
+  const optionsMessage = cancelled ? "Consulta detenida: esta cita ya no está confirmada." : failure?.key === key ? failure.message : !isLocalDate(date) ? "Elige una fecha válida." : !data ? "Consultando horarios…" : data.status !== "available" ? emptyMessages[data.status] : null;
   async function send(args: MoveArgs) {
     if (inFlight.current || result) return;
     inFlight.current = true; setPending(true); setError(null);
@@ -135,11 +136,11 @@ export function AppointmentRescheduleDialog({ appointment: initial, latest = ini
       {proposal && !result && <p className="mb-4 text-sm leading-6">Destino del arrastre: {formatLocalDate(proposal.date)}, {time.format(proposal.start)}. El horario original sigue reservado hasta confirmar.</p>}
       {result ? <div role="status" className="mb-5 space-y-3 text-sm leading-6">
         <p>{result.outcome === "unchanged" ? "Elegiste el mismo intervalo. La cita no cambió." : result.outcome === "already_rescheduled" ? "Este movimiento ya estaba aplicado. No se volvió a modificar la cita." : "El nuevo horario quedó guardado."}</p>
-        <p>{latest.version > result.version ? `La cita volvió a cambiar después de este intento. ${cancelled ? "Ahora está cancelada." : `Horario actual: ${interval(latest)} (${timeZone}).`}` : `Horario de la cita: ${interval(result)} (${timeZone}).`}</p>
+        <p>{latest.version > result.version ? `La cita volvió a cambiar después de este intento. ${cancelled ? "Ya no está confirmada." : `Horario actual: ${interval(latest)} (${timeZone}).`}` : `Horario de la cita: ${interval(result)} (${timeZone}).`}</p>
         {!cancelled && <Button asChild variant="outline"><a href={dayHref(latest.version > result.version ? latest.date : result.date)} onClick={(event) => { close(); navigateWorkspace(event); }}>Localizar fecha</a></Button>}
       </div> : <form onSubmit={submit} className="space-y-4" aria-busy={pending}>
         {!pending && (changed || stalePreview || cancelled) && <div role="status" className="space-y-3 text-sm leading-6">
-          <p>{cancelled ? "La cita fue cancelada y no se puede reprogramar." : `La cita cambió en otra pestaña. Horario actual: ${interval(latest)} (${timeZone}). Revisa el contexto actualizado antes de confirmar.`}</p>
+          <p>{cancelled ? "La cita ya no está confirmada y no se puede reprogramar." : `La cita cambió en otra pestaña. Horario actual: ${interval(latest)} (${timeZone}). Revisa el contexto actualizado antes de confirmar.`}</p>
           {!cancelled && <Button variant="outline" type="button" disabled={pending || (!changed && !!stalePreview)} onClick={() => { setAppointment(latest); setError(null); setRetry(null); setAttempt((value) => value + 1); dateRef.current?.focus(); }}>Revisar horario actualizado</Button>}
         </div>}
         <Field className="gap-2"><FieldLabel htmlFor="reschedule-date">Nueva fecha</FieldLabel><Input ref={dateRef} id="reschedule-date" type="date" min="0001-01-01" max="9999-12-31" value={date} disabled={blocked} onChange={(event) => { setDate(event.target.value); setError(null); }} /></Field>

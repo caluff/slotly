@@ -8,7 +8,9 @@ import { useState } from "react";
 import { useLastDefined } from "@/components/use-last-defined";
 import { BusinessProfileForm } from "@/components/business-profile-form";
 import { BusinessBookingLink } from "@/components/business-booking-link";
+import { BusinessEmailConfirmations } from "@/components/business-email-confirmations";
 import { BusinessServices } from "@/components/business-services";
+import { BusinessClients } from "@/components/business-clients";
 import { BusinessWeeklySchedule } from "@/components/business-weekly-schedule";
 import { BusinessAvailability } from "@/components/business-availability";
 import { WorkspaceLink } from "@/components/dashboard-workspace";
@@ -56,8 +58,8 @@ function AuthenticatedBusinessProfile({ timeZones, enabled }: { timeZones: strin
 
   return <div key={business._id} className="workspace-business-content">
     {/* Keep each view mounted: back/forward and navigation preserve unsaved work. */}
-    <section className="workspace-agenda" aria-label="Agenda"><BusinessAvailability businessName={business.name} timeZone={business.timeZone} enabled={enabled} /></section>
-    <WorkspacePanels services={<BusinessServices enabled={enabled} />} schedule={<BusinessWeeklySchedule timeZone={business.timeZone} enabled={enabled} />} business={<>
+    <section className="workspace-agenda" aria-label="Agenda"><BusinessAvailability businessId={business._id} businessName={business.name} timeZone={business.timeZone} enabled={enabled} /></section>
+    <WorkspacePanels clients={<BusinessClients businessId={business._id} timeZone={business.timeZone} enabled={enabled && active === "clientes"} />} services={<BusinessServices enabled={enabled} />} schedule={<BusinessWeeklySchedule timeZone={business.timeZone} enabled={enabled} />} business={<>
       <h1 id="business-heading" tabIndex={-1} className="workspace-title">Negocio</h1>
       <p className="workspace-description">Los datos que definen tu espacio de trabajo.</p>
       <dl className="mt-8 max-w-2xl divide-y divide-line border-y border-line">
@@ -65,6 +67,7 @@ function AuthenticatedBusinessProfile({ timeZones, enabled }: { timeZones: strin
         <div className="py-5"><dt className="text-sm text-muted">Zona horaria</dt><dd className="mt-1 wrap-anywhere">{business.timeZone}</dd></div>
       </dl>
       <BusinessBookingLink enabled={enabled && active === "negocio"} />
+      <BusinessEmailConfirmations enabled={enabled && active === "negocio"} />
       <p className="mt-6 max-w-prose text-sm leading-6 text-muted">Las fechas y horas de tu <WorkspaceLink view="agenda">agenda</WorkspaceLink> y tu <WorkspaceLink view="horario">horario de atención</WorkspaceLink> se muestran en esta zona.</p>
     </>} />
   </div>;

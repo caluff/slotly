@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { CircleCheckIcon } from "lucide-react";
+import { CircleCheckIcon } from "@/components/ui/icons";
 import { Toaster as Sonner } from "sonner";
 
 // shadcn/ui's Sonner wrapper, adapted to Slotly's fixed light theme and tokens.

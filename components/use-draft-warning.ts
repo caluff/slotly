@@ -11,7 +11,8 @@ export function leaveWithoutDrafts(href: string) {
 }
 
 // Views stay mounted inside the workspace. Warn when leaving the document.
-// Drafts and personal data are never put in shared/browser storage.
+// Ordinary drafts remain in memory. Recoverable commands manage their own
+// explicitly scoped tab storage before sending, independently of this warning.
 export function useDraftWarning(dirty: boolean) {
   useEffect(() => {
     if (!dirty) return;

@@ -6,7 +6,7 @@ import { specialDay } from "./specialDateValidators";
 import { scheduleForDate } from "./lib/scheduleForDate";
 import { generateAvailability } from "./lib/availability";
 import { isLocalDate } from "../lib/local-date";
-import { confirmedAppointmentsForDate, overlaps, requireMyAppointment, requireMyBusiness } from "./lib/appointmentData";
+import { occupyingAppointmentsForDate, overlaps, requireMyAppointment, requireMyBusiness } from "./lib/appointmentData";
 import { activeBlocksForDate } from "./lib/timeBlocks";
 import { serviceOption } from "./serviceValidators";
 
@@ -36,7 +36,7 @@ export const getSource = internalQuery({
       timeZone: business.timeZone,
       service: { id: service._id, name: service.name, durationMinutes: service.durationMinutes, version: service.version ?? 0 },
       ...schedule,
-      occupied: [...await confirmedAppointmentsForDate(ctx, business._id, date), ...await activeBlocksForDate(ctx, business._id, date)].map(({ start, end }) => ({ start, end })),
+      occupied: [...await occupyingAppointmentsForDate(ctx, business._id, date), ...await activeBlocksForDate(ctx, business._id, date)].map(({ start, end }) => ({ start, end })),
     };
   },
 });
@@ -66,12 +66,12 @@ export const getRescheduleSource = internalQuery({
     days: v.union(v.array(weeklyScheduleDay), v.null()), specialDay: v.union(specialDay, v.null()), occupied: v.array(v.object({ start: v.number(), end: v.number() })) }),
   handler: async (ctx, { appointmentId, date }) => {
     const { business, saved } = await requireMyAppointment(ctx, appointmentId);
-    if (saved.status !== "confirmed") throw new ConvexError({ code: "APPOINTMENT_CANCELLED" });
+    if (saved.status !== "confirmed") throw new ConvexError({ code: saved.status === "cancelled" ? "APPOINTMENT_CANCELLED" : "APPOINTMENT_NOT_CONFIRMED" });
     if (!isLocalDate(date)) throw new ConvexError({ code: "INVALID_DATE" });
     const service = await ctx.db.get("services", saved.serviceId);
     if (!service || service.businessId !== business._id) throw new ConvexError({ code: "SERVICE_NOT_FOUND" });
     const schedule = await scheduleForDate(ctx, business._id, date);
-    const occupied = (await confirmedAppointmentsForDate(ctx, business._id, date))
+    const occupied = (await occupyingAppointmentsForDate(ctx, business._id, date))
       .filter((row) => row._id !== saved._id).map(({ start, end }) => ({ start, end }));
     occupied.push(...(await activeBlocksForDate(ctx, business._id, date)).map(({ start, end }) => ({ start, end })));
     return { timeZone: business.timeZone, service: { id: service._id, name: saved.serviceName, durationMinutes: (saved.end - saved.start) / 60_000, version: service.version ?? 0 },

@@ -1,6 +1,6 @@
 "use client";
 
-import { X } from "lucide-react";
+import { X } from "@/components/ui/icons";
 import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { usePanelSurface } from "@/components/workspace-panel";

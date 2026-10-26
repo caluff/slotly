@@ -46,6 +46,12 @@ body {
   color: var(--foreground);
 }
 
+/* AnimateIcons sizes the SVG with attributes; its wrapper owns Slotly's size. */
+.slotly-icon > svg {
+  width: 100%;
+  height: 100%;
+}
+
 :focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 4px;

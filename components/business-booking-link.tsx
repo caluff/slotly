@@ -3,7 +3,7 @@
 import { useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import type { FunctionReturnType } from "convex/server";
-import { Copy, ExternalLink } from "lucide-react";
+import { Copy, ExternalLink } from "@/components/ui/icons";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
@@ -50,7 +50,7 @@ export function BookingLinkPanel({ enabled, link, save }: { enabled: boolean; li
     </div>
     {link?.slug && <div className="mt-4 flex items-center gap-2">
       <a href={`/reservar/${link.slug}`} target="_blank" rel="noopener noreferrer" className="text-link min-w-0 flex-1 wrap-anywhere text-sm">
-        /reservar/{link.slug}<ExternalLink aria-hidden="true" className="ml-2 inline size-3.5" />
+        /reservar/{link.slug}<ExternalLink aria-hidden="true" className="ml-2 size-3.5" />
         <span className="sr-only"> (abre en otra pestaña)</span>
       </a>
       <Button variant="ghost" size="icon" aria-label="Copiar enlace de reservas" onClick={copy}><Copy aria-hidden="true" /></Button>

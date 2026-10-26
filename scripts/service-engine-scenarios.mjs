@@ -180,8 +180,10 @@ export async function serviceScenarios({ setup, date, start, makeClient, race, r
   // Reto09 persisted attempts with no catalogue context still acknowledge their
   // immutable receipt; they cannot create a new appointment without context.
   const oldClient = makeClient(undefined, undefined, false), oldArgs = { ...acceptedPublic.args }; delete oldArgs.expectedService;
-  assert.deepEqual(await oldClient.mutation("publicBooking:confirm", oldArgs), receipt);
-  assert.equal((await oldClient.mutation("publicBooking:confirm", { ...oldArgs, attemptKey: randomUUID(), start: start + 30 * minute })).code, "SERVICE_CHANGED");
+  // This receipt was created by the email release: omitting its email/context is a payload conflict.
+  // Truly legacy email-free receipts are covered by emailClientsScenarios with stored legacy fixtures.
+  assert.equal((await oldClient.mutation("publicBooking:confirm", oldArgs)).code, "ATTEMPT_CONFLICT");
+  assert.equal((await oldClient.mutation("publicBooking:confirm", { ...oldArgs, email: "regression@example.test", attemptKey: randomUUID(), start: start + 30 * minute })).code, "SERVICE_CHANGED");
   assert.deepEqual((await snapshot(who)).appointments, originals);
   await assert.rejects(makeClient().mutation("services:changeMyService", restore.args), /UNAUTHENTICATED/);
   await assert.rejects(other.client.mutation("services:changeMyService", restore.args), /SERVICE_NOT_FOUND/);
@@ -257,6 +259,6 @@ export async function serviceScenarios({ setup, date, start, makeClient, race, r
   await options(who); await options(fresh);
   report.services = { rounds: 3, races: scenarios.length * 3, requests: scenarios.length * 6, serialControls: serial,
     legacyDurationPreservedUntilExplicitEdit: true, legacyReschedule46AfterCatalogue20: true, historical30RejectsOverlapAfterCatalogue15: true, original30AndNew45Verified: true, acceptedReceiptAfterABA: true,
-    oldReceiptWithoutContext: true, missingNewContextRejected: true, invalidDurations: invalid, validDurations: [15, 20, 25, 30, 35, 45, 60, 9007199254740990],
+    emailReceiptMissingPayloadRejected: true, missingNewContextRejected: true, invalidDurations: invalid, validDurations: [15, 20, 25, 30, 35, 45, 60, 9007199254740990],
     lostResponseReplayStable: true, staleCommandsAfterABARejected: true, noOpMetadataUnchanged: true, ownershipAndPrivacy: true };
 }

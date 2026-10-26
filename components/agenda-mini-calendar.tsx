@@ -1,7 +1,7 @@
 "use client";
 
 import { Temporal } from "@js-temporal/polyfill";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "@/components/ui/icons";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { calendarRange, stepCalendar } from "@/lib/agenda-calendar";

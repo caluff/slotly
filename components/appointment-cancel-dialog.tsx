@@ -17,6 +17,7 @@ function cancellationError(cause: unknown) {
   const code = cause instanceof ConvexError ? cause.data?.code : undefined;
   if (code === "UNAUTHENTICATED") return "Tu sesión dejó de estar disponible. Vuelve a iniciar sesión antes de reintentar.";
   if (code === "BUSINESS_NOT_FOUND" || code === "APPOINTMENT_NOT_FOUND") return "No tienes acceso a esta cita. Recarga la agenda para comprobar tu cuenta.";
+  if (code === "APPOINTMENT_NOT_CONFIRMED") return "La cita ya tiene un resultado y no se puede cancelar.";
   if (code === "APPOINTMENT_STARTED") return "La cita ya comenzó. Solo puedes cancelar antes de su hora de inicio.";
   if (code === "APPOINTMENT_CONFLICT") return "La cita cambió desde que abriste la confirmación. Revisa el horario actualizado antes de cancelar.";
   return "No pudimos confirmar la cancelación. Comprueba tu conexión y reintenta; conservamos los datos de la cita.";
@@ -36,11 +37,12 @@ export function AppointmentCancelDialog({ appointment: initial, latest = initial
   const [repeatedAt, setRepeatedAt] = useState<number | null>(null);
   const cancelled = latest.status === "cancelled" || repeatedAt !== null;
   const changed = latest.version !== appointment.version;
+  const terminal = latest.status !== "confirmed" && latest.status !== "cancelled";
   const cancelledAt = repeatedAt ?? latest.cancelledAt;
   const time = new Intl.DateTimeFormat("es-UY", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
   const timestamp = new Intl.DateTimeFormat("es-UY", { timeZone, dateStyle: "medium", timeStyle: "short" });
   async function confirm() {
-    if (inFlight.current || cancelled || changed) return;
+    if (inFlight.current || cancelled || changed || terminal) return;
     inFlight.current = true;
     setPending(true);
     setError(null);
@@ -76,11 +78,11 @@ export function AppointmentCancelDialog({ appointment: initial, latest = initial
           <div><dt className="text-muted">Fecha y horario</dt><dd className="mt-1">{formatLocalDate(appointment.date)}<br /><span className="tabular-nums">{time.format(appointment.start)}–{time.format(appointment.end)}</span><br /><span className="text-muted wrap-anywhere">{timeZone}</span></dd></div>
         </dl>
         {cancelled && <p role="status" className="mb-5 text-sm leading-6">Cancelada{cancelledAt !== undefined ? ` el ${timestamp.format(cancelledAt)} (${timeZone})` : ""}.</p>}
-        {changed && !cancelled && !pending && <div role="status" className="mb-5 space-y-3 text-sm leading-6"><p>La cita cambió en otra pestaña. Ahora está confirmada para el {formatLocalDate(latest.date)}, {time.format(latest.start)}–{time.format(latest.end)} ({timeZone}). Revisa este horario antes de cancelar.</p><Button variant="outline" disabled={pending} onClick={() => { setAppointment(latest); setError(null); }}>Revisar horario actualizado</Button></div>}
+        {changed && !cancelled && !pending && <div role="status" className="mb-5 space-y-3 text-sm leading-6"><p>La cita cambió en otra pestaña. Estado actual: {latest.status === "completed" ? "Completada" : latest.status === "no_show" ? "No asistió" : "Confirmada"}, para el {formatLocalDate(latest.date)}, {time.format(latest.start)}–{time.format(latest.end)} ({timeZone}). Revisa este horario antes de cancelar.</p><Button variant="outline" disabled={pending} onClick={() => { setAppointment(latest); setError(null); }}>Revisar horario actualizado</Button></div>}
         {error && !cancelled && <p ref={errorRef} role="alert" tabIndex={-1} className="mb-5 text-sm leading-6 text-destructive">{error}</p>}
         <div className="flex flex-wrap justify-end gap-3" aria-busy={pending}>
           <AlertDialog.Cancel asChild><Button variant="outline" disabled={pending}>{cancelled ? "Cerrar" : "Volver"}</Button></AlertDialog.Cancel>
-          {!cancelled && <AlertDialog.Action asChild><Button variant="destructive" disabled={pending || changed} onClick={(event) => { event.preventDefault(); void confirm(); }}>{pending ? "Cancelando…" : "Cancelar cita"}</Button></AlertDialog.Action>}
+          {!cancelled && <AlertDialog.Action asChild><Button variant="destructive" disabled={pending || changed || terminal} onClick={(event) => { event.preventDefault(); void confirm(); }}>{pending ? "Cancelando…" : "Cancelar cita"}</Button></AlertDialog.Action>}
         </div>
         <p role="status" className="sr-only">{pending ? "Confirmando la cancelación…" : ""}</p>
       </AlertDialog.Content>

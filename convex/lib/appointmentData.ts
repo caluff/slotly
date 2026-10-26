@@ -46,6 +46,17 @@ export function overlaps(a: { start: number; end: number }, b: { start: number; 
   return a.start < b.end && b.start < a.end;
 }
 
+// Early arrival is a result, not a release of the originally reserved time.
+// Both indexed ranges participate in OCC with creations, moves and blocks.
+export async function occupyingAppointmentsForDate(ctx: QueryCtx, businessId: Id<"businesses">, date: string) {
+  const confirmed = await confirmedAppointmentsForDate(ctx, businessId, date);
+  const held = await ctx.db.query("appointments").withIndex("by_businessId_and_date_and_holdsSlot",
+    q => q.eq("businessId", businessId).eq("date", date).eq("holdsSlot", true)).take(1441);
+  const rows = [...confirmed, ...held.filter(row => row.status !== "confirmed")];
+  if (rows.length > 1440) throw new ConvexError({ code: "DAY_CAPACITY_EXCEEDED" });
+  return rows.sort((a, b) => a.start - b.start);
+}
+
 // Shared by private creation/moves and anonymous confirmation. The caller's
 // transaction reads the same complete business/day occupation range.
 export async function bookableSlot(ctx: QueryCtx, business: { _id: Id<"businesses">; timeZone: string },
@@ -65,7 +76,7 @@ export async function bookableSlot(ctx: QueryCtx, business: { _id: Id<"businesse
   const slot = generateAvailability({ date, timeZone: business.timeZone, ...schedule,
     durationMinutes: historicalDuration ?? service.durationMinutes, now }).slots.find((option) => option.start === start);
   if (!slot) throw new ConvexError({ code: "SLOT_UNAVAILABLE" });
-  const existing = await confirmedAppointmentsForDate(ctx, business._id, date);
+  const existing = await occupyingAppointmentsForDate(ctx, business._id, date);
   if (existing.some((saved) => saved._id !== exclude && overlaps(slot, saved))) throw new ConvexError({ code: "SLOT_TAKEN" });
   if ((await activeBlocksForDate(ctx, business._id, date)).some(saved => overlaps(slot, saved))) throw new ConvexError({ code: "SLOT_TAKEN" });
   return { slot, service };

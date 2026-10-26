@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
-import { X } from "lucide-react";
+import { X } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 
 export function AgendaNameResults({ open, modal, name, onClose, children }: { open: boolean; modal: boolean; name: string; onClose: (restoreFocus?: boolean) => void; children: ReactNode }) {

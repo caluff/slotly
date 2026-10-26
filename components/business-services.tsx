@@ -1,7 +1,7 @@
 "use client";
 
 import { useConvex, useMutation, usePaginatedQuery, type UsePaginatedQueryReturnType } from "convex/react";
-import { Plus, Clock3, EllipsisVertical, Pencil, Archive, ArchiveRestore } from "lucide-react";
+import { Plus, Clock3, EllipsisVertical, Pencil, Archive, ArchiveRestore } from "@/components/ui/icons";
 import { DropdownMenu } from "radix-ui";
 import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
@@ -30,7 +30,16 @@ export function BusinessServices({ enabled = true }: { enabled?: boolean }) {
   const [source, setSource] = useState<Pick<ServicesPanelProps, "results" | "status">>({ results: [], status: "LoadingFirstPage" });
   const [failed, setFailed] = useState(false), [retry, setRetry] = useState(0);
   const more = useRef<(count: number) => void>(() => {});
-  const read = useCallback((results: ServicesPanelProps["results"], status: ServicesPanelProps["status"], loadMore: (count: number) => void) => { setSource(previous => ({ results: status === "LoadingFirstPage" ? previous.results : results, status })); more.current = loadMore; }, []);
+  const read = useCallback((results: ServicesPanelProps["results"], status: ServicesPanelProps["status"], loadMore: (count: number) => void) => {
+    more.current = loadMore;
+    setSource(previous => {
+      const next = status === "LoadingFirstPage" ? previous.results : results;
+      // The pagination hook may return a new flattened array/loadMore on render.
+      // Publishing the same page back into state would trigger a render loop.
+      if (previous.status === status && previous.results.length === next.length && previous.results.every((row, index) => row === next[index])) return previous;
+      return { results: next, status };
+    });
+  }, []);
   return <>
     <ServiceSourceBoundary key={`${retry}:${enabled}`} onError={() => setFailed(true)}><ServiceSource enabled={enabled} onRead={read} /></ServiceSourceBoundary>
     {failed && <div role="alert" className="mb-4 space-y-3 text-sm"><p>No pudimos actualizar los servicios. Conservamos los borradores.</p><Button variant="outline" onClick={() => { setFailed(false); setSource(previous => ({ ...previous, status: "LoadingFirstPage" })); setRetry(value => value + 1); }}>Reintentar lectura</Button></div>}

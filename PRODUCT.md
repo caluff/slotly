@@ -1,5 +1,7 @@
 # Slotly
 
+**Ampliación aceptada de Reto13 —23/10/2026:** campana T−15/T−10/T−5 y flotante inicio±5min con **Ya llegó** (Completada inmediata conservando intervalo) y **Cancelar Cita**. No asistió automático al fin solo para nuevas citas; sin backfill de legado. Deshacer restaura Confirmada y evita reaplicación automática del contexto. Notificaciones del sistema opcionales con gesto, mientras Slotly permanece abierto; sin promesa de Web Push cerrado. Detalles y límites en [APPOINTMENT_ATTENTION.md](docs/APPOINTMENT_ATTENTION.md).
+
 <!-- impeccable:product-schema 1 -->
 
 ## Platform
@@ -15,6 +17,10 @@ Profesionales y negocios que necesitan gestionar citas y reservas.
 Gestiona tus citas de forma sencilla. El proyecto se desarrolla en etapas pequeñas e independientes.
 
 ## Capabilities and Constraints
+
+**Ajuste vigente de Reto13 — 23/10/2026:** por indicación humana se mueve la tarjeta completa de la próxima Confirmada600ms cada5s, incluidos fondo, borde, contorno y controles de preview; candidatura15min y pausas/reduced-motion anteriores conservados. Sin hovercard sobre citas: detalle por clic/Enter y lista +N. Guía de horarios y tooltips de botones/rail intactos. Solo tres fuentes frontend y sus copias de la demo3103; reloj/controles/configuración de demo conservados. Lint/tipos/diff nuevos y comprobación sintética acotada; evidencia anterior774/372,96/48 y94UI sigue histórica y no se reejecuta. Capturas finales móviles390×720/320×720; no se afirma nuevo toque real, prueba cloud ni resultados reales. La «Validación Reto13» Confirmada del26/10 12:00–12:35 y su seguimiento12:36 permanecen pendientes sin modificaciones. Contrato en `docs/APPOINTMENT_RESULTS.md`.
+
+**Reto13, entrega revisable del22/10/2026:** cuatro estados aceptados explícitamente: Confirmada, Completada, Cancelada y No asistió. Resultados manuales de citas propias terminadas con reloj servidor, mismo ID/revisiones y Deshacer del resultado mediante snapshot/comando vigente; sin cambios automáticos ni reabrir canceladas. Verde/azul/rojo/ámbar con iconos/etiquetas, cuatro checkboxes y subconjuntos/URL compatibles. Próxima Confirmada visible desde15min antes: salto600ms cada minuto, solo preview candidata, +N fijo y señal estática con movimiento reducido; pausa oculta/fuera de pantalla/detalle/arrastre. Conserva el shell y36px. Verificación nueva real local774solicitudes/372carreras/3rondas+21grupos seriales, modo separado undo servicios96/48+16seriales; UI77+17checks/20PNG, lint/tipos/build correctos, sync solo dev y lectura real de las nueve citas conservadas. El cierre inicial no escribió datos reales. Autorización posterior cumplida parcialmente: una «Validación Reto13» Confirmada del26/10 12:00–12:35, servicio2, con recarga comprobada; resultados/Deshacer autorizados y programados para después de su fin real, el26/10 a12:36 local. No se declara cierre total ni producción. Contrato y límites en `docs/APPOINTMENT_RESULTS.md`.
 
 **Reto12 validado funcionalmente en desarrollo el22/10/2026:** prueba real autorizada con Clerk y el backend dev: servicio propio20min → editar25 → Deshacer20 → archivar → restaurar → archivar, con recargas y catálogos/opciones públicos/privados comprobados. Queda archivado a20min; servicios existentes35/46 y nueve citas conservados, sin reservas nuevas. Las menciones inferiores a escritura E2E pendiente describen entregas anteriores. Evidencia y límites por capa en `docs/SERVICES.md` y `docs/PROJECT_CONTEXT.md`; sin commit/push/PR/producción.
 

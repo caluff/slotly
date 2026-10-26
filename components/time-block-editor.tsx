@@ -4,7 +4,7 @@ import { createContext, Component, useCallback, useContext, useEffect, useRef, u
 import { useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
-import { LockKeyhole, Pencil, Trash2 } from "lucide-react";
+import { LockKeyhole, Pencil, Trash2 } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -145,7 +145,7 @@ export function TimeBlockEditor({ open, context, timeZone, initialValue, latest,
     {readError && <div role="alert" className="mb-4 space-y-3 text-sm"><p>No pudimos actualizar el bloqueo. Comprueba la sesión y reintenta; conservamos tus campos.</p><Button variant="outline" disabled={saving} onClick={onRetryRead}>Reintentar lectura</Button></div>}
     {readPending && current && <p role="status" className="mb-3 text-sm">Actualizando bloqueo…</p>}
     {!edit ? !current ? <p id="block-detail" tabIndex={-1} role="status">Cargando bloqueo…</p> : <div id="block-detail" tabIndex={-1}>
-      <p className="flex items-center gap-2 font-semibold"><LockKeyhole size={16} aria-hidden="true" />{current.active ? "Tiempo bloqueado" : "Bloqueo eliminado"}</p>
+      <div className="flex items-center gap-2 font-semibold"><LockKeyhole size={16} aria-hidden="true" />{current.active ? "Tiempo bloqueado" : "Bloqueo eliminado"}</div>
       <p className="mt-3 text-sm">{formatLocalDate(current.date)}<br />{current.startTime}–{current.endTime}</p>
       {current.reason && <div className="mt-4 text-sm"><p className="text-muted">Motivo privado</p><p className="mt-1 whitespace-pre-wrap wrap-anywhere">{current.reason}</p></div>}
       {current.active && <Button className="mt-4" variant="outline" disabled={disabled} onClick={beginEdit}><Pencil aria-hidden="true" />Editar bloqueo</Button>}

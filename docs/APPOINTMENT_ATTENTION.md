@@ -1,0 +1,105 @@
+# Llegada y avisos de citas — ampliación de Reto 13
+
+Decisiones aceptadas el **23/10/2026**. Mantiene cuatro estados, filtros/URL, borradores, shell, colores y controles de36px. Complementa [resultados manuales](APPOINTMENT_RESULTS.md). El flotante y el menú del centro muestran **Ya llegó** y **Cancelar Cita**. Cancelar/Volver de un diálogo conserva su semántica de descarte local.
+
+## Tiempo, asistencia y ocupación
+
+| Operación | Condición comprobada en el servidor | Resultado |
+| --- | --- | --- |
+| Ya llegó | Propietario, Confirmada, revisión vigente, inicio−5min ≤ ahora ≤ inicio+5min, antes del fin | Completada inmediata, arrivedAt/resultAt servidor, mismo ID/revisión+1 y Deshacer |
+| Cancelar Cita del flotante | Misma ventana, incluso después del inicio | Cancelada; libera intervalo; sin Deshacer de cancelación, como el contrato anterior |
+| Menú del centro: Ya llegó / Cancelar Cita | Contexto del aviso vigente y misma ventana inicio±5min | Comandos de llegada/cancelación existentes; nunca usa la revisión histórica |
+| Menú del centro: Reprogramar | Contexto vigente, Confirmada, antes del inicio | Diálogo y validación transaccional existentes |
+| Menú de Agenda: Cancelar/Reprogramar | Confirmada y antes del inicio | Contratos anteriores |
+| Menú Completada/No asistió | Confirmada y fin alcanzado | Contrato manual anterior |
+| Ausencia automática | Cita nueva habilitada, Confirmada, contexto vigente y fin alcanzado | No asistió; resultado servidor y ticket Deshacer en campana |
+
+La ventana termina antes si la propia cita ya finalizó. Las decisiones usan Date.now del servidor; no existe argumento público para adelantar el reloj. La UI obtiene un reloj mediante acción autenticada cada20s y lo extrapola con performance.now. Tras60s sin renovar deja de ofrecer el flotante; focus/online/visibility reintentan. El resaltado visual anterior conserva su reloj de calendario.
+
+**Completada por llegada conserva todo su intervalo original.** holdsSlot se escribe al llegar; el resolver combina dos rangos indexados: Confirmadas y holdsSlot. Ese intervalo sigue ocupado después del inicio hasta su fin, también para creación pública/privada, consultas, movimiento de otra cita y bloques. Deshacer cambia atómicamente a Confirmada, sin hueco intermedio. holdsSlot puede permanecer como metadato histórico: no prolonga el intervalo ni permite ocupar tiempo posterior al end. No hace falta un trabajo para liberar el reloj. Límite combinado1440 por día, con rechazo cerrado al excederlo; terminales históricos ordinarios no consumen ese límite.
+
+## Trabajos persistentes y legado
+
+Solo las **nuevas citas** creadas por las dos entradas de producción reciben automationEnabled=true. No hay backfill, cron de barrido ni escritura al desplegar. Las citas existentes pueden aparecer en los avisos privados de proximidad y en el flotante; conservan deshabilitada la ausencia automática. La cita real autorizada del26/10 sigue siendo legado.
+
+Creación y reprogramación de una cita habilitada programan, en la misma transacción, tres internalMutation a T−15/T−10/T−5 y una al fin. Las fases ya vencidas se condensan en la más reciente; no se programan para reproducir tres avisos atrasados. Cada trabajo lleva negocio/ID/revisión/inicio/fin y vuelve a comprobar ese contexto antes de escribir. Reprogramar, cancelar, llegar, registrar resultado o Deshacer invalida la revisión vieja; sus trabajos pendientes se vuelven no-op y no renuevan timestamps. Una ausencia ya aplicada tampoco se repite.
+
+El scheduler de Convex persiste los trabajos y reintenta errores transitorios de mutaciones a través de reinicios. El guard adicional protege las transiciones de negocio y los replays. No se depende de una pestaña abierta para clasificar una cita nueva al finalizar. [Garantías oficiales del scheduler](https://docs.convex.dev/scheduling/scheduled-functions).
+
+Deshacer de llegada permite restaurar Confirmada antes del fin mediante snapshot servidor; el resto conserva sus reglas temporales. Deshacer un resultado de una cita habilitada fija autoNoShowSuppressed=true y no programa otro trabajo: **la misma ausencia no se reaplica inmediatamente**. Una reprogramación humana válida vuelve a armar el contexto nuevo; una decisión posterior invalida tickets/comandos antiguos, incluido ABA. No hay Deshacer de Deshacer, de cancelación ni cambio directo entre terminales.
+
+## Campana, recarga y notificaciones del sistema
+
+La campana y el candidato no dependen de filtros/fecha de la grilla. El flotante elige un candidato por inicio e ID; Ver N más permite elegir otro candidato actual sin inventar un aviso histórico. Cerrar solo oculta esa revisión en memoria. Abrir, leer y cerrar **no registra asistencia**.
+
+El centro conserva la identidad clara/verde de Slotly. Cabecera **Notificaciones** con engranaje de36×36, sin X ni pie de activación. Grupos **Nuevas / Leídas**, indicador accesible y menú ⋮ **a la derecha** de cada aviso. **Ya llegó**, **Reprogramar** y **Cancelar Cita** tienen destinos existentes; la cancelación real usa el token destructive. Los avisos obsoletos conservan el texto publicado y tienen acciones deshabilitadas con motivo accesible. Deshacer continúa disponible para una ausencia cuyo ticket/contexto siga vigente. Reprogramar devuelve foco a la campana al cerrar su diálogo.
+
+appointmentNotices conserva un hilo por cita/revisión y fase monótona0/1/2. La consulta privada incluye historial leído e inactivo, ordenado por **updatedAt descendente**: ese campo es exclusivamente la última publicación de fase y se entrega como publishedAt. Leer, reclamar, invalidar, cancelar, mover, llegar y Deshacer no renuevan esa fecha. Cada publicación nueva guarda un snapshot privado mínimo del contexto; el campo es opcional para compatibilidad. En legado sin snapshot solo se reconstruye si la cita conserva revisión/inicio; si cambió, se conserva el aviso con fecha original y texto genérico, sin inventar cliente/servicio históricos. No hay migración ni backfill.
+
+La consulta indexada devuelve **como máximo5** avisos por página, con cursores y límites de lectura. La apertura muestra cinco; rueda, teclado, desplazamiento o gesto táctil al final revela otros cinco. El scroll se contiene en la lista; no se vacía el historial automáticamente para llenar el panel. Una petición bloquea otra hasta recibir página o error. Al reabrir se vuelve a una ventana de cinco aunque el SDK conserve las páginas solicitadas durante la sesión: primero se revelan esas páginas de cinco en cinco y después se pide otro cursor. Se acumulan solo páginas pedidas por interacción, sin descarga global previa. La insignia cuenta los sin leer ya cargados y usa + cuando existen páginas adicionales; no promete un total global.
+
+Al abrir y al entrar otra página/fase en la lista abierta, la UI reconoce automáticamente los avisos de esa ventana cargada, una vez por ID+fase. No hay acción manual Leído/Marcar. Cerrada, o mostrando Ajustes, no reconoce nuevas fases. La clasificación inicial permanece estable hasta la siguiente apertura para evitar saltos al recibir el acuse. El fallo de lectura conserva el aviso y ofrece reintento explícito; reapertura también permite reintentar. La mutación verifica propietario/fase y solo escribe readStage, incluso sobre historial inactivo.
+
+**Ajustes → Avisos del sistema** usa un switch con blanco de36×36. La preferencia se guarda por ID de negocio propietario; ausencia de false explícito significa activada. Un false guardado se respeta al recargar, enfocar y recibir storage de otra pestaña. Si el permiso ya está concedido se prepara/reutiliza el worker al cargar sin prompt. Con permiso default, abrir la campana solicita permiso una sola vez, directamente desde ese gesto y antes de await/lecturas. El switch permite un nuevo intento explícito; singleflight evita prompts simultáneos. Denegado no fuerza otra solicitud. Los estados de permiso/error aparecen solo en Ajustes. No se solicita permiso desde un efecto o al cargar.
+
+El claim del servidor conserva el límite **máximo una vez por hilo/fase** entre clientes/pestañas/recargas y exige contexto activo/revisión/inicio/estado vigentes. Respuesta perdida o fallo de API externa puede perder esa entrega; el aviso privado permanece. No se garantiza entrega exactamente una vez ni las tres fases si el navegador estuvo suspendido. ServiceWorkerRegistration.showNotification usa el worker propio /slotly-notifications/, sin Notification constructor. No se revoca lo que el sistema ya mostró.
+
+El cuerpo externo es genérico: **Tienes una cita próxima.** No incluye cliente, servicio, estado ni datos de negocio. El worker no tiene fetch/cache/push handlers ni suscripciones. Con Slotly abierto puede avisar mientras otra pestaña está al frente, sujeto a permisos y suspensión del navegador/SO. **No es Web Push ni promete nuevos avisos con la aplicación cerrada.** El clic enfoca la agenda o abre /dashboard, conservando su autenticación normal.
+
+El workspace de resultados vive fuera de filtros, listas y detalles. Guarda en sessionStorage solo comandos/tickets con ID, revisión, UUID y tipo de operación; no nombres, snapshots privados o tokens. Una respuesta incierta sobrevive a la recarga y requiere Comprobar para reenviar el mismo comando. No se reenvía automáticamente. El último ticket permite volver a ofrecer Deshacer; el servidor comprueba que siga vigente.
+
+## Evidencia de la primera ampliación (anterior al centro)
+
+Evidencia separada: C:/Users/dcalu/.codex/slotly-evidence/reto13-attention/.
+
+- Motor Convex/SQLite real aislado por HTTP: **96 solicitudes participantes,48 carreras/3rondas y48 controles seriales** en el nuevo modo --appointment-attention-only. Clientes independientes, barrera de transporte y skipQueue; fixtures solo en deployment temporal propio. Incluye llegada/cancelación/movimiento, reservas privadas/públicas, bloques, job/manual, job/Deshacer, claims simultáneos, perdedores/documentos completos, bordes±1ms, ABA, recibos, legado, permisos y paginación densa. Se ejecutan trabajos reales de recordatorio y ausencia después de reiniciar el motor, sin página abierta.
+- Reejecuciones separadas correctas: general **774 solicitudes/372carreras**, con83 controles seriales; --service-undo-only **96/48**, con16 seriales. No se elimina ni se sustituye ningún modo anterior. No son unitarios ni carreras cloud.
+- UI mediante CUA, componentes reales y transporte/reloj sintéticos: **44 comprobaciones (36 base +5 de copy +3 de persistencia de campana)**; geometría320/390/1280/1440, lectura/cierre/Escape, llegada anticipada, cancelación+5, Deshacer, respuesta perdida/recarga, fases y estados de permisos. Controlador de sistema real ejecutado con APIs de navegador simuladas y restauradas: gesto→permiso→registro→showNotification, payload genérico. Sin permiso nativo concedido ni entrega real de SO acreditada. El ajuste Cancelar Cita tiene5 comprobaciones adicionales320 y la campana después de la ventana tiene3 más, incluida recarga; no se repite concurrencia. La compilación adicional final corresponde al ajuste semántico de persistencia, no al copy.
+- Salto completo5s conservado:876 frames naturales, mínimo−4,98847px y742frames en reposo; sin hovercard. Sin prueba nueva en hardware móvil ni inyección táctil.
+- lint, tipos y build de producción correctos. El build compiló en9,9s tras reparar26junctions que resolvían a los mismos paquetes mediante el alias externo de la demo. Se conservaron versiones y configuración; no se instalaron paquetes. El copy se valida de forma acotada y el ajuste semántico de persistencia queda incluido en la compilación final.
+- Sync **solo código/esquema** al dev autorizado. Comparación SHA256 por tabla antes/después:10 citas,2 negocios,3 servicios,2 semanas,2 excepciones,1 bloque y1 recibo idénticos. Cero avisos y cero trabajos de citas creados para legado. Sin mutaciones de datos reales, migración, commit/push/PR o producción.
+
+La pestaña propia de lectura real no tenía sesión Clerk y terminó en sign-in; no se inició sesión ni se prueba de nuevo el flujo real de resultados. La validación real autorizada del26/10 permanece pendiente y separada. Los límites de red, móvil y SO se conservan explícitos en verification-summary.json.
+
+## Refinamiento del centro — 23/10/2026
+
+Evidencia actual: C:/Users/dcalu/.codex/slotly-evidence/reto13-notification-center/ (verification-summary.json, ui-report.json, system-driver.json, geometry.json, static-review.json y PNG). La demo3103 reutiliza los componentes reales y ahora persiste publicaciones/lecturas/preferencia **sintéticas** en su propia sesión; se conservaron reloj, controles, filas, providers y configuración. Las pestañas humanas no se operaron.
+
+- **42 solicitudes /21 carreras /3 rondas +15 controles seriales** nuevos en Convex/SQLite real aislado: lectura/publicación/claim, duplicados, publicación frente a cancelar/mover/llegar, ambos órdenes de seis transiciones, jobs obsoletos, lectura/replay/autorización,137 publicaciones en28 páginas de máximo5, reinicio y legado sin snapshot. Documentos completos y timestamps/snapshots verificados; no solo respuestas.
+- Regresión de atención reejecutada: **96 solicitudes/48 carreras/48 controles seriales**. General774/372 y Deshacer servicios96/48 siguen siendo evidencia previa reutilizada; no se ejecutaron de nuevo en este refinamiento. Los modos anteriores del arnés permanecen disponibles. Sin nuevos unitarios ni test:local.
+- **59 comprobaciones CUA** con componentes reales y transporte sintético, geometría y PNG nativos1440/1280/390/320×720: cabecera/menú/ajustes36px, grupos, lectura por fase, abrir/cerrar/recarga, llegada/cancelación/Deshacer, diálogo existente sin confirmar movimiento, historial obsoleto,5→10→12, caché al reabrir, rueda/teclado, errores/reintento y vacío. No se acredita hardware móvil, toque nativo, lector de pantalla ni fallo real de red.
+- Controlador real de sistema ejecutado con Notification, serviceWorker y localStorage simulados y restaurados: gesto síncrono, default, singleflight, denegado, concedido sin prompt, registro/reutilización, payload genérico, preferencia por negocio y valor externo storage y desactivación mientras se obtiene el registro del worker, sin entrega posterior. La sincronización del listener del componente se revisó estáticamente; no se atribuye un E2E de dos sesiones Clerk. **No se concedió permiso nativo ni se entregaron avisos reales de SO.**
+- Lint/tipos finales correctos. Build de producción **pnpm build --webpack correcto**. El intento predeterminado con Turbopack no progresó de compilación y se detuvo solo su proceso propio; no es una prueba superada. Se conservan dependencias/junctions/configuración, sin reparar ni reinstalar. Revisión Convex/React sin hallazgos bloqueantes; prefijo de funciones de citas/resultados idéntico por comparación con la base de este refinamiento.
+- Sync solo código/esquema al desarrollo autorizado daniel-caluff:slotly:dev/slotly, determined-poodle-377: índice de publicación añadido, sin migración ni fixtures cloud. Las siete tablas reales protegidas resultaron idénticas por SHA256 antes/después, además de cero avisos/jobs. El manifiesto final registra esa comparación; sin commit/push/PR ni producción.
+
+El E2E real de la cita autorizada del26/10 después de su fin conserva exactamente su pendiente y automatización previa. Este refinamiento no autoriza crear, cancelar, mover o clasificar otra cita real.
+
+**Incidencia histórica de la entrega anterior, resuelta en la corrección siguiente:** la lectura HTTP de3000 devolvió500: el servidor Turbopack preexistente no resuelve next/package.json desde app. La demo3103 devuelve200. No se reinició ningún servidor ni se repararon dependencias/enlaces/configuración por la restricción vigente; no se acredita un flujo Clerk actual en3000.
+
+## Recuperación local, menú derecho y edad — 23/10/2026
+
+Esta indicación humana sustituye la ubicación izquierda: ⋮ va **a la derecha** de cada aviso, después del contenido en DOM y en grilla. Conserva36×36, Radix, foco/Escape, alineación final del menú, destinos y guardas existentes. No cambia lectura/asistencia/ocupación/historial/paginación.
+
+### Causa y recuperación del500
+
+El paquete Next16.4.2 existía. La ruta de26junctions de dependencias pasaba por el alias externo de la demo antes de resolver otra vez al mismo almacenamiento físico local. Turbopack rechazaba ese recorrido fuera de su raíz. Se verificaron PID/puerto/CLI/raíz antes de detener solo3000;3103 permaneció en PID16496. Una sustitución manual de enlaces fue rechazada por revisión automática (blocked by policy) y no se ejecutó.
+
+La recuperación inicial con pnpm dev --webpack devolvió200, pero una inspección mostró CSS sin transformar: next.config solo registraba @tailwindcss/turbopack. La captura main-recovered-1280.png es **inválida como prueba visual**, conservada únicamente como diagnóstico. No se ocultó ni se declaró recuperado ese render.
+
+Se añadió únicamente **@tailwindcss/postcss4.3.3**, igual versión que el Tailwind instalado, mediante pnpm con save-dev/save-exact e ignore-scripts. postcss.config.mjs configura la integración oficial para Next, y se retiró la regla CSS exclusiva de Turbopack para evitar dos pipelines. No cambian scripts ni bundler por defecto. Los campos previos de package.json y todos los bloques previos packages/snapshots del lockfile son idénticos; el lockfile añade14líneas, sin actualizaciones ajenas. El re-enlace normal de esa instalación dejó node_modules/next apuntando directamente al paquete local. No hubo borrado de caché global, respaldos o .convex/local ni cambios de env/Clerk/destino.
+
+Se volvió al comando **pnpm --config.verifyDepsBeforeRun=false dev** (Turbopack predeterminado, puerto3000). El flag solo evita la preinstalación automática de pnpm durante estas comprobaciones; no se guardó configuración. Dashboard autenticado, logo96×32, Geist, campana36×36, layout, estilos, recarga y cuatro assets CSS/JS HTTP200 comprobados. El build predeterminado de producción con Turbopack también pasó (compilación5,9s). El fallback Webpack es un paso diagnóstico histórico, no el runtime final.
+
+### Edad de publicación y escena
+
+En producción, ConnectedAppointmentAttention ya actualiza now con el reloj de servidor y performance.now; el problema reproducido estaba en la demo, que pasaba una hora fija y sustituía Date.now por la hora de escena. AppointmentAttention admite publicationNow separado para transportes sintéticos; por defecto usa el mismo now de servidor. El DTO publishedAt y el backend no cambian.
+
+La demo conserva su escena/citas/controles fijos. Guarda una sola referencia noticeClock (noticeAt de la escena y wallAt medido), y la edad avanza por la diferencia real de performance.timeOrigin+performance.now, independientemente de Date.now simulado. El anclaje se persiste con el estado sintético y el ticker se limpia al desmontar. Una publicación/fase nueva usa ese reloj de edad; leer, renderizar, reabrir y recargar conservan tanto publishedAt como el anclaje. No se acelera ninguna cita ni reloj servidor. Para avisos sintéticos anteriores sin referencia de tiempo real se empieza a medir desde la actualización y se conservan sus timestamps previos: no se reconstruye retroactivamente una edad real que no se guardó.
+
+### Evidencia actual y límites
+
+- Evidencia nueva separada: C:/Users/dcalu/.codex/slotly-evidence/reto13-runtime-age/. **36 comprobaciones CUA**, cuatro anchos1440/1280/390/320×720; menú derecho/36px, nombre largo, teclado/foco/Escape, diálogo existente sin confirmar, historial obsoleto, lectura por fase, Ahora→Hace1→Hace3min, apertura/reload sin renovar publicación,5→10/reapertura5, grupos y switch/default/off persistido. Reloj/transporte sintéticos, sin nuevos unitarios ni frameworks de pruebas.
+- En sesión propia real de demo se observó **Ahora→Hace5min**, con escena12:45 y mismo publishedAt; tras recargar mostró Hace6min, sin reiniciar el aviso. Las capturas finales demo-elapsed-1280.png y elapsed-menu-390.png muestran edad transcurrida y ⋮derecho. Son capturas CUA nativas720alto, sin reescalar ni generación gráfica.
+- App principal con sesión Clerk existente, solo lectura y campana siempre cerrada: cita26/10/2026 12:00–12:35 Confirmada visible, sin llegar/cancelar/mover/resultado ni mutaciones de lectura. No se solicitaron permisos nativos ni se atribuye entrega OS o E2E de bandeja real con escrituras.
+- Lint/tipos app y fuentes de demo correctos; pnpm build predeterminado con Turbopack correcto. El backend y sus arneses no cambiaron, por lo que las suites96/48 y42/21 anteriores se reutilizan, no se reejecutan ni se suman a estos controles. Sin sync Convex.
+- Revisión final acotada Impeccable/Operate: **ship** para esta corrección, sin rediseño. Se conservan los59controles UI/APIs y los hashes de datos de la entrega anterior como evidencia histórica. El E2E real del26/10 y su automatización12:36 siguen intactos/pendientes. Sin commit, push, PR ni producción.

@@ -3,7 +3,7 @@ import { paginationOptsValidator, paginationResultValidator } from "convex/serve
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
-import { confirmedAppointmentsForDate, overlaps, requireMyBusiness } from "./lib/appointmentData";
+import { occupyingAppointmentsForDate, overlaps, requireMyBusiness } from "./lib/appointmentData";
 import { activeBlocksForDate } from "./lib/timeBlocks";
 import { timeBlockContext, timeBlockDetail, timeBlockSummary, timeBlockValue } from "./timeBlockValidators";
 import { isLocalDate } from "../lib/local-date";
@@ -95,7 +95,7 @@ export const changeMyTimeBlock = mutation({
     if (start.offsetNanoseconds !== end.offsetNanoseconds) throw new ConvexError({ code: "TIME_CHANGE" });
     if (start.epochMilliseconds <= now) throw new ConvexError({ code: "TIME_BLOCK_STARTED" });
     const interval = { start: start.epochMilliseconds, end: end.epochMilliseconds };
-    if ((await confirmedAppointmentsForDate(ctx, business._id, value.date)).some(row => overlaps(interval, row))) throw new ConvexError({ code: "TIME_BLOCK_APPOINTMENT_CONFLICT" });
+    if ((await occupyingAppointmentsForDate(ctx, business._id, value.date)).some(row => overlaps(interval, row))) throw new ConvexError({ code: "TIME_BLOCK_APPOINTMENT_CONFLICT" });
     if ((await activeBlocksForDate(ctx, business._id, value.date)).some(row => row._id !== saved?._id && overlaps(interval, row))) throw new ConvexError({ code: "TIME_BLOCK_OVERLAP" });
     const fields = { ...value, ...interval, ...command, timeZone: business.timeZone, active: true };
     const id = saved ? saved._id : await ctx.db.insert("timeBlocks", { businessId: business._id, creationKey: args.operationId, creationValue: fingerprint, ...fields });

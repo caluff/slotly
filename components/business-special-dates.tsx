@@ -3,7 +3,7 @@
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
-import { Plus } from "lucide-react";
+import { Plus } from "@/components/ui/icons";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";

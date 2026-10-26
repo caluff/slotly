@@ -2,7 +2,7 @@
 
 import { useAction, useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { CalendarCheck } from "lucide-react";
+import { CalendarCheck } from "@/components/ui/icons";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -10,15 +10,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Label } from "@/components/ui/label";
+import { clientEmailSchema } from "@/lib/client-email";
 import { appointmentSchema } from "@/lib/appointment-schema";
 import { isLocalDate } from "@/lib/local-date";
+import { isManagementSecret, newManagementSecret } from "@/lib/public-management";
+import { PublicManagementLink } from "@/components/public-management-link";
 
-type Fields = { serviceId: string; date: string; start: string; clientName: string };
+type Fields = { serviceId: string; date: string; start: string; clientName: string; email: string };
 type ServiceContext = { name: string; durationMinutes: number; version: number };
-type Attempt = { attemptKey: string; serviceId: Id<"services">; date: string; start: number; clientName: string; expectedService?: ServiceContext };
+type Attempt = { attemptKey: string; serviceId: Id<"services">; date: string; start: number; clientName: string; email?: string; expectedService?: ServiceContext; managementSecret?: string };
 type Receipt = Extract<FunctionReturnType<typeof api.publicBooking.confirm>, { ok: true }>["receipt"];
 type Slot = { start: number; end: number; startTime: string; endTime: string };
-const blank: Fields = { serviceId: "", date: "", start: "", clientName: "" };
+const blank: Fields = { serviceId: "", date: "", start: "", clientName: "", email: "" };
 
 export function PublicBooking({ slug }: { slug: string }) {
   const business = useQuery(api.publicBooking.getBusiness, { slug });
@@ -29,6 +32,7 @@ export function PublicBooking({ slug }: { slug: string }) {
   const [pending, setPending] = useState<Attempt | null>(null);
   const [chosenContext, setChosenContext] = useState<ServiceContext | undefined>();
   const [receipt, setReceipt] = useState<Receipt | null>(null);
+  const [managementIssued, setManagementIssued] = useState(false);
   const [restored, setRestored] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -48,26 +52,30 @@ export function PublicBooking({ slug }: { slug: string }) {
   useEffect(() => { if (receipt) success.current?.focus(); }, [receipt]);
 
   useEffect(() => {
-    // A nonce is an idempotency capability, never a login/session token. Only
-    // this tab's unfinished attempt is stored; it survives a lost response/reload.
+    // A frozen attempt survives a lost response/reload. Only new commands carry
+    // a separate management capability; saved legacy commands are not upgraded.
     const frame = requestAnimationFrame(() => {
       try {
         const raw = sessionStorage.getItem(storageKey);
         const attempt: Attempt | null = raw ? JSON.parse(raw) : null;
         if (attempt && typeof attempt.attemptKey === "string" && typeof attempt.serviceId === "string"
+          && (attempt.email === undefined || clientEmailSchema.safeParse(attempt.email).success)
+          && (attempt.managementSecret === undefined || isManagementSecret(attempt.managementSecret))
           && isLocalDate(attempt.date) && Number.isSafeInteger(attempt.start) && typeof attempt.clientName === "string") {
           setPending(attempt);
-          setFields({ ...attempt, start: String(attempt.start) });
-          setError("Hay una confirmación sin respuesta en esta pestaña. Reintenta para comprobar el mismo intento.");
+          setChosenContext(attempt.expectedService);
+          setFields({ serviceId: attempt.serviceId, date: attempt.date, clientName: attempt.clientName, email: attempt.email ?? "", start: String(attempt.start) });
+          setError("Recuperamos el intento guardado en esta pestaña. Reintenta para comprobar su confirmación.");
         }
-      } catch { /* Storage is optional; in-tab retries retain the same nonce. */ }
+      } catch { /* A new command still requires successful storage before send. */ }
       setRestored(true);
     });
     return () => cancelAnimationFrame(frame);
   }, [storageKey]);
 
   const queryKey = `${fields.serviceId}:${fields.date}`;
-  const canQuery = !!business && !!fields.serviceId && isLocalDate(fields.date) && !receipt;
+  // Recovery replays the frozen command; current availability validates only a new booking.
+  const canQuery = !!business && !!fields.serviceId && isLocalDate(fields.date) && !receipt && !pending;
   const revision = useQuery(api.publicBooking.getAvailabilityRevision, canQuery ? { slug, serviceId: fields.serviceId as Id<"services">, date: fields.date } : "skip");
   useEffect(() => {
     if (!canQuery) return;
@@ -98,9 +106,18 @@ export function PublicBooking({ slug }: { slug: string }) {
   function fail(message: string, field: keyof Fields | null = null) {
     setError(message); setInvalid(field);
   }
+  function anotherBooking() {
+    // A deliberate new intention, never a replay or a side effect of reload.
+    // Clear durably before releasing the confirmed command from this tab.
+    try { sessionStorage.removeItem(storageKey); }
+    catch { return fail("No pudimos preparar otra reserva. Habilita el almacenamiento de esta pestaña y reintenta."); }
+    setPending(null); setReceipt(null); setManagementIssued(false); setChosenContext(undefined);
+    setFields(blank); setInvalid(null); setError(""); setRefresh(value => value + 1);
+    requestAnimationFrame(() => form.current?.querySelector<HTMLElement>('[name="serviceId"]')?.focus());
+  }
   const readyOptions = canQuery && options.key === queryKey && options.revision === revision;
   const slots = readyOptions ? options.slots : [];
-  const serviceChanged = !!fields.start && readyOptions && JSON.stringify(chosenContext) !== JSON.stringify(options.service);
+  const serviceChanged = !pending && !!chosenContext && !!fields.start && readyOptions && JSON.stringify(chosenContext) !== JSON.stringify(options.service);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (lock.current || !business) return;
@@ -109,21 +126,26 @@ export function PublicBooking({ slug }: { slug: string }) {
       if (!isLocalDate(fields.date)) return fail("Elige una fecha válida.", "date");
       if (!readyOptions || serviceChanged || !slots.some((slot) => String(slot.start) === fields.start)) return fail("Revisa el servicio y elige un horario disponible.", "start");
       if (!appointmentSchema.safeParse(fields).success) return fail("Escribe un nombre válido de entre 1 y 100 caracteres.", "clientName");
+      if (!clientEmailSchema.safeParse(fields.email).success) return fail("Escribe un correo válido.", "email");
     }
-    const attempt = pending ?? { attemptKey: crypto.randomUUID(), serviceId: fields.serviceId as Id<"services">,
-      date: fields.date, start: Number(fields.start), clientName: fields.clientName, expectedService: options.service };
+    let attempt: Attempt;
+    try { attempt = pending ?? { attemptKey: crypto.randomUUID(), managementSecret: newManagementSecret(), serviceId: fields.serviceId as Id<"services">,
+      date: fields.date, start: Number(fields.start), clientName: fields.clientName, email: clientEmailSchema.parse(fields.email), expectedService: options.service }; }
+    catch { return fail("No pudimos preparar la confirmación. Recarga la página antes de reintentar."); }
+    try { sessionStorage.setItem(storageKey, JSON.stringify(attempt)); }
+    catch { return fail("No podemos guardar el intento para recuperarlo tras recargar. Habilita el almacenamiento de esta pestaña antes de confirmar."); }
     lock.current = true; setBusy(true); setError(""); setInvalid(null); setPending(attempt);
-    try { sessionStorage.setItem(storageKey, JSON.stringify(attempt)); } catch { /* optional persistence */ }
     try {
       const result = await confirm({ ...attempt, slug });
       if (result.ok) {
         setReceipt(result.receipt);
+        setManagementIssued(result.managementIssued === true);
         // Retain the attempt in this tab's storage. Reload offers an identical
         // replay instead of silently presenting a fresh duplicate booking form.
       } else {
         // RATE_LIMITED may follow a lost successful reply. Keep the capability
         // until the same attempt has a definitive response after the cooldown.
-        if (result.code !== "RATE_LIMITED" && result.code !== "UNAVAILABLE") {
+        if (result.code !== "RATE_LIMITED" && result.code !== "UNAVAILABLE" && result.code !== "ATTEMPT_CONFLICT") {
           setPending(null);
           try { sessionStorage.removeItem(storageKey); } catch { /* optional storage */ }
         }
@@ -136,6 +158,8 @@ export function PublicBooking({ slug }: { slug: string }) {
           fail("Ese horario ya no está disponible. Actualizamos las opciones; elige otro.", "start");
           setRefresh((value) => value + 1);
         } else if (result.code === "INVALID_CLIENT_NAME") fail("Escribe un nombre válido de entre 1 y 100 caracteres.", "clientName");
+        else if (result.code === "INVALID_CLIENT_EMAIL") fail("Escribe un correo válido.", "email");
+        else if (result.code === "ATTEMPT_CONFLICT") fail("El contenido de este intento no coincide con su confirmación original. Conservamos el intento para revisarlo.");
         else if (result.code === "INVALID_DATE") fail("Elige una fecha válida.", "date");
         else if (result.code === "SERVICE_NOT_FOUND") fail("El servicio ya no está disponible. Elige otro.", "serviceId");
         else fail("No pudimos confirmar este intento. Comprueba los datos y reintenta.");
@@ -148,15 +172,23 @@ export function PublicBooking({ slug }: { slug: string }) {
   if (business === undefined || !restored) return <p role="status" className="text-muted">Cargando reservas…</p>;
   if (!business) return <section><h1 className="workspace-title">Enlace no disponible</h1>
     <p role="status" className="mt-4 text-muted">Comprueba la dirección o contacta con el negocio.</p></section>;
+  const time = new Intl.DateTimeFormat("es-UY", { timeStyle: "short", timeZone: business.timeZone });
+  const pendingSlot = pending ? `${time.format(pending.start)}${pending.expectedService ? ` – ${time.format(pending.start + pending.expectedService.durationMinutes * 60_000)}` : ""}` : "";
   return <section>
     <h1 className="workspace-title wrap-anywhere">{business.name}</h1>
     <p className="mt-2 text-sm text-muted wrap-anywhere">{business.timeZone}</p>
     {receipt ? <div className="mt-8 border-y border-line py-6">
       <CalendarCheck aria-hidden="true" className="mb-4 size-7 text-accent" />
-      <h2 ref={success} tabIndex={-1} className="text-xl font-semibold tracking-tight">Cita confirmada</h2>
+      <h2 ref={success} tabIndex={-1} className="text-xl font-semibold tracking-tight">Confirmación original</h2>
       <p className="mt-4 font-medium wrap-anywhere">{receipt.serviceName}</p>
       <p className="mt-1">{new Intl.DateTimeFormat("es-UY", { dateStyle: "full", timeZone: receipt.timeZone }).format(receipt.start)}</p>
       <p className="mt-1 tabular-nums">{new Intl.DateTimeFormat("es-UY", { timeStyle: "short", timeZone: receipt.timeZone }).format(receipt.start)} – {new Intl.DateTimeFormat("es-UY", { timeStyle: "short", timeZone: receipt.timeZone }).format(receipt.end)}</p>
+      {managementIssued && <>
+        <p className="mt-4 text-sm text-muted">Consulta el estado actual en Gestionar cita.</p>
+        <PublicManagementLink secret={pending?.managementSecret} />
+      </>}
+      {error && <p ref={alert} role="alert" tabIndex={-1} className="mt-4 text-sm text-destructive">{error}</p>}
+      <Button type="button" variant="outline" className="mt-5" onClick={anotherBooking}>Reservar otra cita</Button>
     </div> : <form ref={form} onSubmit={submit} noValidate aria-label="Reservar cita" aria-busy={busy} className="mt-8">
       <h2 className="mb-6 text-xl font-semibold tracking-tight">Reservar cita</h2>
       <fieldset disabled={busy || !!pending} className="grid gap-5">
@@ -166,11 +198,13 @@ export function PublicBooking({ slug }: { slug: string }) {
           <NativeSelect id="public-service" name="serviceId" value={fields.serviceId} onChange={(e) => change("serviceId", e.target.value)}
             className="w-full" required aria-invalid={invalid === "serviceId"} aria-describedby={invalid === "serviceId" ? "booking-error" : undefined}>
             <option value="">{services.status === "LoadingFirstPage" ? "Cargando servicios…" : "Elige un servicio"}</option>
-            {fields.serviceId && !services.results.some((s) => s.id === fields.serviceId) && <option value={fields.serviceId}>Servicio elegido</option>}
-            {services.results.map((s) => <option key={s.id} value={s.id}>{s.name} · {s.durationMinutes} min</option>)}
+            {pending ? <option value={pending.serviceId}>{pending.expectedService ? `${pending.expectedService.name} · ${pending.expectedService.durationMinutes} min` : "Servicio elegido"}</option> : <>
+              {fields.serviceId && !services.results.some((s) => s.id === fields.serviceId) && <option value={fields.serviceId}>Servicio elegido</option>}
+              {services.results.map((s) => <option key={s.id} value={s.id}>{s.name} · {s.durationMinutes} min</option>)}
+            </>}
           </NativeSelect>
-          {services.status === "Exhausted" && !services.results.length && <p role="status" className="text-sm text-muted">No hay servicios disponibles.</p>}
-          {(services.status === "CanLoadMore" || services.status === "LoadingMore") && <Button type="button" variant="outline"
+          {!pending && services.status === "Exhausted" && !services.results.length && <p role="status" className="text-sm text-muted">No hay servicios disponibles.</p>}
+          {!pending && (services.status === "CanLoadMore" || services.status === "LoadingMore") && <Button type="button" variant="outline"
             disabled={services.status !== "CanLoadMore"} onClick={() => services.loadMore(30)}>{services.status === "LoadingMore" ? "Cargando…" : "Ver más servicios"}</Button>}
         </div>
         <div className="grid gap-2"><Label htmlFor="public-date">Fecha</Label>
@@ -180,8 +214,10 @@ export function PublicBooking({ slug }: { slug: string }) {
           <NativeSelect id="public-start" name="start" value={serviceChanged ? "" : fields.start} onChange={(e) => change("start", e.target.value)} className="w-full"
             disabled={!canQuery || !readyOptions} required aria-invalid={invalid === "start"} aria-describedby={invalid === "start" ? "booking-error" : undefined}>
             <option value="">{canQuery && !readyOptions ? "Cargando horarios…" : "Elige un horario"}</option>
-            {fields.start && !slots.some((s) => String(s.start) === fields.start) && <option value={fields.start} disabled>Horario elegido no disponible</option>}
-            {slots.map((s) => <option key={s.start} value={s.start}>{s.startTime} – {s.endTime}</option>)}
+            {pending ? <option value={String(pending.start)}>{pendingSlot}</option> : <>
+              {fields.start && !slots.some((s) => String(s.start) === fields.start) && <option value={fields.start} disabled>Horario elegido no disponible</option>}
+              {slots.map((s) => <option key={s.start} value={s.start}>{s.startTime} – {s.endTime}</option>)}
+            </>}
           </NativeSelect>
           {canQuery && !readyOptions && <p role="status" className="text-sm text-muted">Cargando horarios…</p>}
           {serviceChanged && <p role="status" className="text-sm">El servicio cambió. Revisa su nombre y duración y vuelve a elegir un horario.</p>}
@@ -193,6 +229,10 @@ export function PublicBooking({ slug }: { slug: string }) {
           <Input id="public-name" name="clientName" autoComplete="name" maxLength={100} value={fields.clientName}
             onChange={(e) => change("clientName", e.target.value)} required aria-invalid={invalid === "clientName"}
             aria-describedby={invalid === "clientName" ? "booking-error" : undefined} /></div>
+        <div className="grid gap-2"><Label htmlFor="public-email">Correo electrónico</Label>
+          <Input id="public-email" name="email" type="email" inputMode="email" autoComplete="email" maxLength={254} value={fields.email}
+            onChange={event => change("email", event.target.value)} required aria-invalid={invalid === "email"}
+            aria-describedby={invalid === "email" ? "booking-error" : undefined} /></div>
       </fieldset>
       {error && <p ref={alert} id="booking-error" role="alert" tabIndex={-1} className="mt-5 text-sm leading-6 text-destructive">{error}</p>}
       <Button type="submit" disabled={busy} className="mt-6 w-full sm:w-auto">{busy ? "Confirmando…" : pending ? "Reintentar confirmación" : "Confirmar cita"}</Button>

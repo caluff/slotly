@@ -11,13 +11,14 @@ import "@fullcalendar/react/themes/classic/theme.css";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { Dialog, DropdownMenu, Popover, Tabs, Tooltip } from "radix-ui";
-import { CalendarClock, CalendarX2, Check, ChevronDown, ChevronLeft, ChevronRight, LockKeyhole, Menu, Plus, X } from "lucide-react";
+import { CalendarClock, CalendarX2, ChevronDown, ChevronLeft, ChevronRight, LockKeyhole, Menu, Plus, X } from "@/components/ui/icons";
 import { Component, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
+import { AppointmentEmailConfirmation } from "@/components/business-email-confirmations";
 import { AgendaMiniCalendar } from "@/components/agenda-mini-calendar";
 import { AppointmentSearch, ConnectedAppointmentAction, type AppointmentActionProps } from "@/components/appointment-search";
 import { AgendaFiltersForm } from "@/components/agenda-filters";
@@ -26,6 +27,11 @@ import type { MoveResult } from "@/components/appointment-reschedule-dialog";
 import { calendarCoincidences, calendarHref, calendarRange, calendarViews, civilInstant, dragDestination, stepCalendar, type CalendarView } from "@/lib/agenda-calendar";
 import { AgendaGridGuide } from "@/components/agenda-grid-guide";
 import { AgendaNameResults } from "@/components/agenda-name-results";
+import { AppointmentStatusIcon } from "@/components/appointment-status";
+import { useAppointmentResults } from "@/components/appointment-results";
+import { AppointmentAttentionBell } from "@/components/appointment-attention";
+import { upcomingAppointment, useAgendaClock, useUpcomingMotion } from "@/components/use-agenda-clock";
+import { appointmentStatusLabels, appointmentStatusSummary } from "@/lib/appointment-status";
 import { Brand } from "@/components/brand";
 import { usePanelMotion } from "@/components/use-panel-motion";
 import { TimeBlockWorkspace, useTimeBlockActions, type BlockEditorProps, type CalendarTimeBlock } from "@/components/time-block-editor";
@@ -78,7 +84,7 @@ function AgendaCalendarContent({ date, view, today, timeZone, filters, enabled, 
   const range = calendarRange(date, view);
   function closeFilters() { if (mobile) setShowFilters(false); else setLeftVisible(false); }
   const sidebar = <><div className="flex gap-1"><Button className="agenda-add-appointment min-w-0 flex-1" onClick={event => { if (mobile) { pendingCreation.current = () => onNew(date, undefined, { element: filterTrigger.current! }); setShowFilters(false); } else onNew(date, undefined, { element: event.currentTarget }); }}><Plus aria-hidden="true" />Añadir cita</Button><BlockCreateMenu trigger={blockTrigger} onCreate={() => { const create = () => blocks?.create(date, { element: mobile ? filterTrigger.current! : blockTrigger.current! }); if (mobile) { pendingCreation.current = create; setShowFilters(false); } else create(); }} /></div><AgendaMiniCalendar key={date} date={date} today={today} onSelect={value => { onNavigate(value, view); if (mobile) closeFilters(); }} />
-    <AgendaFiltersForm filters={filters} services={services} moreServices={moreServices} loadingServices={loadingServices} onLoadServices={onLoadServices} onSearch={onSearch} onNameSearch={values => { onSearch(values); setResultsOpen(true); }} /><p className="flex items-center gap-2 text-xs text-muted"><LockKeyhole size={14} aria-hidden="true" />Los bloqueos siguen visibles al filtrar.</p></>;
+    <AgendaFiltersForm filters={filters} services={services} moreServices={moreServices} loadingServices={loadingServices} onLoadServices={onLoadServices} onSearch={onSearch} onNameSearch={values => { onSearch(values); setResultsOpen(true); }} /><div className="flex items-center gap-2 text-xs text-muted"><LockKeyhole size={14} aria-hidden="true" />Los bloqueos siguen visibles al filtrar.</div></>;
   const locate = (row: CalendarAppointment) => {
     setResultsOpen(false); if (mobile) closeFilters();
     const destination = new URL(calendarHref(new URLSearchParams(window.location.search), row.date, view), window.location.origin);
@@ -92,7 +98,7 @@ function AgendaCalendarContent({ date, view, today, timeZone, filters, enabled, 
           <Button size="icon" variant="ghost" aria-label="Intervalo anterior" onClick={() => onNavigate(stepCalendar(date, view, -1), view)}><ChevronLeft aria-hidden="true" /></Button>
           <Button size="icon" variant="ghost" aria-label="Intervalo siguiente" onClick={() => onNavigate(stepCalendar(date, view, 1), view)}><ChevronRight aria-hidden="true" /></Button></div>
           <h2 className="agenda-title" aria-live="polite">{view === "dia" ? new Intl.DateTimeFormat("es-UY", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" }).format(new Date(`${date}T12:00Z`)) : view === "mes" ? new Intl.DateTimeFormat("es-UY", { timeZone: "UTC", month: "long", year: "numeric" }).format(new Date(`${date}T12:00Z`)) : `${range.from.slice(8)}/${range.from.slice(5,7)} – ${range.until.slice(8)}/${range.until.slice(5,7)}/${range.until.slice(0,4)}`}</h2></div>
-        <div className="agenda-toolbar-actions">{activeFilters && !panelOpen && <span className="agenda-active-filters" role="status">Filtros activos</span>}<Tabs.List aria-label="Vista del calendario" className="agenda-view-tabs">
+        <div className="agenda-toolbar-actions"><AppointmentAttentionBell />{activeFilters && !panelOpen && <span className="agenda-active-filters" role="status">Filtros activos</span>}<Tabs.List aria-label="Vista del calendario" className="agenda-view-tabs">
           {([['dia', 'Día'], ['semana', 'Semana'], ['mes', 'Mes']] as const).map(([value, label]) => <Tabs.Trigger key={value} value={value} asChild><Button variant="ghost">{label}</Button></Tabs.Trigger>)}
         </Tabs.List></div>
       </div>
@@ -103,8 +109,8 @@ function AgendaCalendarContent({ date, view, today, timeZone, filters, enabled, 
       <div className="agenda-canvas">
       {(['dia', 'semana', 'mes'] as const).map(value => <Tabs.Content key={value} value={value} className="agenda-tab-panel">
       {view === value && <>
-      <p className="sr-only">{timeZone}{filters.client ? ` · Cliente: ${filters.client}` : ""}{filters.service ? ` · ${services.find(service => service._id === filters.service)?.name ?? "Servicio seleccionado"}` : ""}{filters.status ? ` · ${filters.status === "confirmed" ? "Confirmadas" : filters.status === "cancelled" ? "Canceladas" : "Ningún estado seleccionado"}` : " · Todos los estados"}</p>
-      {filters.status === "none" && <p role="status" className="mb-3 text-sm text-muted">Ningún estado seleccionado. Marca Confirmadas o Canceladas para ver citas.</p>}
+      <p className="sr-only">{timeZone}{filters.client ? ` · Cliente: ${filters.client}` : ""}{filters.service ? ` · ${services.find(service => service._id === filters.service)?.name ?? "Servicio seleccionado"}` : ""}{` · ${appointmentStatusSummary(filters.status)}`}</p>
+      {filters.status === "none" && <p role="status" className="mb-3 text-sm text-muted">Ningún estado seleccionado. Marca un estado para ver citas.</p>}
       <CalendarReadBoundary key={JSON.stringify([range, filters.client, filters.service, filters.status, enabled])}>{calendarContent ?? <ConnectedCalendar date={date} view={view} timeZone={timeZone} enabled={enabled} filters={filters} dayHref={dayHref} onNew={onNew} onSelectDate={value => onNavigate(value, view)} />}</CalendarReadBoundary>
       </>}
       </Tabs.Content>)}
@@ -125,7 +131,7 @@ function ConnectedCalendar({ date, view, timeZone, enabled, filters, dayHref, on
 }) {
   const range = calendarRange(date, view);
   const { results, status, loadMore } = usePaginatedQuery(api.appointments.searchMyAppointments, enabled ? {
-    client: filters.client.trim(), serviceId: filters.service ? filters.service as Id<"services"> : undefined, status: filters.status ? filters.status as "confirmed" | "cancelled" | "none" : undefined, period: "todas", ...range,
+    client: filters.client.trim(), serviceId: filters.service ? filters.service as Id<"services"> : undefined, status: filters.status || undefined, period: "todas", ...range,
   } : "skip", { initialNumItems: 100 });
   const schedule = useQuery(api.calendar.getMyCalendarSchedule, enabled ? range : "skip");
   const { results: blocks, status: blockStatus, loadMore: loadBlocks } = usePaginatedQuery(api.timeBlocks.listMyTimeBlocks, enabled ? range : "skip", { initialNumItems: 100 });
@@ -162,9 +168,11 @@ export function CalendarSurface({ date, view, timeZone, appointments, blocks = [
   const [selected, setSelected] = useState<Action | null>(null);
   const [moved, setMoved] = useState<MoveResult | null>(null);
   const [message, setMessage] = useState("");
-  const [now, setNow] = useState(0);
+  const { now, visible } = useAgendaClock(appointments, ready);
+  const [dragging, setDragging] = useState(false);
+  const upcomingId = ready ? upcomingAppointment(appointments, now) : undefined;
+  useUpcomingMotion(surface, upcomingId, visible && !dragging && !selected);
   const clockReady = now > 0;
-  useEffect(() => { const update = () => setNow(Date.now()); update(); const timer = window.setInterval(update, 30_000); return () => window.clearInterval(timer); }, []);
   const rangeKey = JSON.stringify(calendarRange(date, view));
   useEffect(() => {
     const root = surface.current; if (!root || !locatedId || !ready || !clockReady) return;
@@ -190,13 +198,45 @@ export function CalendarSurface({ date, view, timeZone, appointments, blocks = [
     previous.current = { view, rangeKey };
   }, [date, view, rangeKey]);
   const time = useMemo(() => new Intl.DateTimeFormat("es-UY", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }), [timeZone]);
-  const coincidences = useMemo(() => calendarCoincidences(ready && view !== 'mes' ? appointments : []), [appointments, ready, view]);
+  useEffect(() => {
+    const byId = new Map(appointments.map(row => [String(row._id), row]));
+    const groups = calendarCoincidences(ready && view !== "mes" ? appointments : [], upcomingId);
+    const byPreview = new Map(groups.previews.map((row, index) => [String(row._id), groups.groups[index]]));
+    const root = surface.current; if (!root) return;
+    let more: HTMLElement | null | undefined, originalLabel: string | null = null;
+    function update() {
+    root!.querySelectorAll<HTMLElement>("[data-agenda-event]").forEach(element => {
+      const row = byId.get(element.dataset.agendaEvent!);
+      if (!row) return;
+      const group = byPreview.get(String(row._id));
+      if (group) {
+        element.dataset.agendaGroup = group.map(row => row._id).join(" ");
+        element.setAttribute("role", "group"); element.removeAttribute("tabindex");
+        element.setAttribute("aria-label", `${group.length} citas con horarios coincidentes`);
+      } else {
+        delete element.dataset.agendaGroup; element.setAttribute("role", "button"); element.setAttribute("tabindex", "0");
+        element.setAttribute("aria-label", `${row.clientName}, ${row.serviceName}, ${formatLocalDate(row.date)}, ${time.format(row.start)} a ${time.format(row.end)}, ${appointmentStatusLabels[row.status]}${row._id === upcomingId ? ". Próxima cita" : ""}. Ver detalle`);
+      }
+    });
+    if (!upcomingId || view !== "mes") return;
+    const row = byId.get(upcomingId);
+    const next = row && root!.querySelector<HTMLElement>(`[data-agenda-day="${row.date}"] .agenda-more-link`);
+    if (!next || next === more) return;
+    more = next; originalLabel = more.getAttribute("aria-label");
+    more.classList.add("agenda-upcoming-more");
+    more.setAttribute("aria-label", `${originalLabel ?? more.textContent}. Próxima cita: ${row.clientName}, ${time.format(row.start)}`);
+    }
+    update();
+    const observer = new MutationObserver(update); observer.observe(root, {childList:true,subtree:true});
+    return () => { observer.disconnect(); if (more) { more.classList.remove("agenda-upcoming-more"); if (originalLabel) more.setAttribute("aria-label", originalLabel); else more.removeAttribute("aria-label"); } };
+  }, [appointments, time, upcomingId, ready, view]);
+  const coincidences = useMemo(() => calendarCoincidences(ready && view !== 'mes' ? appointments : [], upcomingId), [appointments, ready, view, upcomingId]);
   const events = useMemo<EventInput[]>(() => ready ? [...appointments.filter(row => !coincidences.groupedIds.has(row._id)), ...coincidences.previews].map<EventInput>(row => {
     const index = coincidences.previews.findIndex(preview => preview._id === row._id), rows = index < 0 ? undefined : coincidences.groups[index];
     return { id: row._id, title: row.clientName, start: row.start, end: row.end, allDay: false,
       startEditable: row.status === "confirmed" && row.start > now && !selected, durationEditable: false, interactive: !rows,
-      className: `${row.status === "cancelled" ? "agenda-cancelled" : "agenda-confirmed"}${rows ? ' agenda-preview-event' : ''}${row._id === locatedId || rows?.some(member => member._id === locatedId) ? ' agenda-located' : ''}`, extendedProps: { appointment: row, coincidences: rows } };
-  }).concat(blocks.map(block => ({ id: block._id, title: "Tiempo bloqueado", start: block.start, end: block.end, allDay: false, startEditable: false, durationEditable: false, interactive: true, className: "agenda-time-block", extendedProps: { timeBlock: block } }))) : [], [appointments, blocks, ready, now, selected, coincidences, locatedId]);
+      className: `agenda-${row.status}${row._id === upcomingId ? ' agenda-upcoming' : ''}${rows ? ' agenda-preview-event' : ''}${row._id === locatedId || rows?.some(member => member._id === locatedId) ? ' agenda-located' : ''}`, extendedProps: { appointment: row, coincidences: rows } };
+  }).concat(blocks.map(block => ({ id: block._id, title: "Tiempo bloqueado", start: block.start, end: block.end, allDay: false, startEditable: false, durationEditable: false, interactive: true, className: "agenda-time-block", extendedProps: { timeBlock: block } }))) : [], [appointments, blocks, ready, now, selected, coincidences, locatedId, upcomingId]);
   const closed = useMemo<EventInput[]>(() => ready ? schedule.flatMap(day => {
     if (!day.configured) return [];
     const start = civilInstant(day.date, "00:00", timeZone);
@@ -212,7 +252,7 @@ export function CalendarSurface({ date, view, timeZone, appointments, blocks = [
   return <div ref={surface} className="agenda-calendar" data-located-id={locatedId ?? undefined} aria-busy={!ready}>
     <p role="status" className={ready && !message ? "sr-only" : "mb-3 text-sm text-muted"}>{!ready ? "Cargando el intervalo completo…" : message}</p>
     {moved && <p role="status" className="mb-3 text-sm">Cita guardada: {formatLocalDate(moved.date)}, {time.format(moved.start)}–{time.format(moved.end)}. <a className="text-link text-accent" href={dayHref(moved.date)} onClick={event => { event.preventDefault(); window.history.pushState(null, "", event.currentTarget.href); }}>Localizar fecha</a></p>}
-    <AgendaGridGuide date={date} view={view} timeZone={timeZone} appointments={appointments} schedule={schedule} blocked={!ready || !!selected} ready={ready} onNew={onNew} renderCalendar={({ clear: clearGuide, pause: pauseGuide, dayLaneDidMount, dayLaneWillUnmount, slotLaneDidMount, slotLaneWillUnmount, startDrag, stopDrag }) =>
+    <AgendaGridGuide date={date} view={view} timeZone={timeZone} schedule={schedule} blocked={!ready || !!selected} ready={ready} onNew={onNew} renderCalendar={({ clear: clearGuide, pause: pauseGuide, dayLaneDidMount, dayLaneWillUnmount, slotLaneDidMount, slotLaneWillUnmount, startDrag, stopDrag }) =>
       <FullCalendar ref={calendar} className={`agenda-fullcalendar agenda-view-${view}${coincidences.groups.length ? ' agenda-with-preview' : ''}`} plugins={plugins} locale={es} timedText="Horario" timeZone={timeZone} initialDate={date} initialView={calendarViews[view]} firstDay={1}
         headerToolbar={false} tableHeaderClass="agenda-table-header" dayHeaderRowClass="agenda-axis-header" height="100%" fixedWeekCount allDaySlot={false} nowIndicator slotDuration="00:15:00" snapDuration="00:15:00" slotHeaderInterval="01:00:00" slotHeaderFormat={{ hour: "numeric", hour12: true }} slotHeaderClass="agenda-hour-label" slotHeaderInnerClass="agenda-hour-text" slotHeaderContent={info => info.text.replace(/(\d)([ap]\.)/, "$1 $2")} slotLaneClass={info => info.isMajor ? "agenda-hour-line" : "agenda-quarter-line"} scrollTime="08:00:00" scrollTimeReset={false}
         eventDurationEditable={false} eventStartEditable eventInteractive eventResizableFromStart={false} droppable={false} editable={false} eventDisplay="block" eventMinHeight={0} slotEventOverlap={false} dayMaxEvents events={[...events, ...closed]} displayEventTime displayEventEnd
@@ -239,12 +279,12 @@ export function CalendarSurface({ date, view, timeZone, appointments, blocks = [
         dayCellInnerClass={info => info.inPopover ? 'agenda-more-list' : ''}
         dayCellDidMount={info => { if (!info.inPopover) info.el.dataset.agendaDay = todayInZone(timeZone, info.date.getTime()); info.el.querySelector('[data-calendar-date]')?.closest('[aria-hidden="true"]')?.removeAttribute('aria-hidden'); }}
         eventTimeFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
-        eventContent={info => { const block = info.event.extendedProps.timeBlock as CalendarTimeBlock | undefined; if (block) return <div className={`agenda-event-content ${view === "mes" ? "agenda-month-event" : ""}`}><time><LockKeyhole size={12} aria-hidden="true" />{time.format(block.start)}–{time.format(block.end)}</time><strong>Tiempo bloqueado</strong></div>; const rows = info.event.extendedProps.coincidences as CalendarAppointment[] | undefined; if (rows) return <CoincidencePreview preview={info.event.extendedProps.appointment as CalendarAppointment} key={JSON.stringify(rows.map(row => [row._id, row.start, row.end, row.status]))} date={rows[0].date} rows={rows} timeZone={timeZone} onOpenChange={pauseGuide} onSelect={(row, element) => { moreTrigger.current = element; trigger.current = element; setSelected({ appointment: { ...row }, mode: 'detail' }); }} />; const row = info.event.extendedProps.appointment as CalendarAppointment | undefined; return row ? <div className={`agenda-event-content ${view === 'mes' ? 'agenda-month-event' : ''}`}><time>{time.format(row.start)}<span className={view === 'dia' ? 'agenda-event-end' : 'agenda-event-end agenda-event-end-hidden'}>–{time.format(row.end)}</span></time><strong>{row.clientName}</strong>{(view === "mes" || row.end - row.start >= 45 * 60_000) && <span>{row.status === "cancelled" ? "Cancelada" : view === "dia" ? row.serviceName : "Confirmada"}</span>}</div> : null; }}
-        eventDidMount={info => { const block = info.event.extendedProps.timeBlock as CalendarTimeBlock | undefined; if (block) { info.el.dataset.agendaBlock = block._id; info.el.setAttribute("aria-label", `Tiempo bloqueado, ${formatLocalDate(block.date)}, ${time.format(block.start)} a ${time.format(block.end)}. Ver bloqueo`); } if (info.event.extendedProps.coincidences) { info.el.dataset.agendaGroup = (info.event.extendedProps.coincidences as CalendarAppointment[]).map(row => row._id).join(" "); info.el.removeAttribute("role"); info.el.removeAttribute("tabindex"); } const row = info.event.extendedProps.appointment as CalendarAppointment | undefined; if (row) { info.el.dataset.agendaEvent = row._id; info.el.setAttribute("aria-label", `${row.clientName}, ${row.serviceName}, ${formatLocalDate(row.date)}, ${time.format(row.start)} a ${time.format(row.end)}, ${row.status === "cancelled" ? "Cancelada" : "Confirmada"}. Ver detalle`); } if (info.el.closest('.agenda-more-popover')) { info.el.addEventListener('pointerdown', event => event.stopPropagation()); info.el.addEventListener('mousedown', event => event.stopPropagation()); } }}
+        eventContent={info => { const block = info.event.extendedProps.timeBlock as CalendarTimeBlock | undefined; if (block) return <div className={`agenda-event-content ${view === "mes" ? "agenda-month-event" : ""}`}><time><LockKeyhole size={12} aria-hidden="true" />{time.format(block.start)}–{time.format(block.end)}</time><strong>Tiempo bloqueado</strong></div>; const rows = info.event.extendedProps.coincidences as CalendarAppointment[] | undefined; if (rows) return <CoincidencePreview preview={info.event.extendedProps.appointment as CalendarAppointment} key={JSON.stringify(rows.map(row => [row._id, row.start, row.end, row.status]))} date={rows[0].date} rows={rows} timeZone={timeZone} onOpenChange={pauseGuide} onSelect={(row, element) => { moreTrigger.current = element; trigger.current = element; setSelected({ appointment: { ...row }, mode: 'detail' }); }} />; const row = info.event.extendedProps.appointment as CalendarAppointment | undefined; return row ? <div className={`agenda-event-content ${view === 'mes' ? 'agenda-month-event' : ''}`}><time><AppointmentStatusIcon status={row.status} />{time.format(row.start)}<span className={view === 'dia' ? 'agenda-event-end' : 'agenda-event-end agenda-event-end-hidden'}>–{time.format(row.end)}</span></time><strong>{row.clientName}</strong>{(view === "mes" || row.end - row.start >= 45 * 60_000) && <span>{row.status === "confirmed" && view === "dia" ? row.serviceName : appointmentStatusLabels[row.status]}</span>}</div> : null; }}
+        eventDidMount={info => { const block = info.event.extendedProps.timeBlock as CalendarTimeBlock | undefined; if (block) { info.el.dataset.agendaBlock = block._id; info.el.setAttribute("aria-label", `Tiempo bloqueado, ${formatLocalDate(block.date)}, ${time.format(block.start)} a ${time.format(block.end)}. Ver bloqueo`); } if (info.event.extendedProps.coincidences) { info.el.dataset.agendaGroup = (info.event.extendedProps.coincidences as CalendarAppointment[]).map(row => row._id).join(" "); info.el.removeAttribute("role"); info.el.removeAttribute("tabindex"); } const row = info.event.extendedProps.appointment as CalendarAppointment | undefined; if (row) { info.el.dataset.agendaEvent = row._id; info.el.setAttribute("aria-label", `${row.clientName}, ${row.serviceName}, ${formatLocalDate(row.date)}, ${time.format(row.start)} a ${time.format(row.end)}, ${appointmentStatusLabels[row.status]}. Ver detalle`); } if (info.el.closest('.agenda-more-popover')) { info.el.addEventListener('pointerdown', event => event.stopPropagation()); info.el.addEventListener('mousedown', event => event.stopPropagation()); } }}
         eventClick={info => { const block = info.event.extendedProps.timeBlock as CalendarTimeBlock | undefined; if (block && ready) { clearGuide(); blockActions?.open(block, info.el); return; } const row = info.event.extendedProps.appointment as CalendarAppointment | undefined; if (!row || !ready || info.event.extendedProps.coincidences) return; clearGuide(); trigger.current = info.el; setSelected({ appointment: { ...row }, mode: "detail" }); }}
         dateClick={info => { if (!ready || selected || (info.jsEvent.target as HTMLElement)?.closest("[data-calendar-date],.agenda-more-link,.agenda-more-popover,.agenda-preview-event,.agenda-coincidence-panel")) return; clearGuide(); onNew(info.dateStr.slice(0,10), info.allDay ? undefined : info.date.getTime(), { element: info.dayEl, x: info.jsEvent.clientX, y: info.jsEvent.clientY }); }}
-        eventDragStart={info => { startDrag(); const row = info.event.extendedProps.appointment as CalendarAppointment | undefined; drag.current = row ? { ...row } : null; trigger.current = info.el; }}
-        eventDragStop={stopDrag}
+        eventDragStart={info => { setDragging(true); startDrag(); const row = info.event.extendedProps.appointment as CalendarAppointment | undefined; drag.current = row ? { ...row } : null; trigger.current = info.el; }}
+        eventDragStop={() => { setDragging(false); stopDrag(); }}
         eventDrop={info => {
           const frozen = drag.current; drag.current = null;
           const destination = frozen && info.event.start ? dragDestination(frozen.start, info.event.start.getTime(), view === "mes", timeZone) : null;
@@ -288,31 +328,36 @@ function CoincidencePreview({ date, preview, rows, timeZone, onOpenChange, onSel
   useEffect(() => () => { if (open) onOpenChange(false); }, [open, onOpenChange]);
   const time = new Intl.DateTimeFormat('es-UY', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
   const change = (value: boolean) => { setOpen(value); onOpenChange(value); };
-  return <div className="agenda-preview-wrap"><button type="button" className={`agenda-event-content agenda-preview-content${preview.end - preview.start < 45 * 60_000 ? " agenda-preview-compact" : ""}`} aria-label={`${time.format(preview.start)} a ${time.format(preview.end)}, ${preview.clientName}, ${preview.serviceName}, ${preview.status === 'cancelled' ? 'Cancelada' : 'Confirmada'}. Ver detalle`} onKeyDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); onSelect(preview, event.currentTarget); }}><time>{preview.status === 'cancelled' ? <X size={12} aria-hidden="true" /> : <Check size={12} aria-hidden="true" />}{time.format(preview.start)}</time><strong>{preview.clientName}</strong>{preview.end - preview.start >= 45 * 60_000 && <span>{preview.status === 'cancelled' ? 'Cancelada' : 'Confirmada'}</span>}</button><Popover.Root modal open={open} onOpenChange={change}>
+  return <div className="agenda-preview-wrap"><button type="button" className={`agenda-event-content agenda-preview-content${preview.end - preview.start < 45 * 60_000 ? " agenda-preview-compact" : ""}`} aria-label={`${time.format(preview.start)} a ${time.format(preview.end)}, ${preview.clientName}, ${preview.serviceName}, ${appointmentStatusLabels[preview.status]}. Ver detalle`} onKeyDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); onSelect(preview, event.currentTarget); }}><time>{<AppointmentStatusIcon status={preview.status} />}{time.format(preview.start)}</time><strong>{preview.clientName}</strong>{preview.end - preview.start >= 45 * 60_000 && <span>{appointmentStatusLabels[preview.status]}</span>}</button><Popover.Root modal open={open} onOpenChange={change}>
     <Popover.Trigger asChild><Button ref={button} variant="ghost" className="agenda-time-more" aria-label={`${rows.length - 1} ${rows.length === 2 ? 'cita más' : 'citas más'}, ${rows.length} en el grupo, ${formatLocalDate(date)}. Ver lista completa`} onKeyDown={event => event.stopPropagation()} onPointerDown={event => event.stopPropagation()} onMouseDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}>+{rows.length - 1} más</Button></Popover.Trigger>
     <Popover.Portal><Popover.Content className="agenda-coincidence-panel" side="bottom" align="start" sideOffset={6} collisionPadding={16} aria-label={`Citas con horarios coincidentes, ${formatLocalDate(date)}`}
       onCloseAutoFocus={event => { if (next.current && button.current) { event.preventDefault(); const row = next.current; next.current = null; onSelect(row, button.current); } }}>
       <div className="agenda-coincidence-heading"><div><h3>{rows.length} citas en este grupo</h3><p>{formatLocalDate(date)}</p></div><Popover.Close asChild><Button size="icon" variant="ghost" aria-label="Cerrar lista de citas"><X aria-hidden="true" /></Button></Popover.Close></div>
-      <ul className="agenda-coincidence-list" onPointerDown={event => event.stopPropagation()} onMouseDown={event => event.stopPropagation()}>{rows.map(row => <li key={row._id}><button type="button" className={`agenda-coincidence-item ${row.status === 'cancelled' ? 'agenda-coincidence-cancelled' : ''}`} onClick={() => { next.current = row; change(false); }}><time>{time.format(row.start)}–{time.format(row.end)}</time><strong>{row.clientName}</strong><span>{row.serviceName} · {row.status === 'cancelled' ? 'Cancelada' : 'Confirmada'}{row._id === preview._id ? ' · Visible en el calendario' : ''}</span></button></li>)}</ul>
+      <ul className="agenda-coincidence-list" onPointerDown={event => event.stopPropagation()} onMouseDown={event => event.stopPropagation()}>{rows.map(row => <li key={row._id}><button type="button" className={`agenda-coincidence-item agenda-coincidence-${row.status}`} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") event.stopPropagation(); }} onClick={() => { next.current = row; change(false); }}><time>{time.format(row.start)}–{time.format(row.end)}</time><strong>{row.clientName}</strong><span>{row.serviceName} · {appointmentStatusLabels[row.status]}{row._id === preview._id ? ' · Visible en el calendario' : ''}</span></button></li>)}</ul>
     </Popover.Content></Popover.Portal>
   </Popover.Root></div>;
 }
 
-type DetailProps = { appointment: CalendarAppointment; latest: CalendarAppointment; timeZone: string; now: number; onClose: () => void; onReturnFocus: () => void; onAction: (mode: "cancel" | "reschedule", row: CalendarAppointment) => void };
-function ConnectedDetail(props: DetailProps) { const latest = useQuery(api.appointments.getMyAppointment, { appointmentId: props.appointment._id }); return <AppointmentDetail {...props} latest={latest ?? props.latest} />; }
-export function AppointmentDetail({ latest: row, timeZone, now, onClose, onReturnFocus, onAction }: DetailProps) {
+type DetailProps = { appointment: CalendarAppointment; latest: CalendarAppointment; timeZone: string; now: number; onClose: () => void; onReturnFocus: () => void; onAction: (mode: "cancel" | "reschedule", row: CalendarAppointment) => void; emailStatus?: ReactNode };
+function ConnectedDetail(props: DetailProps) { const latest = useQuery(api.appointments.getMyAppointment, { appointmentId: props.appointment._id }); return <AppointmentDetail {...props} latest={latest ?? props.latest} emailStatus={<AppointmentEmailConfirmation appointmentId={props.appointment._id} />} />; }
+export function AppointmentDetail({ latest: row, timeZone, now, onClose, onReturnFocus, onAction, emailStatus }: DetailProps) {
   const [next, setNext] = useState<{ mode: "cancel" | "reschedule"; appointment: CalendarAppointment } | null>(null);
   const time = new Intl.DateTimeFormat("es-UY", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
-  const future = row.status === "confirmed" && row.start > now;
+  const future = now > 0 && row.status === "confirmed" && row.start > now;
+  const outcomes = useAppointmentResults();
+  const ended = now > 0 && row.status === "confirmed" && row.end <= now;
   return <Dialog.Root open={!next} onOpenChange={open => { if (!open) onClose(); }}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-50 bg-foreground/30" />
     <Dialog.Content onEscapeKeyDown={event => event.stopPropagation()} className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-line bg-background p-5 sm:p-6"
       onCloseAutoFocus={event => { event.preventDefault(); if (next) onAction(next.mode, next.appointment); else onReturnFocus(); }}>
       <div className="flex items-start justify-between gap-3"><Dialog.Title className="text-lg font-semibold">Detalle de la cita</Dialog.Title><Dialog.Close asChild><Button variant="ghost" size="icon" aria-label="Cerrar detalle"><X aria-hidden="true" /></Button></Dialog.Close></div>
       <Dialog.Description className="sr-only">Consulta los datos y las acciones disponibles de esta cita.</Dialog.Description>
-      <dl className="my-5 space-y-4 text-sm"><div><dt className="text-muted">Cliente</dt><dd className="mt-1 font-semibold wrap-anywhere">{row.clientName}</dd></div><div><dt className="text-muted">Servicio</dt><dd className="mt-1 wrap-anywhere">{row.serviceName}</dd></div><div><dt className="text-muted">Fecha y horario</dt><dd className="mt-1">{formatLocalDate(row.date)}<br />{time.format(row.start)}–{time.format(row.end)}<br /><span className="text-muted wrap-anywhere">{timeZone}</span></dd></div><div><dt className="text-muted">Estado</dt><dd className={`mt-1 font-semibold ${row.status === "cancelled" ? "text-destructive" : ""}`}>{row.status === "cancelled" ? "Cancelada" : "Confirmada"}</dd></div>
+      <dl className="my-5 space-y-4 text-sm"><div><dt className="text-muted">Cliente</dt><dd className="mt-1 font-semibold wrap-anywhere">{row.clientName}</dd></div><div><dt className="text-muted">Servicio</dt><dd className="mt-1 wrap-anywhere">{row.serviceName}</dd></div><div><dt className="text-muted">Fecha y horario</dt><dd className="mt-1">{formatLocalDate(row.date)}<br />{time.format(row.start)}–{time.format(row.end)}<br /><span className="text-muted wrap-anywhere">{timeZone}</span></dd></div><div><dt className="text-muted">Estado</dt><dd className={`mt-1 font-semibold appointment-status-${row.status}`}>{appointmentStatusLabels[row.status]}</dd></div>
+        {emailStatus}
         {row.cancelledAt !== undefined && <div><dt className="text-muted">Cancelada el</dt><dd>{new Intl.DateTimeFormat("es-UY", { timeZone, dateStyle: "short", timeStyle: "short" }).format(row.cancelledAt)}</dd></div>}
+        {row.resultAt !== undefined && <div><dt className="text-muted">Resultado registrado el</dt><dd>{new Intl.DateTimeFormat("es-UY", { timeZone, dateStyle: "short", timeStyle: "short" }).format(row.resultAt)}</dd></div>}
         {row.rescheduledAt !== undefined && <div><dt className="text-muted">Última reprogramación</dt><dd>{new Intl.DateTimeFormat("es-UY", { timeZone, dateStyle: "short", timeStyle: "short" }).format(row.rescheduledAt)}</dd></div>}
       </dl>
+      {ended && outcomes && <div className="flex flex-wrap gap-3 border-t border-line pt-4"><Button variant="outline" className="appointment-status-completed" disabled={outcomes.blocked} onClick={() => { void outcomes.mark(row, "completed"); onClose(); }}>Completada</Button><Button variant="outline" className="appointment-status-no_show" disabled={outcomes.blocked} onClick={() => { void outcomes.mark(row, "no_show"); onClose(); }}>No asistió</Button></div>}
       {future && <div className="flex flex-wrap gap-3 border-t border-line pt-4"><Button variant="outline" onClick={() => setNext({ mode: "reschedule", appointment: { ...row } })}><CalendarClock aria-hidden="true" />Reprogramar</Button><Button variant="outline" className="text-destructive" onClick={() => setNext({ mode: "cancel", appointment: { ...row } })}><CalendarX2 aria-hidden="true" />Cancelar cita</Button></div>}
   </Dialog.Content></Dialog.Portal></Dialog.Root>;
 }

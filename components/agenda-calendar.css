@@ -44,9 +44,6 @@
 .agenda-slot-guide { position: fixed; z-index: 30; pointer-events: none; border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 9%, transparent); }
 .agenda-slot-guide-closed { background: color-mix(in srgb, var(--muted) 8%, transparent); border-style: dashed; }
 .agenda-slot-guide span { position: fixed; max-width: calc(100vw - 32px); padding: 2px 6px; border-radius: 3px; color: white; background: var(--accent); font-size: 12px; line-height: 20px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.agenda-event-hint { position: fixed; z-index: 45; width: min(20rem, calc(100vw - 32px)); padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; color: var(--foreground); background: var(--background); font-size: 12px; overflow-wrap: anywhere; overflow-y: auto; scrollbar-color: var(--muted) var(--surface); }
-.agenda-event-hint time, .agenda-event-hint span, .agenda-event-hint strong { display: block; }
-.agenda-event-hint strong { font-size: 14px; font-weight: 600; }
 .agenda-event-content { width: 100%; min-width: 0; height: 100%; padding: 3px 6px; overflow: hidden; line-height: 1.25; border-inline-start: 3px solid var(--accent); border-radius: 3px; }
 .agenda-event-content time { display: block; font-size: 12px; white-space: nowrap; }
 .agenda-event-content strong { display: block; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -55,9 +52,35 @@
 .agenda-event-content .agenda-event-end-hidden { display: none; }
 .agenda-cancelled { --fc-classic-event: #fbefed; --fc-classic-event-contrast: var(--destructive); border-style: dashed !important; }
 .agenda-cancelled .agenda-event-content { border-inline-start-color: var(--destructive); }
+.agenda-completed { --fc-classic-event: #eaf1fb; --fc-classic-event-contrast: #214f85; }
+.agenda-no_show { --fc-classic-event: #fff2d8; --fc-classic-event-contrast: #78500b; }
+.agenda-completed .agenda-event-content { border-inline-start-color: #214f85; }
+.agenda-no_show .agenda-event-content { border-inline-start-color: #78500b; }
+.agenda-coincidence-completed { color: #214f85; background: #eaf1fb; }
+.agenda-coincidence-no_show { color: #78500b; background: #fff2d8; }
+.appointment-status-confirmed { color: var(--accent); }
+.appointment-status-completed, .agenda-find-completed span { color: #214f85; }
+.appointment-status-cancelled { color: var(--destructive); }
+.appointment-status-no_show, .agenda-find-no_show span { color: #78500b; }
+.agenda-status-icon { display: inline-block; flex-shrink: 0; vertical-align: -2px; margin-inline-end: 3px; }
+.agenda-upcoming { outline: 2px solid var(--accent); outline-offset: 1px; z-index: 4; }
+.agenda-upcoming-more { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+/* Move the complete candidate card, including its outline and preview controls.
+   Individual translate preserves FullCalendar's own positioning transforms.
+   A 600 ms jump leaves 4.4 seconds quiet in every five-second cycle. */
+.agenda-upcoming[data-upcoming-motion] { overflow: visible; animation: agenda-upcoming-jump 5s ease-out infinite; }
+@keyframes agenda-upcoming-jump {
+  0%, 12%, 100% { translate: 0 0; }
+  3.6% { translate: 0 -5px; }
+  7.2% { translate: 0 0; }
+  9.6% { translate: 0 -2px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .agenda-upcoming[data-upcoming-motion] { animation: none; }
+}
 .agenda-time-block { --fc-classic-event: #ecefe9; --fc-classic-event-contrast: #354638; }
 .agenda-time-block .agenda-event-content { border-inline-start: 1px solid #52665b; }
-.agenda-time-block time svg { display: inline-block; margin-right: 3px; vertical-align: -1px; }
+.agenda-time-block time .slotly-icon { display: inline-block; margin-right: 3px; vertical-align: -1px; }
 .agenda-time-block:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .agenda-create-options { display: flex; flex-wrap: wrap; justify-content: center; }
 .agenda-month-event { display: flex; height: auto; align-items: baseline; gap: 4px; padding: 2px 4px; line-height: 18px; }
@@ -174,3 +197,55 @@
 @media (max-width: 1023px) { .agenda-layout { display: flex; } .agenda-sidebar-slot { display: contents; } .agenda-sidebar { position: fixed; inset: 0 auto 0 0; width: min(300px, calc(100vw - 32px)); height: 100dvh; border: 0; } .agenda-sidebar::backdrop { background: color-mix(in srgb, var(--foreground) 25%, transparent); } .agenda-sidebar[data-motion="closing"]::backdrop { background: transparent; } }
 @media (max-width: 639px) { .agenda-title { font-size: 16px; } .agenda-toolbar { padding: 8px; } .agenda-toolbar-navigation, .agenda-toolbar-actions { gap: 4px; } .agenda-view-tabs [role="tab"] { min-width: 36px; padding-inline: 8px; } .agenda-event-content:not(.agenda-month-event) { padding: 1px; } }
 @media (prefers-reduced-motion: reduce) { .agenda-layout, .agenda-canvas, .agenda-sidebar::backdrop { transition: none; } }
+
+/* The whole interactive card, including historical text, is one target. */
+.agenda-root [data-agenda-event]:not([aria-disabled="true"]),
+.agenda-root [data-agenda-event]:not([aria-disabled="true"]) * { cursor: pointer; }
+.agenda-root .fc-event-dragging, .agenda-root .fc-event-dragging * { cursor: grabbing; }
+.agenda-root [data-agenda-event][aria-disabled="true"], .agenda-root [data-agenda-event][aria-disabled="true"] * { cursor: default; }
+.appointment-arrival-float { position: fixed; z-index: 40; left: 50%; transform: translateX(-50%); width: min(420px, calc(100vw - 16px)); max-height: min(240px, 45dvh); overflow-y: auto; padding: 12px; border: 1px solid var(--accent); border-radius: 6px; background: var(--background); color: var(--foreground); box-shadow: 0 8px 32px #183c3024; }
+.appointment-attention-list { z-index: 50; display: flex; flex-direction: column; width: min(420px, calc(100vw - 16px)); max-height: min(560px, var(--radix-popover-content-available-height, 75dvh)); overflow: hidden; border: 1px solid var(--line); border-radius: 6px; background: var(--background); color: var(--foreground); box-shadow: 0 8px 24px #183c3021; }
+.appointment-notice-heading { display: flex; flex-shrink: 0; align-items: center; gap: 8px; padding: 6px 8px 6px 16px; border-bottom: 1px solid var(--line); }
+.appointment-notice-heading h2 { flex: 1; font-size: 14px; line-height: 20px; font-weight: 600; }
+.appointment-notice-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.appointment-notice-body:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.appointment-notice-body section + section { border-top: 1px solid var(--line); }
+.appointment-notice-group { padding: 10px 16px 6px; color: var(--muted); font-size: 12px; line-height: 18px; font-weight: 600; }
+.appointment-notice-items { margin: 0; padding: 0; list-style: none; }
+.appointment-notice-row { display: grid; grid-template-columns: minmax(0, 1fr) 36px; align-items: start; gap: 8px; padding: 8px 12px 12px; }
+.appointment-notice-copy { min-width: 0; }
+.appointment-notice-title { display: flex; align-items: flex-start; gap: 8px; }
+.appointment-notice-name { min-width: 0; flex: 1; font-size: 14px; line-height: 20px; font-weight: 600; overflow-wrap: anywhere; }
+.appointment-notice-row[data-read="true"] .appointment-notice-name { font-weight: 500; }
+.appointment-notice-state { display: flex; width: 16px; height: 20px; flex-shrink: 0; align-items: center; justify-content: center; color: var(--muted); }
+.appointment-notice-state .slotly-icon { width: 14px; height: 14px; }
+.appointment-notice-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.appointment-notice-meta { margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 18px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.appointment-notice-outcome { margin-top: 3px; color: #78500b; font-size: 12px; line-height: 18px; }
+.appointment-notice-context { margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 18px; }
+.appointment-notice-published { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 18px; }
+.appointment-notice-menu { z-index: 60; width: 202px; max-width: calc(100vw - 16px); max-height: var(--radix-dropdown-menu-content-available-height); overflow-y: auto; padding: 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--background); color: var(--foreground); outline: none; box-shadow: 0 6px 18px #183c301a; }
+.appointment-notice-menu-item { display: flex; min-height: 36px; align-items: center; padding: 0 10px; border-radius: 3px; font-size: 13px; line-height: 18px; cursor: default; user-select: none; outline: none; }
+.appointment-notice-menu-item[data-highlighted] { background: var(--surface); }
+.appointment-notice-menu-item[data-disabled] { opacity: .45; }
+.appointment-notice-menu-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.appointment-notice-destructive, .appointment-arrival-cancel[data-slot="button"] { color: var(--destructive); }
+.appointment-notice-destructive[data-highlighted] { background: color-mix(in srgb, var(--destructive) 7%, var(--background)); }
+.appointment-arrival-cancel[data-slot="button"] { border-color: color-mix(in srgb, var(--destructive) 30%, transparent); }
+.appointment-notice-menu-separator { height: 1px; margin: 4px 0; background: var(--line); }
+.appointment-attention-list .appointment-notice-action { padding-inline: 8px; font-size: 12px; font-weight: 500; color: var(--accent); }
+.appointment-attention-list button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.appointment-notice-end { padding: 10px 16px; color: var(--muted); font-size: 12px; line-height: 18px; text-align: center; }
+.appointment-notice-empty { display: grid; justify-items: center; gap: 10px; padding: 30px 16px; color: var(--muted); font-size: 14px; line-height: 20px; }
+.appointment-notice-empty .slotly-icon { width: 20px; height: 20px; }
+.appointment-notice-error { display: flex; flex-wrap: wrap; flex-shrink: 0; align-items: center; gap: 0 8px; padding: 6px 16px; border-bottom: 1px solid var(--line); color: var(--destructive); font-size: 12px; line-height: 18px; }
+.appointment-notice-setting { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; font-size: 14px; line-height: 20px; }
+.appointment-notice-settings p { padding: 0 16px 16px; color: var(--muted); font-size: 12px; line-height: 18px; }
+.appointment-notice-switch-track { display: flex; width: 28px; height: 16px; align-items: center; padding: 2px; border: 1px solid var(--muted); border-radius: 12px; background: var(--surface); }
+.appointment-notice-switch-track span { width: 10px; height: 10px; flex-shrink: 0; border-radius: 50%; background: var(--muted); }
+.appointment-notice-switch[aria-checked="true"] .appointment-notice-switch-track { border-color: var(--accent); background: var(--accent); }
+.appointment-notice-switch[aria-checked="true"] .appointment-notice-switch-track span { transform: translateX(12px); background: white; }
+.appointment-arrival-others { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 4px; }
+.appointment-arrival-others button { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.appointment-notice-trigger { position: relative; }
+.appointment-notice-badge { position: absolute; top: 0; right: 0; min-width: 14px; border-radius: 12px; padding-inline: 3px; background: var(--accent); color: white; font-size: 10px; line-height: 14px; }

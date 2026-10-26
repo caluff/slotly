@@ -2,13 +2,13 @@
 
 import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
-import { Clock3, ListChecks, Store, X } from "lucide-react";
+import { Clock3, ListChecks, Store, Users, X } from "@/components/ui/icons";
 import { Tooltip } from "radix-ui";
 import { Button } from "@/components/ui/button";
 import { dashboardHref, readDashboardView, type DashboardView } from "@/lib/dashboard-navigation";
 import { usePanelMotion } from "@/components/use-panel-motion";
 
-export const workspaceSections = [{ view: 'servicios', label: 'Servicios', icon: ListChecks }, { view: 'horario', label: 'Horario', icon: Clock3 }, { view: 'negocio', label: 'Negocio', icon: Store }] as const;
+export const workspaceSections = [{ view: 'clientes', label: 'Clientes', icon: Users }, { view: 'servicios', label: 'Servicios', icon: ListChecks }, { view: 'horario', label: 'Horario', icon: Clock3 }, { view: 'negocio', label: 'Negocio', icon: Store }] as const;
 const PanelSurface = createContext(false);
 export const usePanelSurface = () => useContext(PanelSurface);
 function subscribe(notify: () => void) { const query = window.matchMedia('(max-width: 1199px)'); query.addEventListener('change', notify); return () => query.removeEventListener('change', notify); }
@@ -34,7 +34,7 @@ export function WorkspaceRail({ insidePanel = false }: { insidePanel?: boolean }
   </nav></Tooltip.Provider>;
 }
 
-export function WorkspacePanels({ services, schedule, business }: { services: ReactNode; schedule: ReactNode; business: ReactNode }) {
+export function WorkspacePanels({ clients, services, schedule, business }: { clients?: ReactNode; services: ReactNode; schedule: ReactNode; business: ReactNode }) {
   const params = useSearchParams(), active = readDashboardView(params.get('vista')), open = active !== 'agenda';
   const creatingService = params.get('crear') === 'servicio';
   const compact = useSyncExternalStore(subscribe, isCompact, () => false);
@@ -75,6 +75,7 @@ export function WorkspacePanels({ services, schedule, business }: { services: Re
     onClick={event => { if (compact && event.target === event.currentTarget) { const rect = event.currentTarget.getBoundingClientRect(); if (event.clientX < rect.left || event.clientY < rect.top || event.clientX > rect.right || event.clientY > rect.bottom) close(); } }}>
     <div className="workspace-panel-heading"><h2 id="workspace-panel-heading" tabIndex={-1}>{workspaceSections.find(row => row.view === displayedSection)?.label ?? 'Panel del negocio'}</h2><Button variant="ghost" size="icon" aria-label="Cerrar panel" disabled={busy} onClick={close}><X aria-hidden="true" /></Button></div>
     <div className="workspace-panel-content">
+      <section data-panel-section="clientes" aria-label="Clientes" hidden={displayedSection !== 'clientes'}>{clients}</section>
       <section data-panel-section="servicios" aria-label="Servicios" hidden={displayedSection !== 'servicios'}>{services}</section>
       <section data-panel-section="horario" aria-label="Horario" hidden={displayedSection !== 'horario'}>{schedule}</section>
       <section data-panel-section="negocio" aria-label="Negocio" hidden={displayedSection !== 'negocio'}>{business}</section>

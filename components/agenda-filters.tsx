@@ -1,7 +1,7 @@
 "use client";
 
 import { Checkbox } from "radix-ui";
-import { Check, Search } from "lucide-react";
+import { Check, Search } from "@/components/ui/icons";
 import { useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -10,6 +10,7 @@ import { NativeSelect } from "@/components/ui/native-select";
 import type { Id } from "@/convex/_generated/dataModel";
 import { agendaFilterError, type AgendaFilters } from "@/lib/appointment-search";
 import { toggleCalendarStatus } from "@/lib/agenda-calendar";
+import { appointmentStatuses, appointmentStatusFilters, selectedAppointmentStatuses } from "@/lib/appointment-status";
 
 export function AgendaFiltersForm({ filters, services, moreServices, loadingServices, onLoadServices, onSearch, onNameSearch = onSearch }: {
   filters: AgendaFilters; services: { _id: Id<"services">; name: string }[]; moreServices?: boolean; loadingServices?: boolean;
@@ -34,10 +35,10 @@ export function AgendaFiltersForm({ filters, services, moreServices, loadingServ
     </NativeSelect></Field>
     {moreServices && <Button variant="outline" type="button" disabled={loadingServices} onClick={onLoadServices}>{loadingServices ? "Cargando servicios…" : "Más servicios"}</Button>}
     <fieldset><legend className="mb-1 text-sm font-medium">Estado</legend>
-      {([{ value: "confirmed", label: "Confirmadas", color: "text-accent" }, { value: "cancelled", label: "Canceladas", color: "text-destructive" }] as const).map(item => {
-        const checked = !filters.status || filters.status === item.value;
-        return <Checkbox.Root key={item.value} asChild checked={checked} onCheckedChange={() => { const values = current(); apply({ ...values, status: toggleCalendarStatus(values.status, item.value) }); }}>
-          <Button type="button" variant="ghost" className={`w-full justify-start px-2 ${item.color}`}><span className="flex size-4 items-center justify-center rounded-sm border border-current" aria-hidden="true"><Checkbox.Indicator><Check className="size-3" /></Checkbox.Indicator></span>{item.label}</Button>
+      {appointmentStatuses.map(status => {
+        const checked = selectedAppointmentStatuses(filters.status)?.includes(status) ?? false;
+        return <Checkbox.Root key={status} asChild checked={checked} onCheckedChange={() => { const values = current(); apply({ ...values, status: toggleCalendarStatus(values.status, status) }); }}>
+          <Button type="button" variant="ghost" className={`w-full justify-start px-2 appointment-status-${status}`}><span className="flex size-4 items-center justify-center rounded-sm border border-current" aria-hidden="true"><Checkbox.Indicator><Check className="size-3" /></Checkbox.Indicator></span>{appointmentStatusFilters[status]}</Button>
         </Checkbox.Root>;
       })}
     </fieldset>

@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog, Popover } from "radix-ui";
-import { X } from "lucide-react";
+import { X } from "@/components/ui/icons";
 import { useMemo, useSyncExternalStore, type ReactNode, type RefObject } from "react";
 import { Button } from "@/components/ui/button";
 

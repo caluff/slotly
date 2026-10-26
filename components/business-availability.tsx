@@ -3,7 +3,7 @@
 import { useAction, useConvex, useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import type { FunctionReturnType } from "convex/server";
-import { Plus } from "lucide-react";
+import { Plus } from "@/components/ui/icons";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -15,11 +15,13 @@ import { useDraftWarning } from "@/components/use-draft-warning";
 import { WorkspaceLink } from "@/components/dashboard-workspace";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { AppointmentForm, type AppointmentDraft } from "@/components/appointment-form";
+import { AppointmentForm, type AppointmentDraft, type AppointmentClientValues } from "@/components/appointment-form";
 import { AppointmentEditor, type CreateContext } from "@/components/appointment-editor";
 import { AgendaCalendar } from "@/components/agenda-calendar";
+import { AppointmentResultsWorkspace } from "@/components/appointment-results";
+import { ConnectedAppointmentAttention } from "@/components/appointment-attention";
 import { calendarHref, calendarSearchHref, readCalendarState } from "@/lib/agenda-calendar";
-import { normalizeClientSearch } from "@/lib/appointment-search";
+import { privateCreationKey, privateCreationSchema, type PrivateBookingResult } from "@/lib/appointment-creation";
 import { isLocalDate } from "@/lib/local-date";
 import { todayInZone } from "@/lib/agenda-date";
 
@@ -27,8 +29,8 @@ type Availability = FunctionReturnType<typeof api.availability.getMyAvailability
 type Service = { _id: Id<"services">; name: string; durationMinutes: number; archived?: boolean };
 type Selection = { serviceId: Id<"services">; date: string };
 type Consult = (values: Selection) => Promise<Availability>;
-type Create = (values: Selection & { start: number; clientName: string; expectedService: Omit<Availability["service"], "id"> }) => Promise<unknown>;
-type CheckCreation = (values: Selection & { start: number; clientName: string }) => Promise<"found" | "absent">;
+type Create = (values: AppointmentClientValues) => Promise<PrivateBookingResult>;
+type CheckCreation = (values: AppointmentClientValues) => Promise<"found" | "absent">;
 
 function useToday(timeZone: string) {
   const [now, setNow] = useState(() => Date.now());
@@ -43,7 +45,7 @@ function useToday(timeZone: string) {
   return todayInZone(timeZone, now);
 }
 
-export function BusinessAvailability({ businessName, timeZone, enabled = true, active = true }: { businessName: string; timeZone: string; enabled?: boolean; active?: boolean }) {
+export function BusinessAvailability({ businessId, businessName, timeZone, enabled = true, active = true }: { businessId: Id<"businesses">; businessName: string; timeZone: string; enabled?: boolean; active?: boolean }) {
   const params = useSearchParams();
   const today = useToday(timeZone);
   const state = readCalendarState(params, today);
@@ -54,23 +56,20 @@ export function BusinessAvailability({ businessName, timeZone, enabled = true, a
   const schedule = useQuery(api.weeklySchedule.getMyWeeklySchedule, enabled ? {} : "skip");
   const consult = useAction(api.availability.getMyAvailability);
   const create = useMutation(api.appointments.createMyAppointment);
+  const mark = useMutation(api.appointments.markMyAppointmentResult);
+  const undo = useMutation(api.appointments.undoMyAppointmentResult);
+  const arrive = useMutation(api.appointments.arriveMyAppointment);
+  const cancelWindow = useMutation(api.appointments.cancelMyAppointmentInWindow);
   const convex = useConvex();
-  const checkCreation = useCallback<CheckCreation>(async values => {
-    let cursor: string | null = null;
-    for (;;) {
-      const result: FunctionReturnType<typeof api.appointments.searchMyAppointments> = await convex.query(api.appointments.searchMyAppointments, { client: values.clientName, serviceId: values.serviceId, status: "confirmed", period: "todas", from: values.date, until: values.date, paginationOpts: { numItems: 100, cursor } });
-      if (result.page.some(row => row.start === values.start && normalizeClientSearch(row.clientName) === normalizeClientSearch(values.clientName))) return "found";
-      if (result.isDone) return "absent";
-      cursor = result.continueCursor;
-    }
-  }, [convex]);
+  const checkCreation = useCallback<CheckCreation>(async command =>
+    await convex.query(api.appointments.getMyAppointmentCreation, command) ? "found" : "absent", [convex]);
   const [occupancyDate, setOccupancyDate] = useState("");
   // Subscribe to the draft's day, even when the agenda filters show another
   // day. Cancellations in another tab invalidate the preview immediately.
-  const appointments = useQuery(api.appointments.listMyConfirmedAppointments, enabled && isLocalDate(occupancyDate) ? { date: occupancyDate } : "skip");
+  const appointments = useQuery(api.appointments.listMyOccupyingAppointments, enabled && isLocalDate(occupancyDate) ? { date: occupancyDate } : "skip");
   const specialDate = useQuery(api.specialDates.getMySpecialDate, enabled && isLocalDate(occupancyDate) ? { date: occupancyDate } : "skip");
   const blocks = useQuery(api.timeBlocks.getMyOccupation, enabled && isLocalDate(occupancyDate) ? { date: occupancyDate } : "skip");
-  return <AvailabilityPanel businessName={businessName} services={results} loading={status === "LoadingFirstPage" || schedule === undefined}
+  return <AppointmentResultsWorkspace key={businessId} storageKey={businessId} onMark={mark} onUndo={undo} onArrive={arrive} onCancelWindow={cancelWindow}><ConnectedAppointmentAttention businessId={businessId} timeZone={timeZone} enabled={enabled}><AvailabilityPanel storageKey={businessId} businessName={businessName} services={results} loading={status === "LoadingFirstPage" || schedule === undefined}
     timeZone={timeZone} initialDate={singleDay} onSelectDate={(value) => navigate(dayHref(value))}
     agenda={onNew => <AgendaCalendar {...state} today={today} timeZone={timeZone} enabled={enabled && active} onNew={onNew}
       services={results} moreServices={status === "CanLoadMore" || status === "LoadingMore"} loadingServices={status === "LoadingMore"}
@@ -79,11 +78,11 @@ export function BusinessAvailability({ businessName, timeZone, enabled = true, a
     onConsult={consult} onCreate={create} onCheckCreation={checkCreation} initialService={state.filters.service} scheduleMissing={schedule === null} onDraftDateChange={setOccupancyDate}
     revision={JSON.stringify([results, schedule, specialDate, appointments, blocks, timeZone])}
     active={active && enabled} more={status === "CanLoadMore" || status === "LoadingMore"}
-    loadingMore={status === "LoadingMore"} onLoadMore={() => loadMore(20)} />;
+    loadingMore={status === "LoadingMore"} onLoadMore={() => loadMore(20)} /></ConnectedAppointmentAttention></AppointmentResultsWorkspace>;
 }
 
-export function AvailabilityPanel({ businessName, services, loading, timeZone, initialDate, initialService = "", onConsult, onCreate, onCheckCreation, onSelectDate, onDraftDateChange, revision = "", more = false, loadingMore = false, onLoadMore, scheduleMissing = false, active = true, agenda }: {
-  businessName: string; services: Service[]; loading: boolean; timeZone: string; initialDate: string; onConsult: Consult; revision?: string;
+export function AvailabilityPanel({ storageKey, businessName, services, loading, timeZone, initialDate, initialService = "", onConsult, onCreate, onCheckCreation, onSelectDate, onDraftDateChange, revision = "", more = false, loadingMore = false, onLoadMore, scheduleMissing = false, active = true, agenda }: {
+  storageKey: string; businessName: string; services: Service[]; loading: boolean; timeZone: string; initialDate: string; onConsult: Consult; revision?: string;
   onCreate: Create; onSelectDate: (date: string) => void; scheduleMissing?: boolean;
   more?: boolean; loadingMore?: boolean; onLoadMore?: () => void; active?: boolean;
   agenda: ReactNode | ((onNew: (date: string, start?: number, context?: CreateContext) => void, newButton: ReactNode) => ReactNode);
@@ -100,13 +99,30 @@ export function AvailabilityPanel({ businessName, services, loading, timeZone, i
   const [draft, setDraft] = useState<AppointmentDraft>({ start: "", clientName: "" });
   const [created, setCreated] = useState(false);
   const [selectionDirty, setSelectionDirty] = useState(false);
-  const dirty = selectionDirty || !!(draft.start || draft.clientName || draft.uncertain);
+  const [restoreError, setRestoreError] = useState("");
+  const dirty = selectionDirty || !!(draft.start || draft.clientName || draft.email || draft.pending || draft.uncertain);
   useDraftWarning(dirty || saving);
   const [attempt, setAttempt] = useState(0);
   const trigger = useRef<HTMLButtonElement>(null);
   const selection = useMemo(() => serviceId && draftDate && isLocalDate(draftDate) ? { serviceId: serviceId as Id<"services">, date: draftDate } : null, [serviceId, draftDate]);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      try {
+        const raw = sessionStorage.getItem(privateCreationKey(storageKey));
+        if (!raw) return;
+        const parsed = privateCreationSchema.safeParse(JSON.parse(raw));
+        if (!parsed.success) { setRestoreError("No pudimos recuperar la confirmación guardada. Conserva esta pestaña y revisa Agenda antes de continuar."); return; }
+        const command = parsed.data, service = command.expectedService;
+        setServiceId(command.serviceId); setDraftDate(command.date); onDraftDateChange?.(command.date);
+        setDraft({ start: String(command.start), clientName: command.clientName, email: command.email ?? "", pending: command,
+          clientMode: command.clientId ? "saved" : "free", serviceKey: `${command.serviceId}:${service.version}:${service.name}:${service.durationMinutes}` });
+        setSelectionDirty(true); setOpen(true);
+      } catch { setRestoreError("No pudimos acceder a la confirmación guardada. Conserva esta pestaña antes de continuar."); }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [storageKey, onDraftDateChange]);
   function start(date = initialDate, proposedStart?: number, anchor?: CreateContext) {
-    if (saving) return;
+    if (saving || restoreError) return;
     if (draftDate === null || !dirty) {
       setDraftDate(date); setSuggestedStart(proposedStart); onDraftDateChange?.(date);
       if (services.some(service => service._id === initialService)) setServiceId(initialService);
@@ -125,8 +141,8 @@ export function AvailabilityPanel({ businessName, services, loading, timeZone, i
     <Field className="gap-2"><FieldLabel htmlFor="availability-date">Fecha de la cita</FieldLabel><Input id="availability-date" type="date" min="0001-01-01" max="9999-12-31" value={draftDate ?? ""} onChange={event => { setDraftDate(event.target.value); onDraftDateChange?.(event.target.value); setSelectionDirty(true); }} /></Field>
   </>;
   const editor = draftDate !== null && <>
-    <AvailabilityResults initialStart={suggestedStart} draft={draft} onDraftChange={setDraft} selectionFields={selectionFields} compact={typeof agenda === "function"}
-      onCheck={onCheckCreation && selection ? values => onCheckCreation({ ...selection, ...values }) : undefined} onRecovered={() => { setSelectionDirty(false); setCreated(true); }}
+    <AvailabilityResults storageKey={storageKey} timeZone={timeZone} initialStart={suggestedStart} draft={draft} onDraftChange={setDraft} selectionFields={selectionFields} compact={typeof agenda === "function"}
+      onCheck={onCheckCreation} onRecovered={() => { setSelectionDirty(false); setCreated(true); }}
       selection={selection} onConsult={onConsult} onCreate={async values => { const result = await onCreate(values); setSelectionDirty(false); setCreated(true); return result; }} revision={`${revision}:${attempt}:${active}`} onSaving={savingChanged} active={open && active} />
     <p className="mt-3 text-xs text-muted wrap-anywhere">{timeZone}</p>
     {draftDate !== initialDate && isLocalDate(draftDate) && <Button variant="ghost" type="button" disabled={saving} onClick={() => { if (!busy.current) { setOpen(false); onSelectDate(draftDate); } }}>Localizar fecha</Button>}
@@ -134,6 +150,7 @@ export function AvailabilityPanel({ businessName, services, loading, timeZone, i
 
   return <>
     <h1 tabIndex={-1} className="sr-only">Agenda</h1>
+    {restoreError && <p role="alert" className="text-sm text-destructive">{restoreError}</p>}
     <div className={typeof agenda === "function" ? "sr-only" : "mb-5 flex flex-wrap items-center justify-between gap-3"}>
       <p className="text-sm font-medium text-muted wrap-anywhere">{businessName}</p>
       {typeof agenda !== "function" && newButton}
@@ -166,11 +183,12 @@ function readError(cause: unknown) {
   return "No pudimos cargar los horarios. Comprueba tu conexión y reintenta; conservamos el borrador.";
 }
 
-function AvailabilityResults({ selection, onConsult, onCreate, revision, onSaving, active, initialStart, draft, onDraftChange, selectionFields, compact, onCheck, onRecovered }: {
+function AvailabilityResults({ storageKey, selection, onConsult, onCreate, revision, onSaving, active, initialStart, draft, onDraftChange, selectionFields, compact, onCheck, onRecovered, timeZone }: {
+  storageKey: string; timeZone: string;
   selection: Selection | null; onConsult: Consult; onCreate: Create; revision: string; onSaving: (saving: boolean) => void; active: boolean;
   initialStart?: number;
   draft?: AppointmentDraft; onDraftChange?: (draft: AppointmentDraft) => void; selectionFields?: ReactNode; compact?: boolean;
-  onCheck?: (values: { start: number; clientName: string }) => Promise<"found" | "absent">; onRecovered?: () => void;
+  onCheck?: (values: AppointmentClientValues) => Promise<"found" | "absent">; onRecovered?: () => void;
 }) {
   const [snapshot, setSnapshot] = useState<{ data: Availability; sent: number; revision: string; refresh: number; key: string } | null>(null);
   const [failure, setFailure] = useState<{ message: string; key: string; revision: string; refresh: number } | null>(null);
@@ -224,10 +242,10 @@ function AvailabilityResults({ selection, onConsult, onCreate, revision, onSavin
         : !ready ? <p role="status" className="text-sm text-muted">Cargando horarios disponibles…</p>
           : <><p role="status" className="text-sm leading-6 text-muted">{slots.length ? `${slots.length} ${slots.length === 1 ? "horario disponible" : "horarios disponibles"}` : snapshot.data.status === "available" ? messages.empty : messages[snapshot.data.status]}</p>
             {snapshot.data.omittedForTimeChange && <p className="mt-2 text-xs leading-5 text-muted">Se omiten las horas ambiguas o inexistentes por cambios de hora.</p>}</>}
-    <AppointmentForm initialStart={initialStart} draft={draft} onDraftChange={onDraftChange} selectionFields={selectionFields} compact={compact} onCheck={onCheck} onRecovered={onRecovered} slots={slots} ready={ready && !error}
+    <AppointmentForm storageKey={storageKey} creationContext={selection && snapshot ? { ...selection, expectedService: { name: snapshot.data.service.name, durationMinutes: snapshot.data.service.durationMinutes, version: snapshot.data.service.version } } : null} timeZone={timeZone} initialStart={initialStart} draft={draft} onDraftChange={onDraftChange} selectionFields={selectionFields} compact={compact} onCheck={onCheck} onRecovered={onRecovered} slots={slots} ready={ready && !error}
       serviceKey={snapshot ? `${snapshot.data.service.id}:${snapshot.data.service.version}:${snapshot.data.service.name}:${snapshot.data.service.durationMinutes}` : undefined}
       isFuture={(start) => snapshot !== null && start > snapshot.data.generatedAt + performance.now() - snapshot.sent}
-      onCreate={(values) => selection && snapshot ? onCreate({ ...selection, ...values, expectedService: { name: snapshot.data.service.name, durationMinutes: snapshot.data.service.durationMinutes, version: snapshot.data.service.version } }) : Promise.reject(new Error("Missing selection"))}
+      onCreate={onCreate}
       onRefresh={() => setRefresh((value) => value + 1)} onSaving={onSaving} />
   </div>;
 }
