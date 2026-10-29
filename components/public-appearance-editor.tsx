@@ -18,6 +18,7 @@ import { openWorkspaceSection } from "@/components/workspace-panel";
 import { useDraftWarning } from "@/components/use-draft-warning";
 import { useLastDefined } from "@/components/use-last-defined";
 import { PublicBookingSurface, PublicReservationFields, type ReservationFields } from "@/components/public-booking-presentation";
+import { FormSkeleton } from "@/components/loading-screens";
 import { dashboardHref } from "@/lib/dashboard-navigation";
 import { isLocalDate } from "@/lib/local-date";
 import { MAX_PUBLIC_PHOTO_BYTES, publicAppearanceSchema, publicThemes, type PrivatePublicAppearance, type PublicAppearanceSettings } from "@/lib/public-appearance";
@@ -28,7 +29,7 @@ type Photo = { bytes: ArrayBuffer; url: string };
 
 export function PublicAppearanceEditor({ businessName, timeZone, enabled }: { businessName: string; timeZone: string; enabled: boolean }) {
   const profile = useLastDefined(useQuery(api.publicAppearance.getMy, enabled ? {} : "skip"));
-  return profile ? <Editor initial={profile} latest={profile} businessName={businessName} timeZone={timeZone} enabled={enabled} /> : <p role="status" className="p-6 text-muted">Cargando personalización…</p>;
+  return profile ? <Editor initial={profile} latest={profile} businessName={businessName} timeZone={timeZone} enabled={enabled} /> : <div className="p-6"><FormSkeleton label="Cargando personalización" /></div>;
 }
 
 function Editor({ initial, latest, businessName, timeZone, enabled }: { initial: PrivatePublicAppearance; latest: PrivatePublicAppearance; businessName: string; timeZone: string; enabled: boolean }) {

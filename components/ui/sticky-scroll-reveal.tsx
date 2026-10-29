@@ -40,7 +40,7 @@ export function StickyScroll({ content }: { content: StickyScrollItem[] }) {
       >
         <motion.h3
           id={`product-${item.id}`}
-          animate={{ color: activeCard === index ? "#153d32" : "#52665b" }}
+          animate={{ color: activeCard === index ? "var(--home-foreground)" : "var(--home-muted)" }}
           transition={{ duration: reduceMotion ? 0 : .3 }}
         >{item.title}</motion.h3>
         <p className="sticky-reveal-summary">{item.summary}</p>

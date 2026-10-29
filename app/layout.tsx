@@ -1,9 +1,11 @@
 import { ClerkProvider } from "@clerk/nextjs";
+import { shadcn } from "@clerk/ui/themes";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { clerkLocalization } from "@/lib/clerk-localization";
 import { compactControlAppearance } from "@/components/auth-appearance";
 import { Toaster } from "@/components/ui/sonner";
+import { AppThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -38,6 +40,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="es"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
@@ -47,10 +50,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           signInFallbackRedirectUrl="/dashboard"
           signUpFallbackRedirectUrl="/dashboard"
           appearance={{
+            theme: shadcn,
             variables: {
-              colorPrimary: "#176348",
-              colorForeground: "#183c30",
-              colorBackground: "#ffffff",
+              colorPrimary: "var(--accent)",
+              colorPrimaryForeground: "var(--primary-foreground)",
+              colorForeground: "var(--foreground)",
+              colorMutedForeground: "var(--muted)",
+              colorBackground: "var(--card)",
+              colorInput: "var(--background)",
+              colorInputForeground: "var(--foreground)",
               fontFamily: "var(--font-geist-sans), sans-serif",
               borderRadius: "0.375rem",
             },
@@ -110,9 +118,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             },
           }}
         >
-          {children}
+          <AppThemeProvider>
+            {children}
+            <Toaster />
+          </AppThemeProvider>
         </ClerkProvider>
-        <Toaster />
       </body>
     </html>
   );

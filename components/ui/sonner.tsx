@@ -4,9 +4,11 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { CircleCheckIcon } from "@/components/ui/icons";
 import { Toaster as Sonner } from "sonner";
+import { useTheme } from "next-themes";
 
-// shadcn/ui's Sonner wrapper, adapted to Slotly's fixed light theme and tokens.
+// Keep one stable toaster while theme colors and its portal host change.
 export function Toaster() {
+  const { theme } = useTheme();
   const [host, setHost] = useState<HTMLElement | null>(null);
   useEffect(() => {
     // One stable portal: notifications stay visible in a native modal sheet
@@ -22,7 +24,7 @@ export function Toaster() {
   }, []);
   return host && createPortal(
     <Sonner
-      theme="light"
+      theme={theme === "dark" ? "dark" : "light"}
       className="toaster group"
       containerAriaLabel="Notificaciones"
       icons={{ success: <CircleCheckIcon className="size-4 text-accent" /> }}

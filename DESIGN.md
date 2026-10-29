@@ -2,7 +2,7 @@
 
 **Centro de notificaciones vigente de Reto13 —23/10/2026:** referencia estructural de YouTube adaptada a la paleta clara/verde de Slotly: título Notificaciones, engranaje36×36, vista Ajustes con volver y switch36×36, sin X ni pie. Menú ⋮36×36 a la derecha de cada aviso; Ya llegó / Reprogramar / Cancelar Cita, esta última destructive. Nuevas/Leídas estables durante la apertura y reconocimiento automático por fase; no botón Leído. Snapshot histórico y tiempo relativo de publicación con fecha exacta accesible. Cinco iniciales y otros cinco al desplazarse dentro del panel; al reabrir vuelve a cinco. Ancho máximo420px/margen8px, altura acotada, nombres largos con reflujo y sin desbordamiento en1440/1280/390/320×720. Verde, Geist, radios6px y controles36px heredados. Se conservan flotante único, salto completo5s, pointer y ausencia de hovercard. Corrección actual: menú derecho y edad creciente sin mover la escena, 36 controles nuevos en reto13-runtime-age;59controles anteriores en reto13-notification-center se conservan como evidencia previa; contrato y límites en [APPOINTMENT_ATTENTION.md](docs/APPOINTMENT_ATTENTION.md).
 name: Slotly
-description: Interfaz clara y sencilla con acentos verdes.
+description: Interfaz sencilla con temas claro y oscuro y acentos verdes.
 colors:
   background: "#fcfdfb"
   foreground: "#183c30"
@@ -13,13 +13,62 @@ colors:
   line: "#d9e4da"
   selection: "#c7e6ca"
   white: "#ffffff"
+  card: "#ffffff"
+  primary-foreground: "#ffffff"
+  destructive-foreground: "#ffffff"
   destructive: "#9f2f2f"
+  confirmed-bg: "#eaf3e9"
+  confirmed-ink: "#183c30"
+  cancelled-bg: "#fbefed"
+  completed-bg: "#eaf1fb"
+  completed-ink: "#214f85"
+  absent-bg: "#fff2d8"
+  absent-ink: "#78500b"
+  block-bg: "#ecefe9"
+  block-ink: "#354638"
+  calendar-faint: "#f3f6f3"
+  calendar-muted: "#e6ece6"
+  calendar-today: "#eef6eb"
+  calendar-highlight: "#d6ead8"
   home-background: "#f8f6e7"
   home-foreground: "#153d32"
+  home-accent: "#176348"
   home-muted: "#42574b"
   home-line: "#c9d0b7"
   home-control-border: "#a0ac96"
   home-selection: "#d3df8f"
+  dark-background: "#101b16"
+  dark-card: "#17271f"
+  dark-foreground: "#e4efe7"
+  dark-accent: "#82d7ae"
+  dark-accent-hover: "#a1e5c4"
+  dark-primary-foreground: "#0a281b"
+  dark-surface: "#203a2c"
+  dark-muted: "#a8beaf"
+  dark-line: "#395044"
+  dark-destructive: "#f3a1a1"
+  dark-destructive-foreground: "#351111"
+  dark-selection: "#355c44"
+  dark-confirmed-bg: "#203a2c"
+  dark-confirmed-ink: "#b3e8c7"
+  dark-cancelled-bg: "#3b2527"
+  dark-completed-bg: "#203448"
+  dark-completed-ink: "#adcefa"
+  dark-absent-bg: "#3b331e"
+  dark-absent-ink: "#f1d28b"
+  dark-block-bg: "#2a332c"
+  dark-block-ink: "#bacbbb"
+  dark-calendar-faint: "#14221a"
+  dark-calendar-muted: "#23382b"
+  dark-calendar-today: "#1a3224"
+  dark-calendar-highlight: "#2d503a"
+  dark-home-background: "#101914"
+  dark-home-foreground: "#e6f0e5"
+  dark-home-accent: "#a3d995"
+  dark-home-muted: "#b3c4b4"
+  dark-home-line: "#3c4c3d"
+  dark-home-control-border: "#7c927b"
+  dark-home-selection: "#415a35"
 typography:
   display:
     fontFamily: "var(--font-geist-sans), sans-serif"
@@ -79,12 +128,30 @@ spacing:
 components:
   button-primary:
     backgroundColor: "{colors.accent}"
-    textColor: "{colors.white}"
+    textColor: "{colors.primary-foreground}"
     typography: "{typography.label}"
     rounded: "{rounded.app}"
     padding: "0.375rem 1rem"
   button-primary-hover:
     backgroundColor: "{colors.accent-hover}"
+  button-primary-dark:
+    backgroundColor: "{colors.dark-accent}"
+    textColor: "{colors.dark-primary-foreground}"
+    typography: "{typography.label}"
+    rounded: "{rounded.app}"
+    height: "2.25rem"
+  button-primary-dark-hover:
+    backgroundColor: "{colors.dark-accent-hover}"
+  button-destructive:
+    backgroundColor: "{colors.destructive}"
+    textColor: "{colors.destructive-foreground}"
+    rounded: "{rounded.app}"
+    height: "2.25rem"
+  button-destructive-dark:
+    backgroundColor: "{colors.dark-destructive}"
+    textColor: "{colors.dark-destructive-foreground}"
+    rounded: "{rounded.app}"
+    height: "2.25rem"
   button-secondary:
     backgroundColor: "transparent"
     textColor: "{colors.foreground}"
@@ -92,7 +159,7 @@ components:
     rounded: "{rounded.app}"
     padding: "0.375rem 1rem"
   form-control:
-    backgroundColor: "{colors.white}"
+    backgroundColor: "{colors.card}"
     textColor: "{colors.foreground}"
     rounded: "{rounded.app}"
     padding: "0.375rem 0.75rem"
@@ -102,15 +169,15 @@ components:
     padding: "1.75rem"
   workspace-action:
     backgroundColor: "{colors.accent}"
-    textColor: "{colors.white}"
+    textColor: "{colors.primary-foreground}"
     typography: "{typography.label}"
     rounded: "{rounded.app}"
     height: "2.25rem"
   workspace-header-row:
-    backgroundColor: "{colors.white}"
+    backgroundColor: "{colors.card}"
     height: "4rem"
   context-panel:
-    backgroundColor: "{colors.white}"
+    backgroundColor: "{colors.card}"
     textColor: "{colors.foreground}"
     rounded: "{rounded.app}"
     padding: "1.25rem"
@@ -128,25 +195,26 @@ components:
 
 ## Overview
 
-Interfaz clara, sencilla y profesional, con acentos verdes y Geist. La portada amplía este mundo con un fondo crema y el video de partículas aportado por el usuario; esa extensión local no cambia la identidad de la autenticación ni del dashboard. La demo pública reutiliza el dashboard original con datos ficticios.
+Interfaz sencilla y profesional, con acentos verdes y Geist, disponible en Claro u Oscuro. La portada amplía este mundo con un fondo crema en claro y un fondo verde profundo en oscuro, conservando el video de partículas aportado por el usuario. La demo pública reutiliza el dashboard original con datos ficticios. La extensión de temas y cargas del 29/10/2026 conserva las composiciones y el contexto histórico registrado más abajo.
 
 **Key Characteristics:**
 
-- Fondo claro y texto verde oscuro.
+- Fondos y texto semánticos que cambian juntos entre claro y oscuro.
 - Jerarquía tipográfica en Geist.
 - Acciones principales verdes y formularios oficiales de Clerk.
 - Espacio privado con cuatro vistas, listas con separadores y formularios bajo demanda.
 - Portada abierta con video original y acceso a la demo; crema y tipos fluidos restringidos a esa superficie.
+- Selector persistido por navegador y cargas estructurales sin texto visible de esquina.
 
 ## Colors
 
-Los valores del frontmatter son normativos y proceden de la hoja global, de la configuración de Clerk y, exclusivamente para el prefijo `home-`, de la hoja local de portada. Los tokens existentes mantienen sus valores; la extensión de home no se aplica al dashboard ni a `/demo`.
+Los valores de color registrados en el bloque inicial proceden de `:root` y `:root.dark` de la hoja global. Las claves sin prefijo corresponden a claro; `dark-` registra sus valores oscuros, activados por la clase del documento, sin cambiar los nombres CSS. `home-` se limita a portada y no sustituye la paleta del dashboard o `/demo`. El párrafo histórico de Reto13 dentro del delimitador inicial es un defecto de formato previo, conservado fuera del alcance de esta extensión: ese bloque no se declara YAML portable validado. El sidecar sigue siendo JSON válido.
 
 ### Primary
 
-- `accent`: acciones principales, navegación activa, confirmaciones, énfasis de la portada y foco visible.
+- `accent`: acciones principales, navegación activa, confirmaciones y foco visible.
 - `accent-hover`: fondo de la acción principal al pasar el cursor.
-- `surface`: fondo verde claro de avisos, cargas y estados de interacción del espacio privado.
+- `surface`: fondo tonal de avisos y estados de interacción del espacio privado; combinado con `line` forma las piezas de carga.
 - `selection`: fondo de la selección de texto, con `foreground` como texto.
 
 ### Neutral
@@ -155,10 +223,20 @@ Los valores del frontmatter son normativos y proceden de la hoja global, de la c
 - `foreground`: texto principal.
 - `muted`: descripciones, notas y pie.
 - `line`: separadores de cabecera y pie.
-- `white`: texto de la acción principal, cabecera privada, paneles contextuales y fondo configurado para Clerk.
-- `destructive`: bordes y mensajes de error, acción de cancelación y estado textual de citas canceladas. La confirmación destructiva usa fondo opaco y texto blanco, también cuando el sistema operativo prefiere modo oscuro; la aplicación mantiene su paleta clara.
+- `card`: superficies elevadas por tono, campos públicos, menú de tema y fondo oficial de Clerk.
+- `primary-foreground`: texto sobre el acento; `destructive-foreground`: texto sobre una acción destructiva. Cambian con el fondo y sustituyen el blanco fijo en los botones vigentes.
+- `white`: valor histórico conservado; no gobierna los foregrounds de acciones ni los fondos dependientes del tema.
+- `destructive`: mensajes de error, acción de cancelación y texto de citas canceladas. Su foreground específico conserva la pareja de contraste en ambos temas.
 
-El crema `home-background` integra el video sin recuadro; `home-foreground` y `home-muted` sostienen sus dos niveles de lectura. `home-line` separa la presentación de producto y el pie, divide los pasos móviles, forma los segmentos inactivos del indicador y enmarca las capturas; `home-control-border` delimita la acción secundaria. `home-selection` se limita a la selección de texto de esta página. El acento de las acciones, del segmento activo y de «calma» sigue siendo `accent`; los azules y amarillos del video pertenecen al material del usuario, no a una nueva paleta del dashboard. El antiguo separador de filas `home-row-line` deja de usarse al retirar la lista de ejemplo.
+`home-background` integra el video sin recuadro en ambos temas; `home-foreground` y `home-muted` sostienen sus dos niveles de lectura. `home-line` separa la presentación de producto y el pie, divide los pasos móviles, forma los segmentos inactivos del indicador y enmarca las capturas; `home-control-border` delimita la acción secundaria. `home-selection` se limita a la selección de texto de esta página. «Calma», enlaces de producto, segmento activo y caret usan `home-accent`; los botones principales siguen usando `accent` y `primary-foreground`. Los azules y amarillos del video pertenecen al material del usuario, sin extender la paleta del dashboard. El antiguo separador de filas `home-row-line` deja de usarse al retirar la lista de ejemplo.
+
+Los pares `confirmed-*`, `completed-*`, `absent-*` y `block-*` mantienen los significados de Confirmada, Completada, No asistió y bloqueo; `cancelled-bg` se combina con `destructive`. Los tonos `calendar-*` separan malla tenue, fuera de atención, Hoy y resaltado sin cambiar los estados ni la geometría. Son roles implementados del calendario, no permiso para trasladar sus tonos a nuevas superficies.
+
+Los aliases de shadcn conservan el significado de Slotly: `primary` y `ring` → `accent`; `secondary` → `surface`; `secondary-foreground`, `card-foreground` y `popover-foreground` → `foreground`; `popover` → `card`; `muted-foreground` → `muted`; `border` e `input` CSS → `line`. La utilidad Tailwind `color-input` toma `muted`, como en la fuente actual; no se homogeneiza esa diferencia en documentación. Los foregrounds de acciones tienen aliases propios en Tailwind.
+
+Las reservas personalizadas conservan Verde, Azul, Terracota y Ciruela. `publicThemeStyle` resuelve acento, hover, superficie y selección mediante `light-dark()` y `color-scheme`; sus valores locales permanecen en `lib/public-appearance.ts`, sin convertirlos en cuatro identidades del workspace.
+
+**The Semantic Foreground Rule.** Cada acción usa el foreground de su rol y tema; no heredar blanco fijo para botones en oscuro.
 
 ## Typography
 
@@ -176,6 +254,8 @@ En el espacio privado, los títulos visibles de vista usan el tamaño base de ti
 
 La portada vigente usa un contenedor de hasta (1320px), con (56px) por lado; hasta (900px), los márgenes pasan a (24px). La cabecera mide (88px), o (72px) hasta (600px). Hero, presentación de producto y pie forman un documento vertical abierto, sin el panel de cuenta anterior ni el caption de esquina.
 
+Hasta (360px), la cabecera de portada permite reflujo, recupera altura natural con mínimo de (72px) y da una fila completa a la navegación para conservar dentro del viewport el selector de tema de (36×36px).
+
 El hero coloca el texto a la izquierda y el video a la derecha, con altura mínima fluida entre (600px) y (850px). El texto ocupa (56%) y pasa a (66%) hasta (900px); el video cuadrado admite un ancho de hasta (760px). Hasta (600px), el texto ocupa todo el ancho, el video se sitúa debajo y el hero reserva (390px) inferiores dentro de una altura mínima de (820px). Las acciones comparten fila cuando caben y admiten reflujo; no hay fila secundaria de correo o pausa.
 
 La segunda sección usa tres columnas de escritorio: texto, captura e indicador derecho, con proporción (1:2), columna de (36px) y separación de (40px). Los pasos tienen altura mínima fluida de (420–480px) y relleno vertical de (48px), con la captura sticky centrada en el área visible. Hasta (900px), cada texto lleva debajo su imagen, los pasos recuperan altura natural con relleno vertical de (36px) y una línea entre ellos; el indicador sigue sticky en una columna de (20px) separada (12px). Sus tres botones conservan áreas de (36×36px) y un contador sin salto de línea. Las capturas mantienen la proporción del JPEG (1280×650), ocultando exclusivamente sus (45px) superiores mediante el marco CSS; no se reconstruye el calendario para móvil. El visor limita la imagen al viewport y conserva el mismo recorte superior.
@@ -190,9 +270,11 @@ Los filtros de Agenda responden al ancho disponible de su contenedor. Nombre del
 
 ## Elevation & Depth
 
-Las superficies propias usan fondo, contraste tonal y separadores. No se definen sombras propias. Los paneles contextuales son blancos, con borde fino y sin superposición sobre el contenido. El diálogo de salida con borradores oscurece el fondo con el texto principal al (20%); los diálogos de cancelación y reprogramación usan ese color al (30%). Los formularios conservan los estilos internos oficiales de Clerk.
+Las superficies propias usan fondo, contraste tonal y separadores. El menú de tema introduce una sombra local (`0 8px 24px rgb(0 0 0 / .15)`) para distinguir esa capa flotante; no redefine el shell continuo ni la política de los paneles vigentes, descritos en sus precisiones históricas. Los fondos dependientes del tema usan `card`, `background` o `surface` según la fuente. El diálogo de salida con borradores oscurece el fondo con el texto principal al (20%); los diálogos de cancelación y reprogramación usan ese color al (30%). Los formularios conservan los estilos internos oficiales de Clerk.
 
 En la portada, el video se mezcla con el crema mediante `darken`, sin tarjeta, sombra ni imagen sustituta. El recorrido de producto mantiene el campo abierto y usa espacio, jerarquía tipográfica, indicador y borde fino de imagen para ordenar la lectura. Solo el visor superpone un fondo oscuro local (80%) y la captura, sin sombra; no añade un token de elevación global.
+
+En oscuro el mismo MP4 usa mezcla `screen` con `invert(1) hue-rotate(180deg) contrast(1.25)` sobre `home-background`; se conserva el material original. La marca transparente usa el filtro blanco del tema oscuro, con la misma proporción.
 
 ## Shapes
 
@@ -226,7 +308,7 @@ El foco visible global usa un contorno de acento (3px) separado del elemento (4p
 
 ### Menú de usuario
 
-La cabecera autenticada muestra únicamente el avatar del `UserButton` oficial, con nombre accesible aportado por Clerk y un área de interacción mínima de 44px. Su apariencia se comparte desde `ClerkProvider` y solo afecta al menú de usuario.
+La cuenta autenticada conserva el avatar del `UserButton` oficial, con nombre accesible aportado por Clerk y un área de interacción mínima de 44px. El selector de tema propio lo acompaña en el grupo de cuenta del workspace; no modifica su tamaño. La apariencia de Clerk se comparte desde `ClerkProvider`.
 
 El desplegable tiene 18rem de ancho, limitado al ancho de la ventana menos 2rem, y radio de 6px. La identidad usa relleno de 16px y separación de 12px; el nombre y el correo pueden partirse cuando son largos. Las acciones conservan una altura mínima de 44px, con iconos alineados y el radio compartido de 6px. Se mantienen las funciones oficiales de administrar cuenta y cerrar sesión.
 
@@ -244,9 +326,27 @@ Los JPEG locales `public/media/product/{agenda,clientes,servicios}.jpg` proceden
 
 La demo monta el workspace, calendario, paneles, formularios y diálogos originales con adaptadores locales; conserva su fondo, densidad y desplazamiento interior. Solo la banda de demo, su reinicio y la cuenta ficticia identifican el entorno; el recorte de las imágenes no retira esa banda del entorno real. El crema, el video y la escala fluida pertenecen a `/`, sin overrides de identidad sobre ese dashboard. Evidencia nueva y límites del refinamiento en `.impeccable/review/home-sticky/documentation.md`; las pruebas históricas de home, home-product y Reto 13 conservan su alcance.
 
+### Temas y estados de carga (29/10/2026)
+
+Claro y Oscuro son los dos modos. `AppThemeProvider` escribe la clase del documento, persiste la preferencia en `slotly-theme` y comienza en Claro cuando no hay elección guardada. No sigue el tema del sistema operativo; una preferencia antigua Sistema se presenta como Claro hasta elegir uno de los dos modos. El cambio de tema desactiva las transiciones de color durante la conmutación. `color-scheme` acompaña la clase para los controles nativos y las paletas públicas resueltas con `light-dark()`.
+
+`ThemeToggle` usa `Button size="icon"` de (36×36px), nombre accesible «Cambiar tema» e iconos SVG decorativos de (18px). Clic, Enter o Espacio alternan directamente entre Claro y Oscuro, sin desplegable ni opción Sistema. Los iconos dependen de la clase CSS del documento para conservar el renderizado seguro de servidor. Dentro de un diálogo nativo, el botón mantiene su foco y no altera la apertura del panel. Está en portada, grupo de cuenta del workspace y cabeceras de acceso, reserva y gestión pública; el grupo de cuenta mantiene su montaje único en el rail modal.
+
+La carga anticipa la estructura que ocupará el contenido. `DashboardSkeleton` dispone toolbar, filtros/minicalendario, malla de siete días, bloques de citas y rail a altura de viewport (`100dvh`, mínimo de 400px); incrustado toma la altura de su contenedor y omite el rail duplicado. Hasta (700px), oculta la columna de filtros y reduce la distribución de placeholders; las piezas de (28px) del rail móvil son decorativas y no cambian el tamaño de ningún botón real. `CalendarSkeleton` cubre solo la grilla mientras se prepara y el calendario real queda oculto durante `aria-busy`. `FormSkeleton` reserva título, líneas, campos de (36px) y envío; la variante de reserva añade calendario y se apila en móvil. `ListSkeleton` dibuja tres filas de título/detalle. Se reutilizan en las fronteras de ruta, acceso oficial, consultas iniciales y cargas parciales, incluyendo semana, servicios, clientes y fechas especiales; no simulan un tiempo de espera artificial en la app.
+
+Cada contenedor de carga usa `role="status"`, un `aria-label` contextual y `aria-busy="true"`; las piezas `Skeleton` llevan `aria-hidden="true"`. No hay texto visible «Cargando…» pequeño en una esquina: el nombre sigue disponible para tecnologías de asistencia. Esto no elimina los mensajes visibles de error, vacío o recuperación que corresponden a otros estados.
+
+Las piezas tienen radio compartido y mezcla `color-mix(in srgb, var(--line) 65%, var(--surface))`. El pulso `skeleton-breathe` dura (1.8s), `ease-in-out`, baja a opacidad (0.45) a mitad de ciclo y desaparece por completo con `prefers-reduced-motion: reduce`. El placeholder permanece visible y estable sin animación.
+
+**The Structural Loading Rule.** La espera conserva la anatomía del contenido y un estado accesible, sin rótulos visibles de esquina ni movimiento cuando se solicita reducirlo.
+
+**The Compact Control Rule.** Input, NativeSelect y Button fijan (36px) por defecto; el selector de tema hereda (36×36px). Las piezas decorativas de carga y el UserButton oficial no redefinen esa regla.
+
+Evidencia del ejecutor y límites de esta extensión: [dark-loading/README.md](.impeccable/review/dark-loading/README.md) y [registro documental](.impeccable/review/dark-loading/documentation.md). El aviso experimental de navegación instantánea de portada en Next sigue documentado; build correcto no implica consola libre de incidencias. Los bloques anteriores y posteriores conservan su valor histórico; las afirmaciones de paleta exclusivamente clara y carga textual quedan sustituidas por este contrato de temas y cargas.
+
 ### Autenticación
 
-Usar los componentes oficiales `SignIn` y `SignUp` de Clerk, con la localización española existente. Ambos utilizan `authAppearance`, con el verde de acción, el texto principal y Geist. Los campos y sus estados internos pertenecen a Clerk.
+Usar los componentes oficiales `SignIn` y `SignUp` de Clerk, con la localización española existente. Ambos utilizan `authAppearance`, con el verde de acción, el texto principal y Geist. Clerk recibe el tema oficial `shadcn` y las variables de Slotly para primario, foreground de primario, texto, texto secundario, tarjeta e inputs; sus estados internos pertenecen a Clerk.
 
 El login y el registro integran su componente oficial directamente en la columna, sin borde ni sombra de tarjeta. La marca, el formulario y el pie comparten alineación y un ancho máximo de (24rem). Los títulos se alinean a la izquierda y los distintos pasos conservan su comportamiento oficial. Los campos y botones tienen altura mínima (2.25rem), relleno vertical (0.375rem), radio compartido de 6px y Google aparece después del acceso por correo. Ambos usan la fotografía `public/login-workspace.png`, un espacio de trabajo con luz natural, madera y tonos salvia, con recorte `cover` y sin texto superpuesto. Es decorativa y queda fuera del árbol accesible.
 

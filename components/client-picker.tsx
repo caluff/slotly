@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search } from "@/components/ui/icons";
 import { Field, FieldLabel } from "@/components/ui/field";
+import { ListSkeleton } from "@/components/loading-screens";
 import type { ClientSummary } from "@/components/client-creation-form";
 
 export type ClientPageStatus = "LoadingFirstPage" | "LoadingMore" | "CanLoadMore" | "Exhausted";
@@ -27,7 +28,7 @@ export function ClientRows({ rows, status, onChoose, onLoadMore, timeZone }: {
   rows: ClientSummary[]; status: ClientPageStatus; onChoose: (client: ClientSummary, trigger: HTMLButtonElement) => void; onLoadMore: () => void; timeZone: string;
 }) {
   return <div aria-busy={status === "LoadingFirstPage" || status === "LoadingMore"}>
-    {status === "LoadingFirstPage" ? <p role="status" className="py-5 text-sm text-muted">Cargando clientes…</p>
+    {status === "LoadingFirstPage" ? <ListSkeleton label="Cargando clientes" />
       : rows.length === 0 ? <p role="status" className="py-5 text-sm text-muted">No hay clientes que coincidan. Puedes crear una ficha desde Clientes.</p>
         : <ul aria-label="Clientes encontrados" className="divide-y divide-line border-y border-line">{rows.map(client => <li key={client._id}>
           <button type="button" className="w-full cursor-pointer rounded-sm px-1 py-3 text-left hover:bg-surface" onClick={event => onChoose(client, event.currentTarget)}>

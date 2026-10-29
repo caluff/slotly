@@ -13,6 +13,7 @@ import { ClientCreationForm, type ClientSummary } from "@/components/client-crea
 import { ClientReadBoundary, ClientRowsSource, clientContext } from "@/components/client-picker";
 import { AppointmentStatus, AppointmentStatusIcon } from "@/components/appointment-status";
 import type { CalendarAppointment } from "@/components/agenda-calendar";
+import { FormSkeleton, ListSkeleton } from "@/components/loading-screens";
 
 export function BusinessClients({ businessId, timeZone, enabled = true }: { businessId: Id<"businesses">; timeZone: string; enabled?: boolean }) {
   const create = useMutation(api.clients.createMyClient), convex = useConvex();
@@ -62,7 +63,7 @@ export function ClientDetailPanel({ client, results, status, onLoadMore, timeZon
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => { if (client) heading.current?.focus(); }, [client]);
-  if (!client) return <p role="status" className="py-5 text-sm text-muted">Cargando ficha…</p>;
+  if (!client) return <FormSkeleton compact label="Cargando ficha" />;
   const date = new Intl.DateTimeFormat("es-UY", { timeZone, day: "numeric", month: "short", year: "numeric" });
   const time = new Intl.DateTimeFormat("es-UY", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
   return <div>
@@ -70,7 +71,7 @@ export function ClientDetailPanel({ client, results, status, onLoadMore, timeZon
     <p className="mt-2 wrap-anywhere text-xs text-muted">{clientContext(client, timeZone)}</p>
     <h4 className="mb-3 mt-7 text-sm font-semibold">Citas vinculadas</h4>
     <div aria-busy={status === "LoadingFirstPage" || status === "LoadingMore"}>
-      {status === "LoadingFirstPage" ? <p role="status" className="py-5 text-sm text-muted">Cargando citas…</p>
+      {status === "LoadingFirstPage" ? <ListSkeleton label="Cargando historial" />
         : results.length === 0 ? <p role="status" className="py-5 text-sm text-muted">Este cliente todavía no tiene citas vinculadas.</p>
           : <ul aria-label="Historial del cliente" className="divide-y divide-line border-y border-line">{results.map(row => <li key={row._id} className="space-y-1 py-4 text-sm">
             <p className="font-semibold tabular-nums">{date.format(row.start)} · {time.format(row.start)}–{time.format(row.end)}</p>

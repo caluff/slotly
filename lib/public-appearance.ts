@@ -28,5 +28,11 @@ export const MAX_PUBLIC_PHOTO_BYTES = 2 * 1024 * 1024;
 export function publicPhoneHref(phone: string) { return `tel:${phone.replace(/[^\d+]/g, "")}`; }
 export function publicThemeStyle(theme: PublicAppearanceSettings["theme"]) {
   const colors = publicThemes[theme];
-  return { "--accent": colors.accent, "--accent-hover": colors.hover, "--surface": colors.surface, "--selection": colors.selection };
+  const dark = {
+    green: { accent: "#82d7ae", hover: "#a1e5c4", surface: "#203a2c", selection: "#355c44" },
+    blue: { accent: "#9cc8f5", hover: "#bddcf9", surface: "#203448", selection: "#294865" },
+    clay: { accent: "#ecad91", hover: "#f4c6b0", surface: "#3d2b24", selection: "#60402f" },
+    plum: { accent: "#ceb0f0", hover: "#e0cafa", surface: "#352944", selection: "#524066" },
+  }[theme];
+  return { "--accent": `light-dark(${colors.accent}, ${dark.accent})`, "--accent-hover": `light-dark(${colors.hover}, ${dark.hover})`, "--surface": `light-dark(${colors.surface}, ${dark.surface})`, "--selection": `light-dark(${colors.selection}, ${dark.selection})` };
 }

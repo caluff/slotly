@@ -5,13 +5,14 @@ import { Suspense } from "react";
 import { BusinessProfile } from "@/components/business-profile";
 import { ConvexClientProvider } from "@/components/convex-client-provider";
 import { DashboardWorkspace } from "@/components/dashboard-workspace";
+import { DashboardSkeleton } from "@/components/loading-screens";
 
 export const metadata: Metadata = { title: "Agenda" };
 export const instant = false;
 const timeZones = [...Intl.supportedValuesOf("timeZone"), "UTC"].sort();
 
 export default function DashboardPage() {
-  return <Suspense fallback={<main className="workspace-width py-12" role="status">Cargando tu espacio…</main>}>
+  return <Suspense fallback={<DashboardSkeleton />}>
     <DashboardContent />
   </Suspense>;
 }

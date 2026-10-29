@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Brand } from "@/components/brand";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 type AuthShellProps = {
   children: ReactNode;
@@ -16,8 +17,9 @@ export function AuthShell({ children, label }: AuthShellProps) {
       </a>
       <main id="main-content" className="mx-auto grid w-full max-w-6xl overflow-hidden rounded-md bg-background lg:min-h-184 lg:grid-cols-2">
         <section aria-label={label} className="flex min-w-0 flex-col px-6 py-8 sm:px-12 sm:py-10 xl:px-16 xl:py-12">
-          <header className="mx-auto flex w-full max-w-sm items-center">
+          <header className="mx-auto flex w-full max-w-sm items-center justify-between">
             <Brand />
+            <ThemeToggle />
           </header>
 
           <div className="mx-auto flex w-full max-w-sm flex-1 items-center py-12 sm:py-14">

@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
+import { ListSkeleton } from "@/components/loading-screens";
 import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -67,7 +68,7 @@ export function SpecialDatesPanel({ rows, loading, more, loadingMore, onLoadMore
         {editor(session.initial, setBusy)}
       </ContextPanel>)}
       <div className="workspace-list">
-        {loading ? <p role="status" className="text-sm text-muted">Cargando fechas especiales…</p> : rows.length === 0 ? <p className="py-4 text-sm text-muted">Sin fechas especiales. Se aplica tu semana habitual.</p> :
+        {loading ? <ListSkeleton label="Cargando fechas especiales" /> : rows.length === 0 ? <p className="py-4 text-sm text-muted">Sin fechas especiales. Se aplica tu semana habitual.</p> :
           <ul className="divide-y divide-line border-y border-line">{rows.map((row) => <li key={row._id} className="flex items-center justify-between gap-3 py-4">
             <div className="min-w-0 text-sm"><p className="font-medium wrap-anywhere">{formatLocalDate(row.date)}</p>
               <p className="mt-1 text-muted tabular-nums">{row.isOpen ? `${row.start}–${row.end}` : "Cerrado"}</p></div>

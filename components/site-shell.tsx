@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { Brand } from "@/components/brand";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { FormSkeleton } from "@/components/loading-screens";
 
 type SiteShellProps = {
   children?: ReactNode;
@@ -15,11 +17,11 @@ export function SiteShell({ children, account, loading = false }: SiteShellProps
       </a>
       <header className="flex min-h-14 items-center justify-between gap-5 border-b border-line">
         <Brand />
-        {account}
+        <div className="flex items-center gap-2">{account}<ThemeToggle /></div>
       </header>
       {loading ? (
         <main id="main-content" className="flex flex-1 items-center justify-center py-20">
-          <p role="status" className="text-muted">Cargando tu espacio…</p>
+          <FormSkeleton />
         </main>
       ) : children}
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-line py-6 text-xs leading-5 text-muted">

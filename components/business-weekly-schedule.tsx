@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import type { WeeklyScheduleValues } from "@/lib/weekly-schedule-schema";
 import { useLastDefined } from "@/components/use-last-defined";
 import { BusinessSpecialDates } from "@/components/business-special-dates";
+import { FormSkeleton } from "@/components/loading-screens";
 
 type WeeklySchedulePanelProps = {
   schedule: WeeklyScheduleValues | null | undefined;
@@ -29,7 +30,7 @@ export function WeeklySchedulePanel({ schedule, timeZone, onSave }: WeeklySchedu
       <p className="mt-3 text-sm text-muted">Hora local · <span className="wrap-anywhere">{timeZone}</span></p>
       <div className="mt-8">
         {schedule === undefined
-          ? <p role="status" className="text-sm text-muted">Cargando tu horario…</p>
+          ? <FormSkeleton compact label="Cargando horario de atención" />
           : <WeeklyScheduleForm schedule={schedule} onSave={onSave} />}
       </div>
     </div>

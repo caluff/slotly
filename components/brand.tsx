@@ -10,7 +10,7 @@ export function Brand() {
         width={2172}
         height={724}
         sizes="(min-width: 640px) 96px, 80px"
-        className="h-auto w-20 sm:w-24"
+        className="brand-logo h-auto w-20 sm:w-24"
         loading="eager"
       />
     </Link>

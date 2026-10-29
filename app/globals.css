@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@import "@clerk/ui/themes/shadcn.css";
+
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   color-scheme: light;
@@ -10,10 +13,81 @@
   --muted: #52665b;
   --line: #d9e4da;
   --destructive: #9f2f2f;
+  --card: #ffffff;
+  --primary-foreground: #ffffff;
+  --destructive-foreground: #ffffff;
+  --selection: #c7e6ca;
+  --confirmed-bg: #eaf3e9;
+  --confirmed-ink: #183c30;
+  --cancelled-bg: #fbefed;
+  --completed-bg: #eaf1fb;
+  --completed-ink: #214f85;
+  --absent-bg: #fff2d8;
+  --absent-ink: #78500b;
+  --block-bg: #ecefe9;
+  --block-ink: #354638;
+  --calendar-faint: #f3f6f3;
+  --calendar-muted: #e6ece6;
+  --calendar-today: #eef6eb;
+  --calendar-highlight: #d6ead8;
+  --home-background: #f8f6e7;
+  --home-foreground: #153d32;
+  --home-accent: #176348;
+  --home-muted: #42574b;
+  --home-line: #c9d0b7;
+  --home-control-border: #a0ac96;
+  --home-selection: #d3df8f;
+  --secondary: var(--surface);
+  --secondary-foreground: var(--foreground);
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: var(--accent);
+  --muted-foreground: var(--muted);
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--accent);
+}
+
+:root.dark {
+  color-scheme: dark;
+  --background: #101b16;
+  --card: #17271f;
+  --foreground: #e4efe7;
+  --accent: #82d7ae;
+  --accent-hover: #a1e5c4;
+  --primary-foreground: #0a281b;
+  --surface: #203a2c;
+  --muted: #a8beaf;
+  --line: #395044;
+  --destructive: #f3a1a1;
+  --destructive-foreground: #351111;
+  --selection: #355c44;
+  --confirmed-bg: #203a2c;
+  --confirmed-ink: #b3e8c7;
+  --cancelled-bg: #3b2527;
+  --completed-bg: #203448;
+  --completed-ink: #adcefa;
+  --absent-bg: #3b331e;
+  --absent-ink: #f1d28b;
+  --block-bg: #2a332c;
+  --block-ink: #bacbbb;
+  --calendar-faint: #14221a;
+  --calendar-muted: #23382b;
+  --calendar-today: #1a3224;
+  --calendar-highlight: #2d503a;
+  --home-background: #101914;
+  --home-foreground: #e6f0e5;
+  --home-accent: #a3d995;
+  --home-muted: #b3c4b4;
+  --home-line: #3c4c3d;
+  --home-control-border: #7c927b;
+  --home-selection: #415a35;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
@@ -22,7 +96,8 @@
   --color-line: var(--line);
   /* shadcn aliases preserve Slotly's existing accent and muted semantics. */
   --color-primary: var(--accent);
-  --color-primary-foreground: #ffffff;
+  --color-primary-foreground: var(--primary-foreground);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-secondary: var(--surface);
   --color-secondary-foreground: var(--foreground);
   --color-muted-foreground: var(--muted);
@@ -42,7 +117,7 @@ body {
 }
 
 ::selection {
-  background: #c7e6ca;
+  background: var(--selection);
   color: var(--foreground);
 }
 
@@ -74,7 +149,7 @@ body {
     @apply border-accent text-accent;
   }
   .context-panel {
-    @apply min-w-0 self-start rounded-md border border-line bg-white p-5 sm:p-6;
+    @apply min-w-0 self-start rounded-md border border-line bg-card p-5 sm:p-6;
   }
   .workspace-grid {
     @apply grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_23rem];
@@ -92,11 +167,11 @@ body {
   }
 
   .form-control {
-    @apply min-h-9 w-full rounded-md border border-muted bg-white px-3 py-1.5 text-sm leading-5 text-foreground placeholder:text-muted disabled:opacity-60;
+    @apply min-h-9 w-full rounded-md border border-muted bg-card px-3 py-1.5 text-sm leading-5 text-foreground placeholder:text-muted disabled:opacity-60;
   }
 
   .button-primary {
-    @apply bg-accent text-white hover:bg-accent-hover;
+    @apply bg-accent text-primary-foreground hover:bg-accent-hover;
   }
 
   .button-secondary {
@@ -111,3 +186,10 @@ body {
     @apply flex flex-1 flex-col items-center justify-center gap-7 py-12 sm:py-16;
   }
 }
+
+.theme-toggle svg { width: 18px; height: 18px; }
+.theme-toggle-night { display: none; }
+.dark .theme-toggle-day { display: none; }
+.dark .theme-toggle-night { display: inline-flex; }
+.dark .brand-logo { filter: brightness(0) invert(1); }
+.workspace-account-controls { display: flex; flex-direction: column; align-items: center; gap: 10px; }

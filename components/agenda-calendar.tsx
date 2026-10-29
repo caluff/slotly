@@ -34,6 +34,7 @@ import { AppointmentAttentionBell } from "@/components/appointment-attention";
 import { upcomingAppointment, useAgendaClock, useUpcomingMotion } from "@/components/use-agenda-clock";
 import { appointmentStatusLabels, appointmentStatusSummary } from "@/lib/appointment-status";
 import { Brand } from "@/components/brand";
+import { CalendarSkeleton } from "@/components/loading-screens";
 import { usePanelMotion } from "@/components/use-panel-motion";
 import { TimeBlockWorkspace, useTimeBlockActions, type BlockEditorProps, type CalendarTimeBlock } from "@/components/time-block-editor";
 import { formatLocalDate, todayInZone } from "@/lib/agenda-date";
@@ -260,7 +261,8 @@ export function CalendarSurface({ date, view, timeZone, appointments, blocks = [
   function returnFocus() { requestAnimationFrame(() => { if (trigger.current?.isConnected) trigger.current.focus(); else if (moreTrigger.current?.isConnected) moreTrigger.current.focus(); else document.querySelector<HTMLElement>(".agenda-toolbar button")?.focus(); }); }
   const target = selected && (appointments.find(row => row._id === selected.appointment._id) ?? selected.appointment);
   return <div ref={surface} className="agenda-calendar" data-located-id={locatedId ?? undefined} aria-busy={!ready}>
-    <p role="status" className={ready && !message ? "sr-only" : "mb-3 text-sm text-muted"}>{!ready ? "Cargando el intervalo completo…" : message}</p>
+    {!ready && <CalendarSkeleton />}
+    {ready && message && <p role="status" className="mb-3 text-sm text-muted">{message}</p>}
     {moved && <p role="status" className="mb-3 text-sm">Cita guardada: {formatLocalDate(moved.date)}, {time.format(moved.start)}–{time.format(moved.end)}. <a className="text-link text-accent" href={dayHref(moved.date)} onClick={event => { event.preventDefault(); window.history.pushState(null, "", event.currentTarget.href); }}>Localizar fecha</a></p>}
     <AgendaGridGuide date={date} view={view} timeZone={timeZone} schedule={schedule} blocked={!ready || !!selected} ready={ready} onNew={onNew} renderCalendar={({ clear: clearGuide, pause: pauseGuide, dayLaneDidMount, dayLaneWillUnmount, slotLaneDidMount, slotLaneWillUnmount, startDrag, stopDrag }) =>
       <FullCalendar ref={calendar} className={`agenda-fullcalendar agenda-view-${view}${coincidences.groups.length ? ' agenda-with-preview' : ''}`} plugins={plugins} locale={es} timedText="Horario" timeZone={timeZone} initialDate={date} initialView={calendarViews[view]} firstDay={1}

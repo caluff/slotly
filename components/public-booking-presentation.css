@@ -11,7 +11,7 @@
 .public-date-grid { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 2px 0; }
 .public-date-grid [data-slot="button"] { justify-self: center; max-width: 100%; font-variant-numeric: tabular-nums; }
 .public-date-grid [data-outside="true"] { color: var(--muted); }
-.public-date-grid [aria-pressed="true"] { background: var(--accent); color: white; }
+.public-date-grid [aria-pressed="true"] { background: var(--accent); color: var(--primary-foreground); }
 .public-date-grid [aria-current="date"]:not([aria-pressed="true"]) { box-shadow: inset 0 0 0 1px var(--accent); }
 .public-weekday { padding-block: 8px; text-align: center; font-size: 12px; color: var(--muted); }
 .public-date-grid [data-available="true"]:not([aria-pressed="true"]) { color: var(--accent); background: var(--surface); font-weight: 600; }
@@ -31,7 +31,7 @@
 .public-time-option input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: inherit; }
 .public-time-option span { display: flex; min-height: 36px; align-items: center; justify-content: center; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 14px; font-variant-numeric: tabular-nums; }
 .public-time-option:hover span { background: var(--surface); }
-.public-time-option input:checked + span { background: var(--accent); border-color: var(--accent); color: white; }
+.public-time-option input:checked + span { background: var(--accent); border-color: var(--accent); color: var(--primary-foreground); }
 .public-time-option input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
 .public-time-option input:disabled + span { opacity: .5; cursor: default; }
 .public-time-selected { margin-top: 12px; font-size: 14px; font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums; }

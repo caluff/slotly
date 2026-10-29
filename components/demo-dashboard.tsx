@@ -31,6 +31,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "@/convex/_generated/api";
 import "@/components/demo-dashboard.css";
+import { DashboardSkeleton } from "@/components/loading-screens";
 
 const zone = "America/Montevideo";
 const businessId = "slotly-local-demo" as Id<"businesses">;
@@ -85,7 +86,7 @@ export function DemoDashboard() {
   const adapters = useMemo(() => createAdapters(store), [store]);
   const [generation, setGeneration] = useState(0);
   function reset() { store.reset(); setGeneration(value => value + 1); window.history.replaceState(null, "", "/demo"); toast.success("Demo reiniciada"); }
-  return state ? <DemoContext.Provider value={{ state, store, adapters }}><div className="demo-original-shell"><div className="demo-original-banner"><p><strong>Demo interactiva</strong><span>Datos de ejemplo · Solo en esta pestaña</span></p><div><Button variant="ghost" onClick={reset}><ArchiveRestore />Reiniciar demo</Button><Button asChild variant="outline"><Link href="/sign-up">Crear mi cuenta</Link></Button></div></div><DashboardWorkspace key={generation} account={<DemoAccount />}><DemoContent /></DashboardWorkspace></div></DemoContext.Provider> : <p role="status" className="workspace-width py-12">Preparando tu agenda de ejemplo…</p>;
+  return state ? <DemoContext.Provider value={{ state, store, adapters }}><div className="demo-original-shell"><div className="demo-original-banner"><p><strong>Demo interactiva</strong><span>Datos de ejemplo · Solo en esta pestaña</span></p><div><Button variant="ghost" onClick={reset}><ArchiveRestore />Reiniciar demo</Button><Button asChild variant="outline"><Link href="/sign-up">Crear mi cuenta</Link></Button></div></div><DashboardWorkspace key={generation} account={<DemoAccount />}><DemoContent /></DashboardWorkspace></div></DemoContext.Provider> : <DashboardSkeleton />;
 }
 function DemoAccount() { return <DropdownMenu.Root><DropdownMenu.Trigger asChild><Button size="icon" variant="ghost" className="demo-account" aria-label="Cuenta de demo">O</Button></DropdownMenu.Trigger><DropdownMenu.Portal><DropdownMenu.Content className="z-[90] min-w-48 rounded-md border border-line bg-background p-2 text-sm shadow-md" side="left"><p className="px-3 py-2 font-semibold">Estudio Oliva · Demo</p><DropdownMenu.Item asChild><Link className="block rounded-sm px-3 py-2 hover:bg-surface" href="/">Volver al inicio</Link></DropdownMenu.Item><DropdownMenu.Item asChild><Link className="block rounded-sm px-3 py-2 hover:bg-surface" href="/sign-up">Crear mi cuenta</Link></DropdownMenu.Item></DropdownMenu.Content></DropdownMenu.Portal></DropdownMenu.Root>; }
 

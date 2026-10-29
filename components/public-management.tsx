@@ -9,6 +9,7 @@ import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { X } from "@/components/ui/icons";
 import { PublicManagementLink } from "@/components/public-management-link";
+import { FormSkeleton } from "@/components/loading-screens";
 import { PublicReschedule } from "@/components/public-reschedule";
 import { isManagementSecret, managementSecretHash, MANAGEMENT_PATH, MANAGEMENT_SESSION_KEY } from "@/lib/public-management";
 import { moveJournalKey, savedMoveIntent, type MoveIntent } from "@/lib/public-rescheduling";
@@ -112,7 +113,7 @@ export function PublicManagement() {
     finally { lock.current = false; setBusy(false); if (activeJournal.current === scope) setReviewed(null); }
   }
   const stale = !!reviewed && view?.revision !== reviewed.revision;
-  if (phase === "loading") return <p role="status" className="text-muted">Cargando tu cita…</p>;
+  if (phase === "loading") return <FormSkeleton compact label="Cargando cita" />;
   if (phase === "unavailable") return <section><h1 ref={heading} tabIndex={-1} className="workspace-title">Enlace no disponible</h1><p role="status" className="mt-4 text-muted">Comprueba el enlace privado o contacta con el negocio.</p></section>;
   return <section>
     <h1 ref={heading} tabIndex={-1} className="workspace-title">Tu cita</h1>

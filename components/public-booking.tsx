@@ -14,6 +14,7 @@ import { appointmentSchema } from "@/lib/appointment-schema";
 import { isLocalDate } from "@/lib/local-date";
 import { isManagementSecret, newManagementSecret } from "@/lib/public-management";
 import { PublicManagementLink } from "@/components/public-management-link";
+import { FormSkeleton } from "@/components/loading-screens";
 
 type Fields = { serviceId: string; date: string; start: string; clientName: string; email: string };
 type ServiceContext = { name: string; durationMinutes: number; version: number };
@@ -171,7 +172,7 @@ export function PublicBooking({ slug }: { slug: string }) {
     } finally { lock.current = false; setBusy(false); }
   }
 
-  if (business === undefined || appearance === undefined || !restored) return <p role="status" className="text-muted">Cargando reservas…</p>;
+  if (business === undefined || appearance === undefined || !restored) return <FormSkeleton />;
   if (!business) return <section><h1 className="workspace-title">Enlace no disponible</h1>
     <p role="status" className="mt-4 text-muted">Comprueba la dirección o contacta con el negocio.</p></section>;
   const time = new Intl.DateTimeFormat("es-UY", { timeStyle: "short", timeZone: business.timeZone });

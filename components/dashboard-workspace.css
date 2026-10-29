@@ -10,7 +10,7 @@
 .workspace-rail-selected { background: var(--surface); color: var(--accent); }
 .workspace-rail-tooltip { z-index: 80; pointer-events: none; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--background); color: var(--foreground); font-size: 12px; }
 [data-radix-popper-content-wrapper]:has(> .workspace-rail-tooltip) { pointer-events: none; }
-.workspace-account-slot, [data-workspace-account] { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; flex-shrink: 0; }
+.workspace-account-slot, [data-workspace-account] { display: flex; align-items: center; justify-content: center; width: 36px; min-height: 36px; flex-shrink: 0; }
 .workspace-sidepanel { position: fixed; inset: 0 48px 0 auto; margin: 0; width: 360px; height: 100dvh; max-width: none; max-height: none; padding: 0; overflow: visible; border: 0; background: var(--background); color: var(--foreground); }
 .workspace-sidepanel[open] { display: flex; flex-direction: column; }
 .workspace-sidepanel:not([open]) { display: none; }

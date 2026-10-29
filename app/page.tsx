@@ -7,12 +7,13 @@ import { GoogleSignInButton } from "@/components/google-sign-in-button";
 import { ParticleFilm } from "@/components/particle-film";
 import { HomeProduct } from "@/components/home-product";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import "./home.css";
 
 export default function Home() {
   return <div className="home-page">
     <a href="#main-content" className="home-skip">Saltar al contenido</a>
-    <header className="home-header"><Brand /><nav aria-label="Acceso"><Link href="/demo" prefetch={false}>Ver demo</Link><Suspense fallback={<Link href="/sign-in">Iniciar sesión</Link>}><AccountNavigation /></Suspense></nav></header>
+    <header className="home-header"><Brand /><nav aria-label="Acceso"><Link href="/demo" prefetch={false}>Ver demo</Link><Suspense fallback={<Link href="/sign-in">Iniciar sesión</Link>}><AccountNavigation /></Suspense><ThemeToggle /></nav></header>
     <main id="main-content">
       <section className="home-hero" aria-labelledby="home-heading">
         <ParticleFilm />

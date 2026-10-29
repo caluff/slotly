@@ -20,6 +20,7 @@ import { dashboardHref, readDashboardView } from "@/lib/dashboard-navigation";
 import { api } from "@/convex/_generated/api";
 import { WorkspacePanels } from "@/components/workspace-panel";
 import { PublicAppearanceEditor } from "@/components/public-appearance-editor";
+import { DashboardSkeleton } from "@/components/loading-screens";
 
 export function BusinessProfile({ timeZones }: { timeZones: string[] }) {
   const { userId, isLoaded, isSignedIn } = useAuth();
@@ -32,7 +33,7 @@ export function BusinessProfile({ timeZones }: { timeZones: string[] }) {
   const [opened, setOpened] = useState(isAuthenticated);
   if (isAuthenticated && !opened) setOpened(true);
   return <>
-    {isLoading && <p role="status" className="py-10 text-muted">Comprobando tu acceso al negocio…</p>}
+    {isLoading && <DashboardSkeleton embedded />}
     {!isLoading && !isAuthenticated && <div className="max-w-xl space-y-4 py-10">
     <h1 className="workspace-title">Recupera tu sesión</h1>
     <p role="alert" className="text-muted">No pudimos verificar tu acceso al negocio. Comprueba la conexión y reintenta. Si tu sesión venció, vuelve a iniciar sesión.</p>
@@ -53,7 +54,7 @@ function AuthenticatedBusinessProfile({ timeZones, enabled }: { timeZones: strin
   const [customizationOpened, setCustomizationOpened] = useState(active === "personalizar");
   if (active === "personalizar" && !customizationOpened) setCustomizationOpened(true);
   const createBusiness = useMutation(api.businesses.createMyBusiness);
-  if (business === undefined) return <p role="status" className="py-10 text-muted">Cargando tu negocio…</p>;
+  if (business === undefined) return <DashboardSkeleton embedded />;
   if (business === null) return <section className="max-w-xl py-4">
     <p className="mb-6 leading-7 text-muted">Empieza con tu negocio. Después podrás añadir servicios, definir tu horario y organizar las citas.</p>
     <BusinessProfileForm timeZones={timeZones} onCreate={createBusiness} />

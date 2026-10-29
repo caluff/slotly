@@ -1,3 +1,5 @@
+import { ThemeToggle } from "@/components/theme-toggle";
+import { FormSkeleton } from "@/components/loading-screens";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Brand } from "@/components/brand";
@@ -13,9 +15,9 @@ async function Booking({ params }: Pick<PageProps<"/reservar/[slug]">, "params">
 
 export default function Page({ params }: PageProps<"/reservar/[slug]">) {
   return <>
-    <header className="mx-auto w-full max-w-2xl px-5 py-6 sm:px-8"><Brand /></header>
+    <header className="mx-auto w-full max-w-2xl flex items-center justify-between px-5 py-6 sm:px-8"><Brand /><ThemeToggle /></header>
     <main className="mx-auto w-full max-w-2xl flex-1 px-5 pb-12 pt-4 sm:px-8 sm:pt-8">
-      <Suspense fallback={<p role="status" className="text-muted">Cargando reservas…</p>}><Booking params={params} /></Suspense>
+      <Suspense fallback={<FormSkeleton />}><Booking params={params} /></Suspense>
     </main>
   </>;
 }

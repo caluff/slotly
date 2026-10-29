@@ -7,6 +7,7 @@ import { leaveWithoutDrafts } from "@/components/use-draft-warning";
 import { currentWorkspaceHref, dashboardHref, readDashboardView, type DashboardView } from "@/lib/dashboard-navigation";
 import { WorkspaceRail, panelBusy } from "@/components/workspace-panel";
 import { WorkspaceAccount } from "@/components/workspace-account";
+import { ThemeToggle } from "@/components/theme-toggle";
 import "@/components/dashboard-workspace.css";
 
 export function navigateWorkspace(event: MouseEvent<HTMLAnchorElement>) {
@@ -42,9 +43,9 @@ export function DashboardWorkspace({ account, children }: { account: ReactNode; 
   }, [active]);
 
   return <div className="workspace-root" data-panel-open={active !== 'agenda' && active !== 'personalizar'}>
-    <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-white focus:p-3">Saltar al contenido</a>
+    <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-card focus:p-3">Saltar al contenido</a>
     <div className="workspace-stage"><main id="main-content" className="workspace-main">{children}</main><WorkspaceRail /></div>
-    <WorkspaceAccount>{account}</WorkspaceAccount>
+    <WorkspaceAccount><div className="workspace-account-controls"><ThemeToggle />{account}</div></WorkspaceAccount>
     <dialog ref={leaveDialog} aria-labelledby="leave-draft-title" aria-describedby="leave-draft-description" onCancel={() => setLeaving(null)} onClose={() => setLeaving(null)}
       className="m-auto w-[calc(100%-2rem)] max-w-md rounded-md border border-line bg-background p-6 text-foreground backdrop:bg-foreground/20">
       <h2 id="leave-draft-title" className="text-lg font-semibold">Tienes cambios sin guardar</h2>

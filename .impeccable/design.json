@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-29T05:34:05.260Z",
+  "generatedAt": "2026-10-29T13:48:50.561Z",
   "title": "Design System: Slotly",
   "extensions": {
     "colorMeta": {
@@ -22,7 +22,7 @@
       },
       "surface": {
         "role": "primary",
-        "displayName": "Superficie verde clara"
+        "displayName": "Superficie tonal"
       },
       "muted": {
         "role": "neutral",
@@ -38,7 +38,7 @@
       },
       "white": {
         "role": "neutral",
-        "displayName": "Blanco"
+        "displayName": "Blanco histórico"
       },
       "destructive": {
         "role": "error",
@@ -67,6 +67,202 @@
       "home-selection": {
         "role": "primary",
         "displayName": "Selección de texto de portada"
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "Superficie de tarjeta"
+      },
+      "primary-foreground": {
+        "role": "neutral",
+        "displayName": "Texto sobre acción principal"
+      },
+      "destructive-foreground": {
+        "role": "error",
+        "displayName": "Texto sobre acción destructiva"
+      },
+      "confirmed-bg": {
+        "role": "primary",
+        "displayName": "confirmed-bg"
+      },
+      "confirmed-ink": {
+        "role": "primary",
+        "displayName": "confirmed-ink"
+      },
+      "cancelled-bg": {
+        "role": "error",
+        "displayName": "cancelled-bg"
+      },
+      "completed-bg": {
+        "role": "neutral",
+        "displayName": "completed-bg"
+      },
+      "completed-ink": {
+        "role": "neutral",
+        "displayName": "completed-ink"
+      },
+      "absent-bg": {
+        "role": "neutral",
+        "displayName": "absent-bg"
+      },
+      "absent-ink": {
+        "role": "neutral",
+        "displayName": "absent-ink"
+      },
+      "block-bg": {
+        "role": "neutral",
+        "displayName": "block-bg"
+      },
+      "block-ink": {
+        "role": "neutral",
+        "displayName": "block-ink"
+      },
+      "calendar-faint": {
+        "role": "neutral",
+        "displayName": "calendar-faint"
+      },
+      "calendar-muted": {
+        "role": "neutral",
+        "displayName": "calendar-muted"
+      },
+      "calendar-today": {
+        "role": "neutral",
+        "displayName": "calendar-today"
+      },
+      "calendar-highlight": {
+        "role": "neutral",
+        "displayName": "calendar-highlight"
+      },
+      "home-accent": {
+        "role": "primary",
+        "displayName": "Acento local de portada"
+      },
+      "dark-background": {
+        "role": "neutral",
+        "displayName": "Fondo general · Oscuro"
+      },
+      "dark-card": {
+        "role": "neutral",
+        "displayName": "Superficie de tarjeta · Oscuro"
+      },
+      "dark-foreground": {
+        "role": "neutral",
+        "displayName": "Texto principal · Oscuro"
+      },
+      "dark-accent": {
+        "role": "primary",
+        "displayName": "Verde de acción · Oscuro"
+      },
+      "dark-accent-hover": {
+        "role": "primary",
+        "displayName": "Verde al pasar el cursor · Oscuro"
+      },
+      "dark-primary-foreground": {
+        "role": "neutral",
+        "displayName": "Texto sobre acción principal · Oscuro"
+      },
+      "dark-surface": {
+        "role": "primary",
+        "displayName": "Superficie verde clara · Oscuro"
+      },
+      "dark-muted": {
+        "role": "neutral",
+        "displayName": "Texto secundario · Oscuro"
+      },
+      "dark-line": {
+        "role": "neutral",
+        "displayName": "Separador · Oscuro"
+      },
+      "dark-destructive": {
+        "role": "error",
+        "displayName": "Error de validación · Oscuro"
+      },
+      "dark-destructive-foreground": {
+        "role": "error",
+        "displayName": "Texto sobre acción destructiva · Oscuro"
+      },
+      "dark-selection": {
+        "role": "primary",
+        "displayName": "Selección de texto · Oscuro"
+      },
+      "dark-confirmed-bg": {
+        "role": "primary",
+        "displayName": "confirmed-bg · Oscuro"
+      },
+      "dark-confirmed-ink": {
+        "role": "primary",
+        "displayName": "confirmed-ink · Oscuro"
+      },
+      "dark-cancelled-bg": {
+        "role": "error",
+        "displayName": "cancelled-bg · Oscuro"
+      },
+      "dark-completed-bg": {
+        "role": "neutral",
+        "displayName": "completed-bg · Oscuro"
+      },
+      "dark-completed-ink": {
+        "role": "neutral",
+        "displayName": "completed-ink · Oscuro"
+      },
+      "dark-absent-bg": {
+        "role": "neutral",
+        "displayName": "absent-bg · Oscuro"
+      },
+      "dark-absent-ink": {
+        "role": "neutral",
+        "displayName": "absent-ink · Oscuro"
+      },
+      "dark-block-bg": {
+        "role": "neutral",
+        "displayName": "block-bg · Oscuro"
+      },
+      "dark-block-ink": {
+        "role": "neutral",
+        "displayName": "block-ink · Oscuro"
+      },
+      "dark-calendar-faint": {
+        "role": "neutral",
+        "displayName": "calendar-faint · Oscuro"
+      },
+      "dark-calendar-muted": {
+        "role": "neutral",
+        "displayName": "calendar-muted · Oscuro"
+      },
+      "dark-calendar-today": {
+        "role": "neutral",
+        "displayName": "calendar-today · Oscuro"
+      },
+      "dark-calendar-highlight": {
+        "role": "neutral",
+        "displayName": "calendar-highlight · Oscuro"
+      },
+      "dark-home-background": {
+        "role": "neutral",
+        "displayName": "Crema de portada · Oscuro"
+      },
+      "dark-home-foreground": {
+        "role": "neutral",
+        "displayName": "Texto principal de portada · Oscuro"
+      },
+      "dark-home-accent": {
+        "role": "primary",
+        "displayName": "Acento local de portada · Oscuro"
+      },
+      "dark-home-muted": {
+        "role": "neutral",
+        "displayName": "Texto secundario de portada · Oscuro"
+      },
+      "dark-home-line": {
+        "role": "neutral",
+        "displayName": "Separador de portada · Oscuro"
+      },
+      "dark-home-control-border": {
+        "role": "neutral",
+        "displayName": "Borde de control de portada · Oscuro"
+      },
+      "dark-home-selection": {
+        "role": "primary",
+        "displayName": "Selección de texto de portada · Oscuro"
       }
     },
     "typographyMeta": {
@@ -119,6 +315,11 @@
         "name": "home-video-crossfade",
         "value": "sin²(π × currentTime / duration)",
         "purpose": "Solo home: dos capas del MP4 original desfasadas media duración cubren sus reinicios. Pausa manual, pestaña oculta y movimiento reducido; reproducción manual disponible."
+      },
+      {
+        "name": "skeleton-breathe",
+        "value": "1.8s ease-in-out infinite; 50% opacity: .45",
+        "purpose": "Pulso de las piezas de carga. prefers-reduced-motion: reduce elimina la animación y conserva la estructura visible."
       }
     ],
     "breakpoints": [
@@ -145,8 +346,204 @@
       {
         "name": "home-wide-min",
         "value": "1600px"
+      },
+      {
+        "name": "loading-mobile-max",
+        "value": "700px"
+      },
+      {
+        "name": "home-header-wrap-max",
+        "value": "360px"
       }
-    ]
+    ],
+    "theme": {
+      "source": "app/globals.css; components/theme-provider.tsx; components/theme-toggle.tsx; lib/public-appearance.ts",
+      "attribute": "class",
+      "defaultTheme": "light",
+      "storageKey": "slotly-theme",
+      "options": [
+        "light",
+        "dark"
+      ],
+      "modes": {
+        "light": {
+          "selector": ":root",
+          "colorScheme": "light"
+        },
+        "dark": {
+          "selector": ":root.dark",
+          "colorScheme": "dark"
+        }
+      },
+      "bindings": {
+        "--background": {
+          "light": "background",
+          "dark": "dark-background"
+        },
+        "--foreground": {
+          "light": "foreground",
+          "dark": "dark-foreground"
+        },
+        "--accent": {
+          "light": "accent",
+          "dark": "dark-accent"
+        },
+        "--accent-hover": {
+          "light": "accent-hover",
+          "dark": "dark-accent-hover"
+        },
+        "--surface": {
+          "light": "surface",
+          "dark": "dark-surface"
+        },
+        "--muted": {
+          "light": "muted",
+          "dark": "dark-muted"
+        },
+        "--line": {
+          "light": "line",
+          "dark": "dark-line"
+        },
+        "--destructive": {
+          "light": "destructive",
+          "dark": "dark-destructive"
+        },
+        "--card": {
+          "light": "card",
+          "dark": "dark-card"
+        },
+        "--primary-foreground": {
+          "light": "primary-foreground",
+          "dark": "dark-primary-foreground"
+        },
+        "--destructive-foreground": {
+          "light": "destructive-foreground",
+          "dark": "dark-destructive-foreground"
+        },
+        "--selection": {
+          "light": "selection",
+          "dark": "dark-selection"
+        },
+        "--confirmed-bg": {
+          "light": "confirmed-bg",
+          "dark": "dark-confirmed-bg"
+        },
+        "--confirmed-ink": {
+          "light": "confirmed-ink",
+          "dark": "dark-confirmed-ink"
+        },
+        "--cancelled-bg": {
+          "light": "cancelled-bg",
+          "dark": "dark-cancelled-bg"
+        },
+        "--completed-bg": {
+          "light": "completed-bg",
+          "dark": "dark-completed-bg"
+        },
+        "--completed-ink": {
+          "light": "completed-ink",
+          "dark": "dark-completed-ink"
+        },
+        "--absent-bg": {
+          "light": "absent-bg",
+          "dark": "dark-absent-bg"
+        },
+        "--absent-ink": {
+          "light": "absent-ink",
+          "dark": "dark-absent-ink"
+        },
+        "--block-bg": {
+          "light": "block-bg",
+          "dark": "dark-block-bg"
+        },
+        "--block-ink": {
+          "light": "block-ink",
+          "dark": "dark-block-ink"
+        },
+        "--calendar-faint": {
+          "light": "calendar-faint",
+          "dark": "dark-calendar-faint"
+        },
+        "--calendar-muted": {
+          "light": "calendar-muted",
+          "dark": "dark-calendar-muted"
+        },
+        "--calendar-today": {
+          "light": "calendar-today",
+          "dark": "dark-calendar-today"
+        },
+        "--calendar-highlight": {
+          "light": "calendar-highlight",
+          "dark": "dark-calendar-highlight"
+        },
+        "--home-background": {
+          "light": "home-background",
+          "dark": "dark-home-background"
+        },
+        "--home-foreground": {
+          "light": "home-foreground",
+          "dark": "dark-home-foreground"
+        },
+        "--home-accent": {
+          "light": "home-accent",
+          "dark": "dark-home-accent"
+        },
+        "--home-muted": {
+          "light": "home-muted",
+          "dark": "dark-home-muted"
+        },
+        "--home-line": {
+          "light": "home-line",
+          "dark": "dark-home-line"
+        },
+        "--home-control-border": {
+          "light": "home-control-border",
+          "dark": "dark-home-control-border"
+        },
+        "--home-selection": {
+          "light": "home-selection",
+          "dark": "dark-home-selection"
+        }
+      },
+      "aliases": {
+        "--secondary": "--surface",
+        "--secondary-foreground": "--foreground",
+        "--card-foreground": "--foreground",
+        "--popover": "--card",
+        "--popover-foreground": "--foreground",
+        "--primary": "--accent",
+        "--muted-foreground": "--muted",
+        "--border": "--line",
+        "--input": "--line",
+        "--ring": "--accent"
+      },
+      "tailwindInputAlias": {
+        "utility": "--color-input",
+        "target": "--muted",
+        "cssInputAliasTarget": "--line"
+      },
+      "publicAppearance": {
+        "source": "lib/public-appearance.ts",
+        "palettes": [
+          "green",
+          "blue",
+          "clay",
+          "plum"
+        ],
+        "method": "light-dark()",
+        "properties": [
+          "--accent",
+          "--accent-hover",
+          "--surface",
+          "--selection"
+        ],
+        "scope": "Reservas públicas personalizadas; no redefine el workspace."
+      },
+      "behavior": "Clic, Enter o Espacio alternan directamente Claro/Oscuro, sin menú. La elección persiste en slotly-theme. Sin elección comienza en Claro; Sistema antiguo se presenta como Claro hasta elegir un modo explícito.",
+      "sourceLimit": "El párrafo histórico R13 permanece dentro del delimitador YAML de DESIGN.md por límite de alcance. No se declara validación portable de ese frontmatter; este sidecar es JSON.",
+      "enableSystem": false
+    },
+    "shadows": []
   },
   "components": [
     {
@@ -155,7 +552,7 @@
       "refersTo": "button-primary",
       "description": "Acceso principal a registro o dashboard.",
       "html": "<a class=\"ds-button-primary\" href=\"/sign-up\">Crear cuenta <span aria-hidden=\"true\">→</span></a>",
-      "css": ".ds-button-primary{display:inline-flex;min-height:2.25rem;align-items:center;justify-content:center;gap:.5rem;border-radius:.375rem;padding:.375rem 1rem;font-family:var(--font-geist-sans),sans-serif;font-size:.875rem;font-weight:600;line-height:1.25rem;text-decoration:none;transition:color 150ms cubic-bezier(.4,0,.2,1),background-color 150ms cubic-bezier(.4,0,.2,1),border-color 150ms cubic-bezier(.4,0,.2,1);}.ds-button-primary{background:var(--accent);color:#ffffff;}.ds-button-primary:hover{background:var(--accent-hover);}.ds-button-primary:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}@media(prefers-reduced-motion:reduce){.ds-button-primary{transition:none;}}"
+      "css": ".ds-button-primary{display:inline-flex;min-height:2.25rem;align-items:center;justify-content:center;gap:.5rem;border-radius:.375rem;padding:.375rem 1rem;font-family:var(--font-geist-sans),sans-serif;font-size:.875rem;font-weight:600;line-height:1.25rem;text-decoration:none;transition:color 150ms cubic-bezier(.4,0,.2,1),background-color 150ms cubic-bezier(.4,0,.2,1),border-color 150ms cubic-bezier(.4,0,.2,1);}.ds-button-primary{background:var(--accent);color:var(--primary-foreground);}.ds-button-primary:hover{background:var(--accent-hover);}.ds-button-primary:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}@media(prefers-reduced-motion:reduce){.ds-button-primary{transition:none;}}"
     },
     {
       "name": "Enlace de acción secundaria",
@@ -183,7 +580,7 @@
     {
       "name": "Confirmación por toast",
       "kind": "custom",
-      "description": "Sonner con el wrapper de shadcn/ui adaptado al tema claro y un único Toaster en el layout raíz. «Servicio creado», «Horario guardado» y «Cita confirmada» se emiten solo tras guardar correctamente, sin éxito inline ni anuncio duplicado; consultar disponibilidad no emite toast. Los errores siguen en FieldError y el guardado conserva su anuncio exclusivo para lectores de pantalla. Geist de 14px, superficie verde clara, texto principal, borde line, radio compartido de 6px, sin sombra e icono decorativo CircleCheck de 16px en accent. Posición inferior derecha, márgenes móviles de 16px y duración base nativa de 4000ms. Región aria-live polite «Notificaciones», con Alt+T nativo. El toast no toma el foco: cada formulario conserva el comportamiento descrito en DESIGN.md.",
+      "description": "Sonner con el wrapper de shadcn/ui adaptado a los temas de Slotly y un único Toaster en el layout raíz. «Servicio creado», «Horario guardado» y «Cita confirmada» se emiten solo tras guardar correctamente, sin éxito inline ni anuncio duplicado; consultar disponibilidad no emite toast. Los errores siguen en FieldError y el guardado conserva su anuncio exclusivo para lectores de pantalla. Geist de 14px, superficie verde clara, texto principal, borde line, radio compartido de 6px, sin sombra e icono decorativo CircleCheck de 16px en accent. Posición inferior derecha, márgenes móviles de 16px y duración base nativa de 4000ms. Región aria-live polite «Notificaciones», con Alt+T nativo. El toast no toma el foco: cada formulario conserva el comportamiento descrito en DESIGN.md.",
       "html": "<section class=\"ds-notifications\" aria-label=\"Notificaciones alt+T\" aria-live=\"polite\" aria-relevant=\"additions text\" aria-atomic=\"false\"><div class=\"ds-success-toast\" tabindex=\"0\"><span class=\"ds-success-icon\" aria-hidden=\"true\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m16 9-5.5 5.5L8 12\"/></svg></span><span class=\"ds-success-title\">Servicio creado</span></div></section>",
       "css": ".ds-notifications{width:356px;max-width:calc(100vw - 32px);}.ds-success-toast{display:flex;align-items:center;gap:6px;padding:16px;background:var(--surface);color:var(--foreground);border:1px solid var(--line);border-radius:var(--radius-md);box-shadow:none;font-family:var(--font-geist-sans),sans-serif;font-size:.875rem;overflow-wrap:anywhere;}.ds-success-icon{display:flex;width:16px;height:16px;align-items:center;flex-shrink:0;margin-left:-3px;margin-right:4px;color:var(--accent);}.ds-success-icon svg{margin-left:-1px;}.ds-success-title{font-weight:500;line-height:1.5;}.ds-success-toast:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}"
     },
@@ -193,7 +590,7 @@
       "refersTo": "workspace-action",
       "description": "Acción compacta de cabecera Nueva cita o Nuevo servicio, con altura de 36px en escritorio y móvil. Preferencia permanente: inputs, selects y botones propios de Slotly conservan 36px; no imponer 44px sin petición del usuario. La altura se hereda de Input, NativeSelect y Button, sin overrides redundantes en consumidores; se conservan variantes explícitas deliberadas. Navegación y UserButton oficial son elementos distintos.",
       "html": "<button class=\"ds-workspace-action\"><svg aria-hidden=\"true\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M12 5v14M5 12h14\"/></svg>Nueva cita</button>",
-      "css": ".ds-workspace-action{display:inline-flex;min-height:2.25rem;align-items:center;justify-content:center;gap:.5rem;border:0;border-radius:.375rem;background:var(--accent);color:#fff;padding:.375rem .75rem;font-family:var(--font-geist-sans),sans-serif;font-size:.875rem;font-weight:600;line-height:1.25rem;white-space:nowrap;cursor:pointer;transition:background-color 150ms cubic-bezier(.4,0,.2,1);}.ds-workspace-action svg{flex-shrink:0;}.ds-workspace-action:hover{background:var(--accent-hover);}.ds-workspace-action:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}.ds-workspace-action:disabled{pointer-events:none;opacity:.6;}@media(prefers-reduced-motion:reduce){.ds-workspace-action{transition:none;}}"
+      "css": ".ds-workspace-action{display:inline-flex;min-height:2.25rem;align-items:center;justify-content:center;gap:.5rem;border:0;border-radius:.375rem;background:var(--accent);color:var(--primary-foreground);padding:.375rem .75rem;font-family:var(--font-geist-sans),sans-serif;font-size:.875rem;font-weight:600;line-height:1.25rem;white-space:nowrap;cursor:pointer;transition:background-color 150ms cubic-bezier(.4,0,.2,1);}.ds-workspace-action svg{flex-shrink:0;}.ds-workspace-action:hover{background:var(--accent-hover);}.ds-workspace-action:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}.ds-workspace-action:disabled{pointer-events:none;opacity:.6;}@media(prefers-reduced-motion:reduce){.ds-workspace-action{transition:none;}}"
     },
     {
       "name": "Campo propio",
@@ -201,12 +598,12 @@
       "refersTo": "form-control",
       "description": "Campo compacto de 36px con etiqueta visible; comparte borde, radio, error inline y foco con los formularios privados.",
       "html": "<div class=\"ds-field\"><label class=\"ds-field-label\" for=\"ds-client-name\">Nombre del cliente</label><input class=\"ds-field-input\" id=\"ds-client-name\" autocomplete=\"off\" maxlength=\"100\" required /></div>",
-      "css": ".ds-field{display:flex;flex-direction:column;gap:.5rem;font-family:var(--font-geist-sans),sans-serif;color:var(--foreground);}.ds-field-label{font-size:.875rem;font-weight:600;line-height:1.25rem;}.ds-field-input{width:100%;min-width:0;height:2.25rem;min-height:2.25rem;border:1px solid var(--muted);border-radius:.375rem;background:#fff;color:var(--foreground);padding:.375rem .75rem;font:400 .875rem/1.25rem var(--font-geist-sans),sans-serif;transition:border-color 150ms cubic-bezier(.4,0,.2,1);}.ds-field-input::placeholder{color:var(--muted);}.ds-field-input:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}.ds-field-input[aria-invalid=true]{border-color:var(--destructive);}.ds-field-input:disabled{opacity:.6;cursor:not-allowed;}@media(prefers-reduced-motion:reduce){.ds-field-input{transition:none;}}"
+      "css": ".ds-field{display:flex;flex-direction:column;gap:.5rem;font-family:var(--font-geist-sans),sans-serif;color:var(--foreground);}.ds-field-label{font-size:.875rem;font-weight:600;line-height:1.25rem;}.ds-field-input{width:100%;min-width:0;height:2.25rem;min-height:2.25rem;border:1px solid var(--muted);border-radius:.375rem;background:var(--card);color:var(--foreground);padding:.375rem .75rem;font:400 .875rem/1.25rem var(--font-geist-sans),sans-serif;transition:border-color 150ms cubic-bezier(.4,0,.2,1);}.ds-field-input::placeholder{color:var(--muted);}.ds-field-input:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}.ds-field-input[aria-invalid=true]{border-color:var(--destructive);}.ds-field-input:disabled{opacity:.6;cursor:not-allowed;}@media(prefers-reduced-motion:reduce){.ds-field-input{transition:none;}}"
     },
     {
       "name": "Navegación del espacio privado",
       "kind": "nav",
-      "description": "Composición local final: rail derecho de 48px integrado en el mismo background de Agenda, sin divisor ni sombra. Servicios, Horario y Negocio usan controles de 36×36px; selección tonal y foco conservados. El contenedor de cuenta superior recibe un único UserButton oficial en la aplicación, también en el rail del panel modal. La muestra deja ese host vacío y no imita Clerk. No crea tokens globales ni cambia navegación pública.",
+      "description": "Composición local final: rail derecho de 48px integrado en el mismo background de Agenda, sin divisor ni sombra. Servicios, Horario y Negocio usan controles de 36×36px; selección tonal y foco conservados. El contenedor de cuenta superior recibe un único UserButton oficial en la aplicación, también en el rail del panel modal. La muestra deja ese host vacío y no imita Clerk. No crea tokens globales ni cambia navegación pública. El grupo de cuenta vigente aloja además el selector de tema propio de36×36px; su muestra separada documenta ese control sin imitar el UserButton oficial.",
       "html": "<nav class=\"ds-workspace-nav\" aria-label=\"Secciones del negocio\"><div class=\"ds-workspace-account-slot\" data-workspace-account-host><!-- UserButton oficial montado por la aplicación. --></div><button class=\"ds-workspace-destination\" type=\"button\" aria-label=\"Servicios\" aria-expanded=\"true\" title=\"Servicios\"><svg aria-hidden=\"true\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m3 5 2 2 4-4M13 6h8M3 12l2 2 4-4m4 3h8M3 19l2 2 4-4m4 3h8\"/></svg></button><button class=\"ds-workspace-destination\" type=\"button\" aria-label=\"Horario\" aria-expanded=\"false\" title=\"Horario\"><svg aria-hidden=\"true\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 6v6h4\"/></svg></button><button class=\"ds-workspace-destination\" type=\"button\" aria-label=\"Negocio\" aria-expanded=\"false\" title=\"Negocio\"><svg aria-hidden=\"true\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 10v10h18V10M2 10l2-7h16l2 7M9 20v-8h6v8\"/></svg></button></nav>",
       "css": ".ds-workspace-nav{display:flex;width:48px;flex-direction:column;align-items:center;gap:12px;padding:12px 6px;background:var(--background);font-family:var(--font-geist-sans),sans-serif;}.ds-workspace-account-slot{display:flex;width:36px;height:36px;flex-shrink:0;align-items:center;justify-content:center;}.ds-workspace-destination{display:inline-flex;width:36px;height:36px;flex-shrink:0;align-items:center;justify-content:center;padding:0;border:0;border-radius:6px;background:transparent;color:var(--foreground);cursor:pointer;transition:background-color 150ms cubic-bezier(.4,0,.2,1);}.ds-workspace-destination:hover{background:var(--surface);}.ds-workspace-destination[aria-expanded=true]{background:var(--surface);color:var(--accent);}.ds-workspace-destination:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}@media(prefers-reduced-motion:reduce){.ds-workspace-destination{transition:none;}}"
     },
@@ -216,7 +613,7 @@
       "refersTo": "context-panel",
       "description": "Panel del negocio integrado en el campo continuo de Agenda: mismo background, sin divisores de cabecera, lista o formulario. Dock local de 360px desde 1200px; modal de hasta 408px incluido el rail48px por debajo, desde arriba sin reservar cabecera. Un solo subárbol mantiene Servicios, Horario y Negocio, borradores y revisión al cerrar/cambiar/resize. Campos tonales surface y acciones36px; foco/error y bloqueo durante envío conservados. Nueva cita mantiene su editor propio; estos estilos no se trasladan a las primitivas ni a las páginas públicas. En la aplicación, el panel entra/sale desde derecha con opacidad durante200ms ease-out y reajuste gradual del calendario. El dialog nativo conserva última sección y hosts Clerk/Sonner hasta terminar salida, queda inert y cancela callbacks obsoletos al reabrir; reduced-motion resuelve inmediatamente y el foco se recupera al reanudar. Esta muestra estática representa el reposo; no reproduce el lifecycle React/WAAPI ni modifica la duración global de otros componentes.",
       "html": "<dialog open class=\"ds-context-panel\" aria-labelledby=\"ds-context-title\"><div class=\"ds-context-heading\"><h2 class=\"ds-context-title\" id=\"ds-context-title\">Servicios</h2><button class=\"ds-context-close\" type=\"button\" aria-label=\"Cerrar panel\"><svg aria-hidden=\"true\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"m18 6-12 12M6 6l12 12\"/></svg></button></div><div class=\"ds-context-content\"><label class=\"ds-context-label\" for=\"ds-context-service\">Nombre del servicio</label><input class=\"ds-context-input\" id=\"ds-context-service\" value=\"Consulta\"/><label class=\"ds-context-label ds-context-duration\" for=\"ds-context-duration\">Duración (minutos)</label><input class=\"ds-context-input\" id=\"ds-context-duration\" type=\"number\" value=\"30\"/><button class=\"ds-context-save\" type=\"button\">Crear servicio</button></div></dialog>",
-      "css": ".ds-context-panel{position:relative;inset:auto;display:flex;flex-direction:column;width:360px;max-width:100%;height:100%;margin:0;padding:0;border:0;background:var(--background);color:var(--foreground);font-family:var(--font-geist-sans),sans-serif;}.ds-context-heading{display:flex;flex-shrink:0;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;}.ds-context-title{margin:0;font-size:18px;font-weight:600;line-height:1.5;}.ds-context-close{display:inline-flex;width:36px;height:36px;flex-shrink:0;align-items:center;justify-content:center;padding:0;border:0;border-radius:6px;background:transparent;color:var(--foreground);cursor:pointer;}.ds-context-close:hover{background:var(--surface);}.ds-context-content{flex:1;min-height:0;overflow-y:auto;padding:16px;}.ds-context-label{display:block;margin:0 0 8px;font-size:14px;font-weight:600;line-height:20px;}.ds-context-duration{margin-top:20px;}.ds-context-input{box-sizing:border-box;width:100%;height:36px;border:0;border-radius:6px;background:var(--surface);color:var(--foreground);padding:6px 12px;font:400 14px/20px var(--font-geist-sans),sans-serif;}.ds-context-input[aria-invalid=true]{outline:2px solid var(--destructive);outline-offset:-2px;}.ds-context-save{display:inline-flex;height:36px;align-items:center;justify-content:center;margin-top:20px;padding:6px 16px;border:0;border-radius:6px;background:var(--accent);color:#fff;font:600 14px/20px var(--font-geist-sans),sans-serif;cursor:pointer;}.ds-context-save:hover{background:var(--accent-hover);}.ds-context-close:focus-visible,.ds-context-input:focus-visible,.ds-context-save:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}.ds-context-input[aria-invalid=true]:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}.ds-context-close:disabled,.ds-context-save:disabled{pointer-events:none;opacity:.6;}"
+      "css": ".ds-context-panel{position:relative;inset:auto;display:flex;flex-direction:column;width:360px;max-width:100%;height:100%;margin:0;padding:0;border:0;background:var(--background);color:var(--foreground);font-family:var(--font-geist-sans),sans-serif;}.ds-context-heading{display:flex;flex-shrink:0;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;}.ds-context-title{margin:0;font-size:18px;font-weight:600;line-height:1.5;}.ds-context-close{display:inline-flex;width:36px;height:36px;flex-shrink:0;align-items:center;justify-content:center;padding:0;border:0;border-radius:6px;background:transparent;color:var(--foreground);cursor:pointer;}.ds-context-close:hover{background:var(--surface);}.ds-context-content{flex:1;min-height:0;overflow-y:auto;padding:16px;}.ds-context-label{display:block;margin:0 0 8px;font-size:14px;font-weight:600;line-height:20px;}.ds-context-duration{margin-top:20px;}.ds-context-input{box-sizing:border-box;width:100%;height:36px;border:0;border-radius:6px;background:var(--surface);color:var(--foreground);padding:6px 12px;font:400 14px/20px var(--font-geist-sans),sans-serif;}.ds-context-input[aria-invalid=true]{outline:2px solid var(--destructive);outline-offset:-2px;}.ds-context-save{display:inline-flex;height:36px;align-items:center;justify-content:center;margin-top:20px;padding:6px 16px;border:0;border-radius:6px;background:var(--accent);color:var(--primary-foreground);font:600 14px/20px var(--font-geist-sans),sans-serif;cursor:pointer;}.ds-context-save:hover{background:var(--accent-hover);}.ds-context-close:focus-visible,.ds-context-input:focus-visible,.ds-context-save:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}.ds-context-input[aria-invalid=true]:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}.ds-context-close:disabled,.ds-context-save:disabled{pointer-events:none;opacity:.6;}"
     },
     {
       "name": "Estado del día semanal",
@@ -224,32 +621,64 @@
       "refersTo": "weekly-state-select",
       "description": "Selector nativo de Abierto/Cerrado. El wrapper mide 128px, el select ocupa todo su ancho y la flecha se mantiene dentro del borde.",
       "html": "<div class=\"ds-weekly-state\"><label class=\"ds-weekly-label\" for=\"ds-weekly-state\">Lunes</label><div class=\"ds-weekly-select-wrap\"><select class=\"ds-weekly-select\" id=\"ds-weekly-state\"><option>Cerrado</option><option>Abierto</option></select><svg class=\"ds-weekly-chevron\" aria-hidden=\"true\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m6 9 6 6 6-6\"/></svg></div></div>",
-      "css": ".ds-weekly-state{display:flex;align-items:center;justify-content:space-between;gap:1rem;font-family:var(--font-geist-sans),sans-serif;color:var(--foreground);}.ds-weekly-label{font-size:.875rem;font-weight:600;line-height:1.25rem;}.ds-weekly-select-wrap{position:relative;width:8rem;}.ds-weekly-select{width:100%;height:2.25rem;min-height:2.25rem;min-width:0;appearance:none;border:1px solid var(--muted);border-radius:.375rem;background:#fff;color:var(--foreground);padding:.375rem 2.25rem .375rem .75rem;font:400 .875rem/1.25rem var(--font-geist-sans),sans-serif;cursor:pointer;transition:border-color 150ms cubic-bezier(.4,0,.2,1);}.ds-weekly-chevron{position:absolute;top:50%;right:.875rem;transform:translateY(-50%);color:var(--muted);opacity:.5;pointer-events:none;}.ds-weekly-select:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}.ds-weekly-select[aria-invalid=true]{border-color:var(--destructive);}.ds-weekly-select:disabled{opacity:.6;cursor:not-allowed;}@media(min-width:40rem){.ds-weekly-state{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:.5rem;}}@media(prefers-reduced-motion:reduce){.ds-weekly-select{transition:none;}}"
+      "css": ".ds-weekly-state{display:flex;align-items:center;justify-content:space-between;gap:1rem;font-family:var(--font-geist-sans),sans-serif;color:var(--foreground);}.ds-weekly-label{font-size:.875rem;font-weight:600;line-height:1.25rem;}.ds-weekly-select-wrap{position:relative;width:8rem;}.ds-weekly-select{width:100%;height:2.25rem;min-height:2.25rem;min-width:0;appearance:none;border:1px solid var(--muted);border-radius:.375rem;background:var(--card);color:var(--foreground);padding:.375rem 2.25rem .375rem .75rem;font:400 .875rem/1.25rem var(--font-geist-sans),sans-serif;cursor:pointer;transition:border-color 150ms cubic-bezier(.4,0,.2,1);}.ds-weekly-chevron{position:absolute;top:50%;right:.875rem;transform:translateY(-50%);color:var(--muted);opacity:.5;pointer-events:none;}.ds-weekly-select:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}.ds-weekly-select[aria-invalid=true]{border-color:var(--destructive);}.ds-weekly-select:disabled{opacity:.6;cursor:not-allowed;}@media(min-width:40rem){.ds-weekly-state{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:.5rem;}}@media(prefers-reduced-motion:reduce){.ds-weekly-select{transition:none;}}"
     },
     {
       "name": "Presentación de portada",
       "kind": "custom",
       "refersTo": "home-hero",
-      "description": "Muestra estática del estado autenticado de home: crema, Geist, titular fluido y acciones de 36px. La frase de apoyo no tiene salto forzado; no hay pausa manual ni enlace de registro por correo en el hero. El MP4 original y su fundido se ejecutan en la aplicación, con pausa por ocultación o movimiento reducido; esta muestra tipográfica no reproduce video. Los valores locales se resuelven en CSS. Sin sesión, Clerk ofrece el acceso Google en lugar de Ir a mi agenda.",
+      "description": "Muestra estática del estado autenticado de home: crema, Geist, titular fluido y acciones de 36px. La frase de apoyo no tiene salto forzado; no hay pausa manual ni enlace de registro por correo en el hero. El MP4 original y su fundido se ejecutan en la aplicación, con pausa por ocultación o movimiento reducido; esta muestra tipográfica no reproduce video. Los valores locales se resuelven en CSS. Sin sesión, Clerk ofrece el acceso Google en lugar de Ir a mi agenda. Los colores de la muestra heredan las variables vigentes de claro/oscuro; la tipografía y composición local se conservan.",
       "html": "<section class=\"ds-home-hero\"><h1>Tu agenda.<br/>Con otra <em>calma.</em></h1><p>Un hueco para cada cita. Más espacio para lo que haces bien.</p><div class=\"ds-home-actions\"><a class=\"ds-home-primary\" href=\"/demo\">Ver demo <svg aria-hidden=\"true\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 18 18 6M6 6h12v12\"/></svg></a><a class=\"ds-home-secondary\" href=\"/dashboard\">Ir a mi agenda</a></div></section>",
-      "css": ".ds-home-hero{background:#f8f6e7;color:#153d32;padding:40px 56px 88px;font-family:var(--font-geist-sans),sans-serif;caret-color:#176348;}.ds-home-hero ::selection{background:#d3df8f;color:#153d32;}.ds-home-hero h1{margin:0;max-width:9.8em;font-size:clamp(58px,6.8vw,96px);font-weight:500;line-height:1.06;letter-spacing:-.04em;text-wrap:balance;}.ds-home-hero em{color:var(--accent);font-style:normal;}.ds-home-hero>p{margin:30px 0 0;color:#42574b;font-size:18px;line-height:1.65;white-space:nowrap;}.ds-home-actions{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-top:30px;}.ds-home-primary,.ds-home-secondary{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;border:1px solid transparent;border-radius:6px;padding:0 22px;font-size:14px;line-height:20px;font-weight:600;text-decoration:none;transition:background-color 150ms cubic-bezier(.4,0,.2,1);}.ds-home-primary{background:var(--accent);color:#fff;}.ds-home-primary:hover{background:var(--accent-hover);}.ds-home-secondary{border-color:#a0ac96;background:#f8f6e7;color:#153d32;}.ds-home-secondary:hover{background:var(--surface);}.ds-home-hero :focus-visible{outline:2px solid #153d32;outline-offset:5px;}@media(max-width:900px){.ds-home-hero{padding-inline:24px;}.ds-home-hero>p{white-space:normal;}.ds-home-hero h1{font-size:66px;}}@media(max-width:600px){.ds-home-hero h1{font-size:clamp(48px,11vw,65px);max-width:10em;}.ds-home-hero>p{font-size:16px;margin-top:22px;}.ds-home-actions{margin-top:24px;gap:10px;}.ds-home-primary,.ds-home-secondary{padding-inline:14px;font-size:12px;}}@media(prefers-reduced-motion:reduce){.ds-home-hero *{transition:none;}}"
+      "css": ".ds-home-hero{background:var(--home-background);color:var(--home-foreground);padding:40px 56px 88px;font-family:var(--font-geist-sans),sans-serif;caret-color:var(--home-accent);}.ds-home-hero ::selection{background:var(--home-selection);color:var(--home-foreground);}.ds-home-hero h1{margin:0;max-width:9.8em;font-size:clamp(58px,6.8vw,96px);font-weight:500;line-height:1.06;letter-spacing:-.04em;text-wrap:balance;}.ds-home-hero em{color:var(--home-accent);font-style:normal;}.ds-home-hero>p{margin:30px 0 0;color:var(--home-muted);font-size:18px;line-height:1.65;white-space:nowrap;}.ds-home-actions{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-top:30px;}.ds-home-primary,.ds-home-secondary{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;border:1px solid transparent;border-radius:6px;padding:0 22px;font-size:14px;line-height:20px;font-weight:600;text-decoration:none;transition:background-color 150ms cubic-bezier(.4,0,.2,1);}.ds-home-primary{background:var(--accent);color:var(--primary-foreground);}.ds-home-primary:hover{background:var(--accent-hover);}.ds-home-secondary{border-color:var(--home-control-border);background:var(--home-background);color:var(--home-foreground);}.ds-home-secondary:hover{background:var(--surface);}.ds-home-hero :focus-visible{outline:2px solid var(--home-foreground);outline-offset:5px;}@media(max-width:900px){.ds-home-hero{padding-inline:24px;}.ds-home-hero>p{white-space:normal;}.ds-home-hero h1{font-size:66px;}}@media(max-width:600px){.ds-home-hero h1{font-size:clamp(48px,11vw,65px);max-width:10em;}.ds-home-hero>p{font-size:16px;margin-top:22px;}.ds-home-actions{margin-top:24px;gap:10px;}.ds-home-primary,.ds-home-secondary{padding-inline:14px;font-size:12px;}}@media(prefers-reduced-motion:reduce){.ds-home-hero *{transition:none;}}"
     },
     {
       "name": "Presentación de producto de portada",
       "kind": "custom",
-      "description": "Tres estados estáticos del recorrido actual: Agenda, Clientes y Servicios y horarios, sin introducción, pestañas ni captions. Cada estado muestra su texto, enlace real, captura y selección1/3–3/3 del indicador derecho; los segmentos y el icono de ampliación son decorativos en esta muestra. En la aplicación, Motion sincroniza la captura sticky con el scroll y hasta900px cada texto lleva su imagen; los segmentos son botones navegables y las capturas abren un Dialog oficial de Radix. Este HTML no simula Motion ni el visor. JPEG originales1280×650 sin edición, datos ficticios example.test y origen embebido; el encuadre CSS oculta los45px superiores. Radios12/8px y tipos solo de home; las otras superficies y primitivas no cambian.",
+      "description": "Tres estados estáticos del recorrido actual: Agenda, Clientes y Servicios y horarios, sin introducción, pestañas ni captions. Cada estado muestra su texto, enlace real, captura y selección1/3–3/3 del indicador derecho; los segmentos y el icono de ampliación son decorativos en esta muestra. En la aplicación, Motion sincroniza la captura sticky con el scroll y hasta900px cada texto lleva su imagen; los segmentos son botones navegables y las capturas abren un Dialog oficial de Radix. Este HTML no simula Motion ni el visor. JPEG originales1280×650 sin edición, datos ficticios example.test y origen embebido; el encuadre CSS oculta los45px superiores. Radios12/8px y tipos solo de home; las otras superficies y primitivas no cambian. Los colores de la muestra heredan las variables vigentes de claro/oscuro; la tipografía y composición local se conservan.",
       "html": "<section class=\"ds-home-product\" aria-label=\"Estados del recorrido de producto\"><article class=\"ds-home-product-step\"><div class=\"ds-home-product-copy\"><h3>Agenda</h3><p class=\"ds-home-product-summary\">Tu semana, de un vistazo.</p><p class=\"ds-home-product-description\">Consulta tus citas por día, semana o mes. Crea una nueva, cambia su horario o cancélala sin perder de vista el resto de tu agenda.</p><a class=\"ds-home-product-link\" href=\"/demo\">Probar la agenda<svg aria-hidden=\"true\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 18 18 6M6 6h12v12\"/></svg></a></div><figure class=\"ds-home-product-image\"><img src=\"/media/product/agenda.jpg\" width=\"1280\" height=\"650\" loading=\"lazy\" alt=\"Calendario semanal de Slotly con citas de ejemplo, filtros por cliente, servicio y estado.\"/><span class=\"ds-home-product-zoom\" aria-hidden=\"true\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"10.5\" cy=\"10.5\" r=\"6.5\"/><path d=\"m16 16 4 4M10.5 7.5v6M7.5 10.5h6\"/></svg></span></figure><div class=\"ds-home-product-progress\" aria-hidden=\"true\"><span class=\"ds-home-product-segment ds-home-product-active\"></span><span class=\"ds-home-product-segment\"></span><span class=\"ds-home-product-segment\"></span><span class=\"ds-home-product-count\">1/3</span></div></article><article class=\"ds-home-product-step\"><div class=\"ds-home-product-copy\"><h3>Clientes</h3><p class=\"ds-home-product-summary\">Cada cliente tiene su historia.</p><p class=\"ds-home-product-description\">Encuentra sus datos y consulta todas sus citas desde su ficha. Cuando alguien vuelve a reservar con el mismo correo, Slotly reutiliza su perfil.</p><a class=\"ds-home-product-link\" href=\"/demo?vista=clientes\">Explorar clientes<svg aria-hidden=\"true\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 18 18 6M6 6h12v12\"/></svg></a></div><figure class=\"ds-home-product-image\"><img src=\"/media/product/clientes.jpg\" width=\"1280\" height=\"650\" loading=\"lazy\" alt=\"Listado de clientes ficticios de Slotly con sus nombres y correos.\"/><span class=\"ds-home-product-zoom\" aria-hidden=\"true\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"10.5\" cy=\"10.5\" r=\"6.5\"/><path d=\"m16 16 4 4M10.5 7.5v6M7.5 10.5h6\"/></svg></span></figure><div class=\"ds-home-product-progress\" aria-hidden=\"true\"><span class=\"ds-home-product-segment\"></span><span class=\"ds-home-product-segment ds-home-product-active\"></span><span class=\"ds-home-product-segment\"></span><span class=\"ds-home-product-count\">2/3</span></div></article><article class=\"ds-home-product-step\"><div class=\"ds-home-product-copy\"><h3>Servicios y horarios</h3><p class=\"ds-home-product-summary\">Tu negocio, a tu manera.</p><p class=\"ds-home-product-description\">Define tus servicios y su duración, configura tu semana de atención y bloquea los momentos que necesitas reservar para ti. Tus horarios disponibles siguen esas reglas.</p><a class=\"ds-home-product-link\" href=\"/demo?vista=servicios\">Probar servicios y horarios<svg aria-hidden=\"true\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 18 18 6M6 6h12v12\"/></svg></a></div><figure class=\"ds-home-product-image\"><img src=\"/media/product/servicios.jpg\" width=\"1280\" height=\"650\" loading=\"lazy\" alt=\"Panel de servicios de Slotly con consultas de distintas duraciones junto al calendario.\"/><span class=\"ds-home-product-zoom\" aria-hidden=\"true\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"10.5\" cy=\"10.5\" r=\"6.5\"/><path d=\"m16 16 4 4M10.5 7.5v6M7.5 10.5h6\"/></svg></span></figure><div class=\"ds-home-product-progress\" aria-hidden=\"true\"><span class=\"ds-home-product-segment\"></span><span class=\"ds-home-product-segment\"></span><span class=\"ds-home-product-segment ds-home-product-active\"></span><span class=\"ds-home-product-count\">3/3</span></div></article></section>",
-      "css": ".ds-home-product{max-width:1320px;padding:24px 0;border-top:1px solid #c9d0b7;background:#f8f6e7;color:#153d32;font-family:var(--font-geist-sans),sans-serif;}.ds-home-product-step{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr) 36px;align-items:center;gap:40px;min-height:clamp(420px,34vw,480px);padding:48px 0;}.ds-home-product-copy h3{margin:0;font-size:clamp(32px,3.5vw,48px);font-weight:500;line-height:1.08;letter-spacing:-.03em;text-wrap:balance;}.ds-home-product-summary{margin:24px 0 0;font-size:22px;line-height:1.3;text-wrap:balance;}.ds-home-product-description{margin:16px 0 0;color:#42574b;font-size:16px;line-height:1.65;}.ds-home-product-link{display:inline-flex;align-items:center;gap:10px;margin-top:24px;color:var(--accent);font-size:14px;font-weight:500;text-decoration:none;text-underline-offset:5px;}.ds-home-product-link:hover{text-decoration:underline;}.ds-home-product-link:focus-visible{outline:2px solid #153d32;outline-offset:5px;}.ds-home-product-image{position:relative;overflow:hidden;margin:0;border:1px solid #c9d0b7;border-radius:12px;background:var(--background);}.ds-home-product-image img{display:block;width:100%;height:auto;margin-top:-3.515625%;}.ds-home-product-zoom{display:grid;place-items:center;position:absolute;right:12px;bottom:12px;width:36px;height:36px;border-radius:6px;background:#f8f6e7;color:#153d32;}.ds-home-product-progress{display:flex;align-items:center;flex-direction:column;gap:4px;}.ds-home-product-segment{display:block;width:3px;height:36px;border-radius:3px;background:#c9d0b7;}.ds-home-product-active{background:var(--accent);}.ds-home-product-count{margin-top:8px;color:#42574b;font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap;}@media(max-width:900px){.ds-home-product-step{grid-template-columns:minmax(0,1fr) 20px;gap:24px 12px;min-height:0;padding-block:36px;}.ds-home-product-step+.ds-home-product-step{border-top:1px solid #c9d0b7;}.ds-home-product-copy{grid-column:1;}.ds-home-product-copy h3{font-size:40px;}.ds-home-product-image{grid-column:1;grid-row:2;}.ds-home-product-progress{grid-column:2;grid-row:1;align-self:start;}}@media(max-width:600px){.ds-home-product{padding-block:0;}.ds-home-product-copy h3{font-size:36px;}.ds-home-product-summary{margin-top:20px;font-size:20px;}.ds-home-product-description{font-size:15px;}.ds-home-product-image{border-radius:8px;}}"
+      "css": ".ds-home-product{max-width:1320px;padding:24px 0;border-top:1px solid var(--home-line);background:var(--home-background);color:var(--home-foreground);font-family:var(--font-geist-sans),sans-serif;}.ds-home-product-step{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr) 36px;align-items:center;gap:40px;min-height:clamp(420px,34vw,480px);padding:48px 0;}.ds-home-product-copy h3{margin:0;font-size:clamp(32px,3.5vw,48px);font-weight:500;line-height:1.08;letter-spacing:-.03em;text-wrap:balance;}.ds-home-product-summary{margin:24px 0 0;font-size:22px;line-height:1.3;text-wrap:balance;}.ds-home-product-description{margin:16px 0 0;color:var(--home-muted);font-size:16px;line-height:1.65;}.ds-home-product-link{display:inline-flex;align-items:center;gap:10px;margin-top:24px;color:var(--home-accent);font-size:14px;font-weight:500;text-decoration:none;text-underline-offset:5px;}.ds-home-product-link:hover{text-decoration:underline;}.ds-home-product-link:focus-visible{outline:2px solid var(--home-foreground);outline-offset:5px;}.ds-home-product-image{position:relative;overflow:hidden;margin:0;border:1px solid var(--home-line);border-radius:12px;background:var(--background);}.ds-home-product-image img{display:block;width:100%;height:auto;margin-top:-3.515625%;}.ds-home-product-zoom{display:grid;place-items:center;position:absolute;right:12px;bottom:12px;width:36px;height:36px;border-radius:6px;background:var(--home-background);color:var(--home-foreground);}.ds-home-product-progress{display:flex;align-items:center;flex-direction:column;gap:4px;}.ds-home-product-segment{display:block;width:3px;height:36px;border-radius:3px;background:var(--home-line);}.ds-home-product-active{background:var(--home-accent);}.ds-home-product-count{margin-top:8px;color:var(--home-muted);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap;}@media(max-width:900px){.ds-home-product-step{grid-template-columns:minmax(0,1fr) 20px;gap:24px 12px;min-height:0;padding-block:36px;}.ds-home-product-step+.ds-home-product-step{border-top:1px solid var(--home-line);}.ds-home-product-copy{grid-column:1;}.ds-home-product-copy h3{font-size:40px;}.ds-home-product-image{grid-column:1;grid-row:2;}.ds-home-product-progress{grid-column:2;grid-row:1;align-self:start;}}@media(max-width:600px){.ds-home-product{padding-block:0;}.ds-home-product-copy h3{font-size:36px;}.ds-home-product-summary{margin-top:20px;font-size:20px;}.ds-home-product-description{font-size:15px;}.ds-home-product-image{border-radius:8px;}}"
+    },
+    {
+      "name": "Botón de tema",
+      "kind": "custom",
+      "description": "Muestra estática del botón36×36. La aplicación alterna directamente Claro/Oscuro con clic o teclado y persiste la elección; sin desplegable ni opción Sistema.",
+      "html": "<button class=\"ds-theme-toggle\" type=\"button\" aria-label=\"Cambiar tema\" title=\"Alternar claro y oscuro\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M20.5 14A8.5 8.5 0 0 1 10 3.5 8.5 8.5 0 1 0 20.5 14Z\"/></svg></button>",
+      "css": ".ds-theme-toggle{display:inline-flex;width:36px;height:36px;align-items:center;justify-content:center;padding:0;border:0;border-radius:6px;background:transparent;color:var(--foreground);cursor:pointer;}.ds-theme-toggle:hover{background:var(--surface);}.ds-theme-toggle:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}"
+    },
+    {
+      "name": "Carga estructural de formulario",
+      "kind": "custom",
+      "description": "Muestra de FormSkeleton compact: título, subtítulo, tres campos y envío; nombres de estado disponibles para tecnologías de asistencia y piezas decorativas sin texto visible. En la app también existen variantes de agenda, calendario parcial, listas y formulario con calendario. Animación desactivada con movimiento reducido.",
+      "html": "<div class=\"ds-loading-form\" role=\"status\" aria-label=\"Cargando acceso\" aria-busy=\"true\"><div class=\"ds-skeleton ds-loading-title\" aria-hidden=\"true\"></div><div class=\"ds-skeleton ds-loading-subtitle\" aria-hidden=\"true\"></div><div class=\"ds-loading-fields\"><div class=\"ds-skeleton ds-loading-field\" aria-hidden=\"true\"></div><div class=\"ds-skeleton ds-loading-field\" aria-hidden=\"true\"></div><div class=\"ds-skeleton ds-loading-field\" aria-hidden=\"true\"></div><div class=\"ds-skeleton ds-loading-submit\" aria-hidden=\"true\"></div></div></div>",
+      "css": ".ds-loading-form{width:100%;max-width:640px;margin-inline:auto;padding-block:24px;}.ds-skeleton{border-radius:6px;background:color-mix(in srgb,var(--line) 65%,var(--surface));animation:ds-skeleton-breathe 1.8s ease-in-out infinite;}.ds-loading-title{width:65%;height:36px;}.ds-loading-subtitle{width:85%;height:18px;margin-top:20px;}.ds-loading-fields{display:flex;flex-direction:column;gap:24px;margin-top:40px;}.ds-loading-field{width:100%;height:36px;}.ds-loading-submit{width:150px;height:36px;}@keyframes ds-skeleton-breathe{50%{opacity:.45;}}@media(prefers-reduced-motion:reduce){.ds-skeleton{animation:none;}}"
     }
   ],
   "narrative": {
-    "overview": "Interfaz clara, sencilla y profesional, con acentos verdes y Geist. La portada amplía este mundo con un fondo crema y el video de partículas aportado por el usuario; esa extensión local no cambia la identidad de la autenticación ni del dashboard. La demo pública reutiliza el dashboard original con datos ficticios.",
+    "overview": "Interfaz sencilla y profesional, con acentos verdes y Geist, disponible en Claro u Oscuro. La portada amplía este mundo con un fondo crema en claro y un fondo verde profundo en oscuro, conservando el video de partículas aportado por el usuario. La demo pública reutiliza el dashboard original con datos ficticios. La extensión de temas y cargas del 29/10/2026 conserva las composiciones y el contexto histórico registrado más abajo.",
     "keyCharacteristics": [
-      "Fondo claro y texto verde oscuro.",
+      "Fondos y texto semánticos que cambian juntos entre claro y oscuro.",
       "Jerarquía tipográfica en Geist.",
       "Acciones principales verdes y formularios oficiales de Clerk.",
       "Espacio privado con cuatro vistas, listas con separadores y formularios bajo demanda.",
-      "Portada abierta con video original y acceso a la demo; crema y tipos fluidos restringidos a esa superficie."
+      "Portada abierta con video original y acceso a la demo; crema y tipos fluidos restringidos a esa superficie.",
+      "Selector persistido por navegador y cargas estructurales sin texto visible de esquina."
+    ],
+    "rules": [
+      {
+        "name": "The Semantic Foreground Rule",
+        "body": "Cada acción usa el foreground de su rol y tema; no heredar blanco fijo para botones en oscuro.",
+        "section": "colors"
+      },
+      {
+        "name": "The Structural Loading Rule",
+        "body": "La espera conserva la anatomía del contenido y un estado accesible, sin rótulos visibles de esquina ni movimiento cuando se solicita reducirlo.",
+        "section": "components"
+      },
+      {
+        "name": "The Compact Control Rule",
+        "body": "Input, NativeSelect y Button fijan (36px) por defecto; el selector de tema hereda (36×36px). Las piezas decorativas de carga y el UserButton oficial no redefinen esa regla.",
+        "section": "components"
+      }
     ]
   }
 }

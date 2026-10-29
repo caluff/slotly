@@ -25,7 +25,7 @@ export function AppointmentActionsMenu({ label, date, dayHref, canReschedule, ca
     </DropdownMenu.Trigger>
     <DropdownMenu.Portal>
       <DropdownMenu.Content align="end" sideOffset={6} collisionPadding={12}
-        className="z-40 max-h-[var(--radix-dropdown-menu-content-available-height)] w-48 max-w-[calc(100vw-1.5rem)] overflow-y-auto rounded-md border border-line bg-white p-1 text-foreground outline-none"
+        className="z-40 max-h-[var(--radix-dropdown-menu-content-available-height)] w-48 max-w-[calc(100vw-1.5rem)] overflow-y-auto rounded-md border border-line bg-card p-1 text-foreground outline-none"
         onCloseAutoFocus={(event) => {
           const action = pendingAction.current;
           if (!action) return;

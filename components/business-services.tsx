@@ -8,6 +8,7 @@ import { useSearchParams } from "next/navigation";
 import { ServiceForm } from "@/components/service-form";
 import { ContextPanel } from "@/components/context-panel";
 import { Button } from "@/components/ui/button";
+import { ListSkeleton } from "@/components/loading-screens";
 import { api } from "@/convex/_generated/api";
 import type { ServiceValues } from "@/lib/service-schema";
 import { ServiceEditor, type ServiceDetail, type ServiceChange, type ServiceCommand } from "@/components/service-editor";
@@ -110,7 +111,7 @@ export function ServicesPanel({ results, status, onCreate, onChange, onUndo, onL
       </ContextPanel>}
       <div className="workspace-list" aria-busy={status === "LoadingFirstPage" || status === "LoadingMore"}>
         <div className="mb-3 flex flex-wrap gap-2" aria-label="Estado de servicios"><Button variant={!archived ? "secondary" : "ghost"} aria-pressed={!archived} disabled={busy} onClick={() => setArchived(false)}>Activos</Button><Button variant={archived ? "secondary" : "ghost"} aria-pressed={archived} disabled={busy} onClick={() => setArchived(true)}>Archivados</Button></div>
-        {status === "LoadingFirstPage" ? <p role="status" className="py-8 text-sm text-muted">Cargando tus servicios…</p>
+        {status === "LoadingFirstPage" ? <ListSkeleton label="Cargando servicios" />
           : rows.length === 0 ? <div className="py-6">
             <p role="status" className="text-sm text-muted">{archived ? "No hay servicios archivados en esta página." : "No hay servicios activos en esta página."}</p>
           </div> : <>
