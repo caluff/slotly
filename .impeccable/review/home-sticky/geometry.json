@@ -1,0 +1,48 @@
+[
+  {
+    "documentWidth": 390,
+    "images": [
+      {
+        "loaded": true,
+        "width": 340
+      },
+      {
+        "loaded": true,
+        "width": 340
+      },
+      {
+        "loaded": false,
+        "width": 340
+      }
+    ],
+    "paused": [
+      false,
+      false
+    ],
+    "stage": "none",
+    "width": 390
+  },
+  {
+    "documentWidth": 320,
+    "images": [
+      {
+        "loaded": true,
+        "width": 270
+      },
+      {
+        "loaded": true,
+        "width": 270
+      },
+      {
+        "loaded": false,
+        "width": 270
+      }
+    ],
+    "paused": [
+      false,
+      false
+    ],
+    "stage": "none",
+    "width": 320
+  }
+]

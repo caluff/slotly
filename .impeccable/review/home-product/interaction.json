@@ -1,0 +1,37 @@
+{
+  "tabs": [
+    {
+      "tab": "Agenda",
+      "selected": "true",
+      "href": "/demo",
+      "image": {
+        "complete": true,
+        "height": 592,
+        "width": 1168
+      }
+    },
+    {
+      "tab": "Clientes",
+      "selected": "true",
+      "href": "/demo?vista=clientes",
+      "image": {
+        "complete": true,
+        "height": 592,
+        "width": 1168
+      }
+    },
+    {
+      "tab": "Servicios y horarios",
+      "selected": "true",
+      "href": "/demo?vista=servicios",
+      "image": {
+        "complete": true,
+        "height": 592,
+        "width": 1168
+      }
+    }
+  ],
+  "keyboard": "ArrowRight conserva Agenda; Enter activa Clientes",
+  "pauseObserved": true,
+  "controlInsideCopy": true
+}

@@ -1,0 +1,34 @@
+[
+  {
+    "captionGone": true,
+    "documentWidth": 1425,
+    "imageLoaded": true,
+    "sloganHeight": 29.6875,
+    "sloganLineHeight": "29.7px",
+    "width": 1440
+  },
+  {
+    "captionGone": true,
+    "documentWidth": 1265,
+    "imageLoaded": true,
+    "sloganHeight": 29.6875,
+    "sloganLineHeight": "29.7px",
+    "width": 1280
+  },
+  {
+    "captionGone": true,
+    "documentWidth": 375,
+    "imageLoaded": true,
+    "sloganHeight": 52.78125,
+    "sloganLineHeight": "26.4px",
+    "width": 390
+  },
+  {
+    "captionGone": true,
+    "documentWidth": 305,
+    "imageLoaded": true,
+    "sloganHeight": 52.78125,
+    "sloganLineHeight": "26.4px",
+    "width": 320
+  }
+]

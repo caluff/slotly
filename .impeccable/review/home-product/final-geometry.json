@@ -1,0 +1,30 @@
+[
+  {
+    "documentWidth": 1425,
+    "playing": true,
+    "tabsContentWidth": 1313,
+    "tabsWidth": 1313,
+    "width": 1440
+  },
+  {
+    "documentWidth": 1265,
+    "playing": true,
+    "tabsContentWidth": 1153,
+    "tabsWidth": 1153,
+    "width": 1280
+  },
+  {
+    "documentWidth": 375,
+    "playing": true,
+    "tabsContentWidth": 327,
+    "tabsWidth": 327,
+    "width": 390
+  },
+  {
+    "documentWidth": 305,
+    "playing": true,
+    "tabsContentWidth": 257,
+    "tabsWidth": 257,
+    "width": 320
+  }
+]

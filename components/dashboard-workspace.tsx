@@ -1,10 +1,10 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode, type MouseEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { leaveWithoutDrafts } from "@/components/use-draft-warning";
-import { dashboardHref, readDashboardView, type DashboardView } from "@/lib/dashboard-navigation";
+import { currentWorkspaceHref, dashboardHref, readDashboardView, type DashboardView } from "@/lib/dashboard-navigation";
 import { WorkspaceRail, panelBusy } from "@/components/workspace-panel";
 import { WorkspaceAccount } from "@/components/workspace-account";
 import "@/components/dashboard-workspace.css";
@@ -13,12 +13,14 @@ export function navigateWorkspace(event: MouseEvent<HTMLAnchorElement>) {
   if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
   event.preventDefault();
   if (panelBusy()) return;
-  window.history.pushState(null, "", event.currentTarget.href);
+  window.history.pushState(null, "", currentWorkspaceHref(event.currentTarget.href));
 }
 
 export function WorkspaceLink({ view, children }: { view: DashboardView; children: ReactNode }) {
   const params = useSearchParams();
-  return <a className="text-link text-accent" href={dashboardHref(view, params.get("fecha"), params)} onClick={navigateWorkspace}>{children}</a>;
+  const pathname = usePathname();
+  const href = dashboardHref(view, params.get("fecha"), params);
+  return <a className="text-link text-accent" href={pathname === "/demo" ? href.replace(/^\/dashboard/, "/demo") : href} onClick={navigateWorkspace}>{children}</a>;
 }
 
 export function DashboardWorkspace({ account, children }: { account: ReactNode; children: ReactNode }) {

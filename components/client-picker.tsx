@@ -1,6 +1,6 @@
 "use client";
 
-import { Component, useEffect, useRef, useState, type ReactNode } from "react";
+import { Component, createContext, createElement, useContext, useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,10 @@ export function ConnectedClientRows({ search, timeZone, enabled = true, onChoose
   const { results, status, loadMore } = usePaginatedQuery(api.clients.listMyClients, enabled ? { search } : "skip", { initialNumItems: 20 });
   return <ClientRows rows={results} status={status} onChoose={onChoose} onLoadMore={() => loadMore(20)} timeZone={timeZone} />;
 }
+type ClientSourceProps = Parameters<typeof ConnectedClientRows>[0];
+const ClientSourceContext = createContext<ComponentType<ClientSourceProps>>(ConnectedClientRows);
+export function ClientRowsProvider({ source, children }: { source: ComponentType<ClientSourceProps>; children: ReactNode }) { return <ClientSourceContext.Provider value={source}>{children}</ClientSourceContext.Provider>; }
+export function ClientRowsSource(props: ClientSourceProps) { const Source = useContext(ClientSourceContext); return createElement(Source, props); }
 export function ClientPicker({ selected, onSelect, timeZone, enabled = true }: {
   selected: ClientSummary | null; onSelect: (client: ClientSummary | null) => void; timeZone: string; enabled?: boolean;
 }) {
@@ -56,6 +60,6 @@ export function ClientPicker({ selected, onSelect, timeZone, enabled = true }: {
     <Button ref={change} type="button" variant="outline" onClick={() => { onSelect(null); requestAnimationFrame(() => document.getElementById("appointment-client-search")?.focus()); }}>Cambiar cliente</Button></div>;
   return <div className="space-y-3"><Field className="gap-2"><FieldLabel htmlFor="appointment-client-search">Buscar cliente</FieldLabel>
     <div className="relative"><Search aria-hidden="true" isAnimated={false} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><Input id="appointment-client-search" className="pl-9" value={search} maxLength={100} autoComplete="off" onChange={event => setSearch(event.target.value)} /></div></Field>
-    <div className="max-h-52 overflow-y-auto"><ClientReadBoundary key={search}><ConnectedClientRows search={search} timeZone={timeZone} enabled={enabled} onChoose={client => onSelect(client)} /></ClientReadBoundary></div>
+    <div className="max-h-52 overflow-y-auto"><ClientReadBoundary key={search}><ClientRowsSource search={search} timeZone={timeZone} enabled={enabled} onChoose={client => onSelect(client)} /></ClientReadBoundary></div>
   </div>;
 }

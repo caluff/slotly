@@ -1,0 +1,187 @@
+[
+  {
+    "captions": 0,
+    "docWidth": 1835,
+    "images": [
+      {
+        "loaded": true,
+        "width": 0
+      },
+      {
+        "loaded": true,
+        "width": 0
+      },
+      {
+        "loaded": true,
+        "width": 0
+      },
+      {
+        "loaded": true,
+        "width": 800.671875
+      }
+    ],
+    "navCount": 3,
+    "navWidth": 36,
+    "pause": false,
+    "paused": [
+      false,
+      false
+    ],
+    "scrollY": 0,
+    "signup": false,
+    "stepHeights": [
+      480,
+      480,
+      480
+    ],
+    "width": 1850
+  },
+  {
+    "captions": 0,
+    "docWidth": 1425,
+    "images": [
+      {
+        "loaded": true,
+        "width": 0
+      },
+      {
+        "loaded": true,
+        "width": 0
+      },
+      {
+        "loaded": true,
+        "width": 0
+      },
+      {
+        "loaded": true,
+        "width": 796
+      }
+    ],
+    "navCount": 3,
+    "navWidth": 36,
+    "pause": false,
+    "paused": [
+      false,
+      false
+    ],
+    "scrollY": 0,
+    "signup": false,
+    "stepHeights": [
+      480,
+      480,
+      480
+    ],
+    "width": 1440
+  },
+  {
+    "captions": 0,
+    "docWidth": 1265,
+    "images": [
+      {
+        "loaded": true,
+        "width": 0
+      },
+      {
+        "loaded": true,
+        "width": 0
+      },
+      {
+        "loaded": true,
+        "width": 0
+      },
+      {
+        "loaded": true,
+        "width": 689.34375
+      }
+    ],
+    "navCount": 3,
+    "navWidth": 36,
+    "pause": false,
+    "paused": [
+      false,
+      false
+    ],
+    "scrollY": 0,
+    "signup": false,
+    "stepHeights": [
+      435.1875,
+      435.1875,
+      435.1875
+    ],
+    "width": 1280
+  },
+  {
+    "captions": 0,
+    "docWidth": 375,
+    "images": [
+      {
+        "loaded": true,
+        "width": 293
+      },
+      {
+        "loaded": true,
+        "width": 293
+      },
+      {
+        "loaded": true,
+        "width": 293
+      },
+      {
+        "loaded": true,
+        "width": 0
+      }
+    ],
+    "navCount": 3,
+    "navWidth": 20,
+    "pause": false,
+    "paused": [
+      false,
+      false
+    ],
+    "scrollY": 0,
+    "signup": false,
+    "stepHeights": [
+      481.234375,
+      482.234375,
+      545.859375
+    ],
+    "width": 390
+  },
+  {
+    "captions": 0,
+    "docWidth": 305,
+    "images": [
+      {
+        "loaded": true,
+        "width": 223
+      },
+      {
+        "loaded": true,
+        "width": 223
+      },
+      {
+        "loaded": true,
+        "width": 223
+      },
+      {
+        "loaded": true,
+        "width": 0
+      }
+    ],
+    "navCount": 3,
+    "navWidth": 20,
+    "pause": false,
+    "paused": [
+      false,
+      false
+    ],
+    "scrollY": 0,
+    "signup": false,
+    "stepHeights": [
+      498.9375,
+      499.9375,
+      537.5625
+    ],
+    "width": 320
+  }
+]

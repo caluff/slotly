@@ -1,0 +1,9 @@
+.demo-original-shell { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+.demo-original-shell > .workspace-root { flex: 1; height: auto; min-height: 0; }
+.demo-original-shell .workspace-sidepanel { position: absolute; height: 100%; }
+.demo-original-banner { flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 4px 16px; border-bottom: 1px solid var(--line); background: var(--surface); font-size: 12px; }
+.demo-original-banner p, .demo-original-banner > div { display: flex; align-items: center; gap: 14px; }
+.demo-original-banner p > span { color: var(--muted); }
+.demo-original-banner [data-slot="button"] { font-size: 12px; }
+.demo-account { border-radius: 50%; background: #e2e9cb; color: var(--accent); font-weight: 600; }
+@media (max-width: 700px) { .demo-original-banner { padding-inline: 8px; gap: 4px; } .demo-original-banner p > span { display: none; } .demo-original-banner > div { gap: 0; } .demo-original-banner [data-slot="button"] { font-size: 11px; padding-inline: 8px; } .demo-original-banner [data-variant="outline"] { display: none; } }

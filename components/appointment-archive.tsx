@@ -14,6 +14,7 @@ type Command = FunctionArgs<typeof api.appointmentArchive.setMyCalendarArchive>;
 type Row = { _id: Id<"appointments">; clientName: string; status: string; version: number; calendarArchivedAt?: number; calendarArchiveVersion?: number };
 type Ticket = { appointmentId: Id<"appointments">; expectedVersion: number; archiveVersion: number; archived: boolean };
 const ArchiveContext = createContext<{ blocked: boolean; change: (row: Row, archived: boolean) => Promise<boolean> } | null>(null);
+export function AppointmentArchiveProvider({ change, children }: { change: (row: Row, archived: boolean) => Promise<boolean>; children: ReactNode }) { return <ArchiveContext.Provider value={{ blocked: false, change }}>{children}</ArchiveContext.Provider>; }
 
 // Only IDs, revisions and the frozen operation are kept in tab storage. A
 // reload offers recovery; it never submits a mutation automatically.

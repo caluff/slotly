@@ -62,12 +62,13 @@ export function AgendaCalendar({ blockEditorComponent, ...props }: Parameters<ty
   return <TimeBlockWorkspace timeZone={props.timeZone} enabled={props.enabled} editorComponent={blockEditorComponent}><AgendaCalendarContent {...props} /></TimeBlockWorkspace>;
 }
 
-function AgendaCalendarContent({ date, view, today, timeZone, filters, enabled, services, moreServices, loadingServices, onLoadServices, onNavigate, onSearch, dayHref, onNew, calendarContent, searchContent, searchComponent: SearchComponent }: {
+function AgendaCalendarContent({ date, view, today, timeZone, filters, enabled, services, moreServices, loadingServices, onLoadServices, onNavigate, onSearch, dayHref, onNew, calendarContent, searchContent, searchComponent: SearchComponent, archivedDetailComponent: ArchivedDetailComponent = ConnectedDetail }: {
   date: string; view: CalendarView; today: string; timeZone: string; filters: AgendaFilters; searching: boolean; enabled: boolean;
   services: Service[]; moreServices: boolean; loadingServices: boolean; onLoadServices: () => void;
   onNavigate: (date: string, view: CalendarView) => void; onSearch: (filters: AgendaFilters) => void; dayHref: (date: string) => string;
   onNew: (date: string, start?: number, context?: CreateContext) => void;
   calendarContent?: ReactNode; searchContent?: ReactNode; searchComponent?: React.ComponentType<{ onLocate: (appointment: CalendarAppointment) => void }>;
+  archivedDetailComponent?: React.ComponentType<DetailProps>;
 }) {
   const [showFilters, setShowFilters] = useState(false);
   const [leftVisible, setLeftVisible] = useState(true);
@@ -125,7 +126,7 @@ function AgendaCalendarContent({ date, view, today, timeZone, filters, enabled, 
       </div>
     </div>
     <AgendaNameResults open={resultsOpen} modal={mobile} name={filters.client} onClose={closeResults}>{SearchComponent ? <SearchComponent onLocate={locate} /> : searchContent ?? <AppointmentSearch hideFilters filters={filters} today={today} timeZone={timeZone} enabled={enabled && resultsOpen} services={services} moreServices={moreServices} loadingServices={loadingServices} onLoadServices={onLoadServices} onSearch={onSearch} dayHref={dayHref} onLocate={locate} />}</AgendaNameResults>
-    {archivedDetail && <ConnectedDetail appointment={archivedDetail} latest={archivedDetail} timeZone={timeZone} now={0} onClose={() => setArchivedDetail(null)} onReturnFocus={() => { const input = document.querySelector<HTMLElement>('#search-client'); (input?.getBoundingClientRect().width ? input : filterTrigger.current)?.focus(); }} onAction={() => undefined} />}
+    {archivedDetail && <ArchivedDetailComponent appointment={archivedDetail} latest={archivedDetail} timeZone={timeZone} now={0} onClose={() => setArchivedDetail(null)} onReturnFocus={() => { const input = document.querySelector<HTMLElement>('#search-client'); (input?.getBoundingClientRect().width ? input : filterTrigger.current)?.focus(); }} onAction={() => undefined} />}
   </Tabs.Root></CalendarCreationVisibility.Provider>;
 }
 

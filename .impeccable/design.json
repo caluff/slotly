@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-22T02:56:07.8693954Z",
+  "generatedAt": "2026-10-29T05:34:05.260Z",
   "title": "Design System: Slotly",
   "extensions": {
     "colorMeta": {
@@ -43,20 +43,44 @@
       "destructive": {
         "role": "error",
         "displayName": "Error de validación"
+      },
+      "home-background": {
+        "role": "neutral",
+        "displayName": "Crema de portada"
+      },
+      "home-foreground": {
+        "role": "neutral",
+        "displayName": "Texto principal de portada"
+      },
+      "home-muted": {
+        "role": "neutral",
+        "displayName": "Texto secundario de portada"
+      },
+      "home-line": {
+        "role": "neutral",
+        "displayName": "Separador de portada"
+      },
+      "home-control-border": {
+        "role": "neutral",
+        "displayName": "Borde de control de portada"
+      },
+      "home-selection": {
+        "role": "primary",
+        "displayName": "Selección de texto de portada"
       }
     },
     "typographyMeta": {
       "display": {
         "displayName": "Título principal",
-        "purpose": "Encabezado de la portada; crece en sm y lg."
+        "purpose": "Rol base conservado; la portada del 29/10/2026 usa home-display y home-display-mobile."
       },
       "title": {
         "displayName": "Encabezado de sección",
-        "purpose": "Panel de cuenta y encabezados de las vistas privadas; aumenta en sm."
+        "purpose": "Encabezados de las vistas privadas; aumenta en sm. El panel de cuenta anterior pertenece a la historia."
       },
       "lead": {
         "displayName": "Introducción",
-        "purpose": "Descripción principal de la portada."
+        "purpose": "Rol base conservado; la introducción vigente de portada usa sus tamaños locales."
       },
       "body": {
         "displayName": "Cuerpo",
@@ -65,6 +89,14 @@
       "label": {
         "displayName": "Acciones",
         "purpose": "Acciones y enlaces con apariencia de botón."
+      },
+      "home-display": {
+        "displayName": "Titular fluido de portada",
+        "purpose": "Solo /; entre 600px y 900px usa 66px. Sin cambiar la escala del dashboard."
+      },
+      "home-display-mobile": {
+        "displayName": "Titular móvil de portada",
+        "purpose": "Solo / hasta 600px; reflujo de dos o tres líneas según el ancho."
       }
     },
     "motion": [
@@ -77,6 +109,16 @@
         "name": "--default-transition-timing-function",
         "value": "cubic-bezier(0.4, 0, 0.2, 1)",
         "purpose": "Curva existente para las transiciones de color."
+      },
+      {
+        "name": "home-link-underline",
+        "value": "160ms",
+        "purpose": "Solo home: transición del subrayado de enlaces; sin transición con movimiento reducido."
+      },
+      {
+        "name": "home-video-crossfade",
+        "value": "sin²(π × currentTime / duration)",
+        "purpose": "Solo home: dos capas del MP4 original desfasadas media duración cubren sus reinicios. Pausa manual, pestaña oculta y movimiento reducido; reproducción manual disponible."
       }
     ],
     "breakpoints": [
@@ -91,6 +133,18 @@
       {
         "name": "lg",
         "value": "64rem"
+      },
+      {
+        "name": "home-medium-max",
+        "value": "900px"
+      },
+      {
+        "name": "home-mobile-max",
+        "value": "600px"
+      },
+      {
+        "name": "home-wide-min",
+        "value": "1600px"
       }
     ]
   },
@@ -122,7 +176,7 @@
       "name": "Panel de cuenta",
       "kind": "card",
       "refersTo": "account-panel",
-      "description": "Panel de la portada antes de iniciar sesión.",
+      "description": "Muestra histórica de la portada anterior, retirada el 29/10/2026. Se conserva sin normalizar su CSS heredado; la portada vigente está representada por las muestras locales de home.",
       "html": "<section class=\"ds-account-panel\" aria-labelledby=\"ds-account-heading\"><div class=\"ds-account-icon\" aria-hidden=\"true\"><svg width=\"26\" height=\"26\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"4\" y=\"5\" width=\"16\" height=\"16\" rx=\"3\"/><path d=\"M8 3v4m8-4v4M4 11h16m-12 5 2 2 5-4\"/></svg></div><h2 id=\"ds-account-heading\" class=\"ds-account-heading\">Tu tiempo, mejor organizado.</h2><p class=\"ds-account-description\">Crea tu cuenta en Slotly o inicia sesión para entrar a tu espacio.</p><div class=\"ds-account-actions\"><a class=\"ds-account-primary\" href=\"/sign-up\">Crear cuenta <span aria-hidden=\"true\">→</span></a><a class=\"ds-account-secondary\" href=\"/sign-in\">Iniciar sesión</a></div><p class=\"ds-account-note\">Todo empieza con tu cuenta.</p></section>",
       "css": ".ds-account-panel{font-family:var(--font-geist-sans),sans-serif;border-radius:1rem;background:var(--surface);color:var(--foreground);padding:1.75rem;}.ds-account-icon{display:flex;width:3rem;height:3rem;margin-bottom:2.5rem;align-items:center;justify-content:center;border-radius:.75rem;background:var(--accent);color:#ffffff;}.ds-account-heading{margin:0;font-size:1.5rem;line-height:2rem;font-weight:600;letter-spacing:-.025em;text-wrap:balance;}.ds-account-description{margin:.75rem 0 0;font-size:1rem;line-height:1.75rem;color:var(--muted);}.ds-account-actions{display:flex;flex-direction:column;gap:.75rem;margin-top:2rem;}.ds-account-note{margin:1.5rem 0 0;font-size:.875rem;line-height:1.5rem;color:var(--muted);}.ds-account-primary{display:inline-flex;min-height:2.25rem;align-items:center;justify-content:center;gap:.5rem;border-radius:.375rem;padding:.375rem 1rem;font-family:var(--font-geist-sans),sans-serif;font-size:.875rem;font-weight:600;line-height:1.25rem;text-decoration:none;transition:color 150ms cubic-bezier(.4,0,.2,1),background-color 150ms cubic-bezier(.4,0,.2,1),border-color 150ms cubic-bezier(.4,0,.2,1);}.ds-account-primary{background:var(--accent);color:#ffffff;}.ds-account-primary:hover{background:var(--accent-hover);}.ds-account-primary:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}@media(prefers-reduced-motion:reduce){.ds-account-primary{transition:none;}}.ds-account-secondary{display:inline-flex;min-height:2.25rem;align-items:center;justify-content:center;gap:.5rem;border-radius:.375rem;padding:.375rem 1rem;font-family:var(--font-geist-sans),sans-serif;font-size:.875rem;font-weight:600;line-height:1.25rem;text-decoration:none;transition:color 150ms cubic-bezier(.4,0,.2,1),background-color 150ms cubic-bezier(.4,0,.2,1),border-color 150ms cubic-bezier(.4,0,.2,1);}.ds-account-secondary{border:1px solid color-mix(in oklab,var(--accent) 25%,transparent);background:transparent;color:var(--foreground);}.ds-account-secondary:hover{background:color-mix(in oklab,var(--accent) 5%,transparent);}.ds-account-secondary:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}@media(prefers-reduced-motion:reduce){.ds-account-secondary{transition:none;}}@media(min-width:40rem){.ds-account-panel{padding:2.5rem;}.ds-account-heading{font-size:1.875rem;line-height:2.25rem;}}@media(min-width:64rem){.ds-account-panel{padding-top:3rem;padding-bottom:3rem;}}"
     },
@@ -171,15 +225,31 @@
       "description": "Selector nativo de Abierto/Cerrado. El wrapper mide 128px, el select ocupa todo su ancho y la flecha se mantiene dentro del borde.",
       "html": "<div class=\"ds-weekly-state\"><label class=\"ds-weekly-label\" for=\"ds-weekly-state\">Lunes</label><div class=\"ds-weekly-select-wrap\"><select class=\"ds-weekly-select\" id=\"ds-weekly-state\"><option>Cerrado</option><option>Abierto</option></select><svg class=\"ds-weekly-chevron\" aria-hidden=\"true\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m6 9 6 6 6-6\"/></svg></div></div>",
       "css": ".ds-weekly-state{display:flex;align-items:center;justify-content:space-between;gap:1rem;font-family:var(--font-geist-sans),sans-serif;color:var(--foreground);}.ds-weekly-label{font-size:.875rem;font-weight:600;line-height:1.25rem;}.ds-weekly-select-wrap{position:relative;width:8rem;}.ds-weekly-select{width:100%;height:2.25rem;min-height:2.25rem;min-width:0;appearance:none;border:1px solid var(--muted);border-radius:.375rem;background:#fff;color:var(--foreground);padding:.375rem 2.25rem .375rem .75rem;font:400 .875rem/1.25rem var(--font-geist-sans),sans-serif;cursor:pointer;transition:border-color 150ms cubic-bezier(.4,0,.2,1);}.ds-weekly-chevron{position:absolute;top:50%;right:.875rem;transform:translateY(-50%);color:var(--muted);opacity:.5;pointer-events:none;}.ds-weekly-select:focus-visible{outline:3px solid var(--accent);outline-offset:4px;}.ds-weekly-select[aria-invalid=true]{border-color:var(--destructive);}.ds-weekly-select:disabled{opacity:.6;cursor:not-allowed;}@media(min-width:40rem){.ds-weekly-state{flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:.5rem;}}@media(prefers-reduced-motion:reduce){.ds-weekly-select{transition:none;}}"
+    },
+    {
+      "name": "Presentación de portada",
+      "kind": "custom",
+      "refersTo": "home-hero",
+      "description": "Muestra estática del estado autenticado de home: crema, Geist, titular fluido y acciones de 36px. La frase de apoyo no tiene salto forzado; no hay pausa manual ni enlace de registro por correo en el hero. El MP4 original y su fundido se ejecutan en la aplicación, con pausa por ocultación o movimiento reducido; esta muestra tipográfica no reproduce video. Los valores locales se resuelven en CSS. Sin sesión, Clerk ofrece el acceso Google en lugar de Ir a mi agenda.",
+      "html": "<section class=\"ds-home-hero\"><h1>Tu agenda.<br/>Con otra <em>calma.</em></h1><p>Un hueco para cada cita. Más espacio para lo que haces bien.</p><div class=\"ds-home-actions\"><a class=\"ds-home-primary\" href=\"/demo\">Ver demo <svg aria-hidden=\"true\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 18 18 6M6 6h12v12\"/></svg></a><a class=\"ds-home-secondary\" href=\"/dashboard\">Ir a mi agenda</a></div></section>",
+      "css": ".ds-home-hero{background:#f8f6e7;color:#153d32;padding:40px 56px 88px;font-family:var(--font-geist-sans),sans-serif;caret-color:#176348;}.ds-home-hero ::selection{background:#d3df8f;color:#153d32;}.ds-home-hero h1{margin:0;max-width:9.8em;font-size:clamp(58px,6.8vw,96px);font-weight:500;line-height:1.06;letter-spacing:-.04em;text-wrap:balance;}.ds-home-hero em{color:var(--accent);font-style:normal;}.ds-home-hero>p{margin:30px 0 0;color:#42574b;font-size:18px;line-height:1.65;white-space:nowrap;}.ds-home-actions{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-top:30px;}.ds-home-primary,.ds-home-secondary{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;border:1px solid transparent;border-radius:6px;padding:0 22px;font-size:14px;line-height:20px;font-weight:600;text-decoration:none;transition:background-color 150ms cubic-bezier(.4,0,.2,1);}.ds-home-primary{background:var(--accent);color:#fff;}.ds-home-primary:hover{background:var(--accent-hover);}.ds-home-secondary{border-color:#a0ac96;background:#f8f6e7;color:#153d32;}.ds-home-secondary:hover{background:var(--surface);}.ds-home-hero :focus-visible{outline:2px solid #153d32;outline-offset:5px;}@media(max-width:900px){.ds-home-hero{padding-inline:24px;}.ds-home-hero>p{white-space:normal;}.ds-home-hero h1{font-size:66px;}}@media(max-width:600px){.ds-home-hero h1{font-size:clamp(48px,11vw,65px);max-width:10em;}.ds-home-hero>p{font-size:16px;margin-top:22px;}.ds-home-actions{margin-top:24px;gap:10px;}.ds-home-primary,.ds-home-secondary{padding-inline:14px;font-size:12px;}}@media(prefers-reduced-motion:reduce){.ds-home-hero *{transition:none;}}"
+    },
+    {
+      "name": "Presentación de producto de portada",
+      "kind": "custom",
+      "description": "Tres estados estáticos del recorrido actual: Agenda, Clientes y Servicios y horarios, sin introducción, pestañas ni captions. Cada estado muestra su texto, enlace real, captura y selección1/3–3/3 del indicador derecho; los segmentos y el icono de ampliación son decorativos en esta muestra. En la aplicación, Motion sincroniza la captura sticky con el scroll y hasta900px cada texto lleva su imagen; los segmentos son botones navegables y las capturas abren un Dialog oficial de Radix. Este HTML no simula Motion ni el visor. JPEG originales1280×650 sin edición, datos ficticios example.test y origen embebido; el encuadre CSS oculta los45px superiores. Radios12/8px y tipos solo de home; las otras superficies y primitivas no cambian.",
+      "html": "<section class=\"ds-home-product\" aria-label=\"Estados del recorrido de producto\"><article class=\"ds-home-product-step\"><div class=\"ds-home-product-copy\"><h3>Agenda</h3><p class=\"ds-home-product-summary\">Tu semana, de un vistazo.</p><p class=\"ds-home-product-description\">Consulta tus citas por día, semana o mes. Crea una nueva, cambia su horario o cancélala sin perder de vista el resto de tu agenda.</p><a class=\"ds-home-product-link\" href=\"/demo\">Probar la agenda<svg aria-hidden=\"true\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 18 18 6M6 6h12v12\"/></svg></a></div><figure class=\"ds-home-product-image\"><img src=\"/media/product/agenda.jpg\" width=\"1280\" height=\"650\" loading=\"lazy\" alt=\"Calendario semanal de Slotly con citas de ejemplo, filtros por cliente, servicio y estado.\"/><span class=\"ds-home-product-zoom\" aria-hidden=\"true\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"10.5\" cy=\"10.5\" r=\"6.5\"/><path d=\"m16 16 4 4M10.5 7.5v6M7.5 10.5h6\"/></svg></span></figure><div class=\"ds-home-product-progress\" aria-hidden=\"true\"><span class=\"ds-home-product-segment ds-home-product-active\"></span><span class=\"ds-home-product-segment\"></span><span class=\"ds-home-product-segment\"></span><span class=\"ds-home-product-count\">1/3</span></div></article><article class=\"ds-home-product-step\"><div class=\"ds-home-product-copy\"><h3>Clientes</h3><p class=\"ds-home-product-summary\">Cada cliente tiene su historia.</p><p class=\"ds-home-product-description\">Encuentra sus datos y consulta todas sus citas desde su ficha. Cuando alguien vuelve a reservar con el mismo correo, Slotly reutiliza su perfil.</p><a class=\"ds-home-product-link\" href=\"/demo?vista=clientes\">Explorar clientes<svg aria-hidden=\"true\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 18 18 6M6 6h12v12\"/></svg></a></div><figure class=\"ds-home-product-image\"><img src=\"/media/product/clientes.jpg\" width=\"1280\" height=\"650\" loading=\"lazy\" alt=\"Listado de clientes ficticios de Slotly con sus nombres y correos.\"/><span class=\"ds-home-product-zoom\" aria-hidden=\"true\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"10.5\" cy=\"10.5\" r=\"6.5\"/><path d=\"m16 16 4 4M10.5 7.5v6M7.5 10.5h6\"/></svg></span></figure><div class=\"ds-home-product-progress\" aria-hidden=\"true\"><span class=\"ds-home-product-segment\"></span><span class=\"ds-home-product-segment ds-home-product-active\"></span><span class=\"ds-home-product-segment\"></span><span class=\"ds-home-product-count\">2/3</span></div></article><article class=\"ds-home-product-step\"><div class=\"ds-home-product-copy\"><h3>Servicios y horarios</h3><p class=\"ds-home-product-summary\">Tu negocio, a tu manera.</p><p class=\"ds-home-product-description\">Define tus servicios y su duración, configura tu semana de atención y bloquea los momentos que necesitas reservar para ti. Tus horarios disponibles siguen esas reglas.</p><a class=\"ds-home-product-link\" href=\"/demo?vista=servicios\">Probar servicios y horarios<svg aria-hidden=\"true\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 18 18 6M6 6h12v12\"/></svg></a></div><figure class=\"ds-home-product-image\"><img src=\"/media/product/servicios.jpg\" width=\"1280\" height=\"650\" loading=\"lazy\" alt=\"Panel de servicios de Slotly con consultas de distintas duraciones junto al calendario.\"/><span class=\"ds-home-product-zoom\" aria-hidden=\"true\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"10.5\" cy=\"10.5\" r=\"6.5\"/><path d=\"m16 16 4 4M10.5 7.5v6M7.5 10.5h6\"/></svg></span></figure><div class=\"ds-home-product-progress\" aria-hidden=\"true\"><span class=\"ds-home-product-segment\"></span><span class=\"ds-home-product-segment\"></span><span class=\"ds-home-product-segment ds-home-product-active\"></span><span class=\"ds-home-product-count\">3/3</span></div></article></section>",
+      "css": ".ds-home-product{max-width:1320px;padding:24px 0;border-top:1px solid #c9d0b7;background:#f8f6e7;color:#153d32;font-family:var(--font-geist-sans),sans-serif;}.ds-home-product-step{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr) 36px;align-items:center;gap:40px;min-height:clamp(420px,34vw,480px);padding:48px 0;}.ds-home-product-copy h3{margin:0;font-size:clamp(32px,3.5vw,48px);font-weight:500;line-height:1.08;letter-spacing:-.03em;text-wrap:balance;}.ds-home-product-summary{margin:24px 0 0;font-size:22px;line-height:1.3;text-wrap:balance;}.ds-home-product-description{margin:16px 0 0;color:#42574b;font-size:16px;line-height:1.65;}.ds-home-product-link{display:inline-flex;align-items:center;gap:10px;margin-top:24px;color:var(--accent);font-size:14px;font-weight:500;text-decoration:none;text-underline-offset:5px;}.ds-home-product-link:hover{text-decoration:underline;}.ds-home-product-link:focus-visible{outline:2px solid #153d32;outline-offset:5px;}.ds-home-product-image{position:relative;overflow:hidden;margin:0;border:1px solid #c9d0b7;border-radius:12px;background:var(--background);}.ds-home-product-image img{display:block;width:100%;height:auto;margin-top:-3.515625%;}.ds-home-product-zoom{display:grid;place-items:center;position:absolute;right:12px;bottom:12px;width:36px;height:36px;border-radius:6px;background:#f8f6e7;color:#153d32;}.ds-home-product-progress{display:flex;align-items:center;flex-direction:column;gap:4px;}.ds-home-product-segment{display:block;width:3px;height:36px;border-radius:3px;background:#c9d0b7;}.ds-home-product-active{background:var(--accent);}.ds-home-product-count{margin-top:8px;color:#42574b;font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap;}@media(max-width:900px){.ds-home-product-step{grid-template-columns:minmax(0,1fr) 20px;gap:24px 12px;min-height:0;padding-block:36px;}.ds-home-product-step+.ds-home-product-step{border-top:1px solid #c9d0b7;}.ds-home-product-copy{grid-column:1;}.ds-home-product-copy h3{font-size:40px;}.ds-home-product-image{grid-column:1;grid-row:2;}.ds-home-product-progress{grid-column:2;grid-row:1;align-self:start;}}@media(max-width:600px){.ds-home-product{padding-block:0;}.ds-home-product-copy h3{font-size:36px;}.ds-home-product-summary{margin-top:20px;font-size:20px;}.ds-home-product-description{font-size:15px;}.ds-home-product-image{border-radius:8px;}}"
     }
   ],
   "narrative": {
-    "overview": "Interfaz clara, sencilla y profesional, con acentos verdes. La portada y la autenticación conservan su presentación existente; el espacio privado usa una composición más amplia para consultar y gestionar el día.",
+    "overview": "Interfaz clara, sencilla y profesional, con acentos verdes y Geist. La portada amplía este mundo con un fondo crema y el video de partículas aportado por el usuario; esa extensión local no cambia la identidad de la autenticación ni del dashboard. La demo pública reutiliza el dashboard original con datos ficticios.",
     "keyCharacteristics": [
       "Fondo claro y texto verde oscuro.",
       "Jerarquía tipográfica en Geist.",
       "Acciones principales verdes y formularios oficiales de Clerk.",
-      "Espacio privado con cuatro vistas, listas con separadores y formularios bajo demanda."
+      "Espacio privado con cuatro vistas, listas con separadores y formularios bajo demanda.",
+      "Portada abierta con video original y acceso a la demo; crema y tipos fluidos restringidos a esa superficie."
     ]
   }
 }

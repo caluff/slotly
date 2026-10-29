@@ -1,0 +1,47 @@
+[
+  {
+    "bannerBottom": 45,
+    "documentWidth": 1440,
+    "modal": false,
+    "panelBottom": 900,
+    "panelTop": 45,
+    "railTop": 45,
+    "width": 1440
+  },
+  {
+    "bannerBottom": 45,
+    "documentWidth": 1280,
+    "modal": false,
+    "panelBottom": 720,
+    "panelTop": 45,
+    "railTop": 45,
+    "width": 1280
+  },
+  {
+    "bannerBottom": 45,
+    "documentWidth": 1199,
+    "modal": true,
+    "panelBottom": 720,
+    "panelTop": 0,
+    "railTop": 0,
+    "width": 1199
+  },
+  {
+    "bannerBottom": 45,
+    "documentWidth": 390,
+    "modal": true,
+    "panelBottom": 844,
+    "panelTop": 0,
+    "railTop": 0,
+    "width": 390
+  },
+  {
+    "bannerBottom": 45,
+    "documentWidth": 320,
+    "modal": true,
+    "panelBottom": 720,
+    "panelTop": 0,
+    "railTop": 0,
+    "width": 320
+  }
+]

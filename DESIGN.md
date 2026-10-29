@@ -14,6 +14,12 @@ colors:
   selection: "#c7e6ca"
   white: "#ffffff"
   destructive: "#9f2f2f"
+  home-background: "#f8f6e7"
+  home-foreground: "#153d32"
+  home-muted: "#42574b"
+  home-line: "#c9d0b7"
+  home-control-border: "#a0ac96"
+  home-selection: "#d3df8f"
 typography:
   display:
     fontFamily: "var(--font-geist-sans), sans-serif"
@@ -45,6 +51,18 @@ typography:
     fontSize: "0.875rem"
     fontWeight: 600
     lineHeight: "1.25rem"
+  home-display:
+    fontFamily: "var(--font-geist-sans), sans-serif"
+    fontSize: "clamp(58px, 6.8vw, 96px)"
+    fontWeight: 500
+    lineHeight: 1.06
+    letterSpacing: "-0.04em"
+  home-display-mobile:
+    fontFamily: "var(--font-geist-sans), sans-serif"
+    fontSize: "clamp(48px, 11vw, 65px)"
+    fontWeight: 500
+    lineHeight: 1.06
+    letterSpacing: "-0.04em"
 rounded:
   app: "0.375rem"
 spacing:
@@ -100,13 +118,17 @@ components:
     rounded: "{rounded.app}"
     height: "2.25rem"
     width: "8rem"
+  home-hero:
+    backgroundColor: "{colors.home-background}"
+    textColor: "{colors.home-foreground}"
+    typography: "{typography.home-display}"
 ---
 
 # Design System: Slotly
 
 ## Overview
 
-Interfaz clara, sencilla y profesional, con acentos verdes. La portada y la autenticación conservan su presentación existente; el espacio privado usa una composición más amplia para consultar y gestionar el día.
+Interfaz clara, sencilla y profesional, con acentos verdes y Geist. La portada amplía este mundo con un fondo crema y el video de partículas aportado por el usuario; esa extensión local no cambia la identidad de la autenticación ni del dashboard. La demo pública reutiliza el dashboard original con datos ficticios.
 
 **Key Characteristics:**
 
@@ -114,16 +136,17 @@ Interfaz clara, sencilla y profesional, con acentos verdes. La portada y la aute
 - Jerarquía tipográfica en Geist.
 - Acciones principales verdes y formularios oficiales de Clerk.
 - Espacio privado con cuatro vistas, listas con separadores y formularios bajo demanda.
+- Portada abierta con video original y acceso a la demo; crema y tipos fluidos restringidos a esa superficie.
 
 ## Colors
 
-Los valores del frontmatter son normativos y proceden de la hoja global y de la configuración de Clerk.
+Los valores del frontmatter son normativos y proceden de la hoja global, de la configuración de Clerk y, exclusivamente para el prefijo `home-`, de la hoja local de portada. Los tokens existentes mantienen sus valores; la extensión de home no se aplica al dashboard ni a `/demo`.
 
 ### Primary
 
 - `accent`: acciones principales, navegación activa, confirmaciones, énfasis de la portada y foco visible.
 - `accent-hover`: fondo de la acción principal al pasar el cursor.
-- `surface`: fondo verde claro del panel de cuenta y de avisos, cargas y estados de interacción del espacio privado.
+- `surface`: fondo verde claro de avisos, cargas y estados de interacción del espacio privado.
 - `selection`: fondo de la selección de texto, con `foreground` como texto.
 
 ### Neutral
@@ -135,21 +158,27 @@ Los valores del frontmatter son normativos y proceden de la hoja global y de la 
 - `white`: texto de la acción principal, cabecera privada, paneles contextuales y fondo configurado para Clerk.
 - `destructive`: bordes y mensajes de error, acción de cancelación y estado textual de citas canceladas. La confirmación destructiva usa fondo opaco y texto blanco, también cuando el sistema operativo prefiere modo oscuro; la aplicación mantiene su paleta clara.
 
+El crema `home-background` integra el video sin recuadro; `home-foreground` y `home-muted` sostienen sus dos niveles de lectura. `home-line` separa la presentación de producto y el pie, divide los pasos móviles, forma los segmentos inactivos del indicador y enmarca las capturas; `home-control-border` delimita la acción secundaria. `home-selection` se limita a la selección de texto de esta página. El acento de las acciones, del segmento activo y de «calma» sigue siendo `accent`; los azules y amarillos del video pertenecen al material del usuario, no a una nueva paleta del dashboard. El antiguo separador de filas `home-row-line` deja de usarse al retirar la lista de ejemplo.
+
 ## Typography
 
 Geist es la fuente de la interfaz, mediante la variable existente y su respaldo sans-serif. Geist Mono está cargada, sin un papel visual usado en estas pantallas.
 
-El frontmatter recoge la escala base: display para el título de portada, title para encabezados de sección, auth-title para autenticación, lead para la introducción, body para descripciones y label para las acciones.
+El frontmatter conserva la escala base existente y añade dos roles `home-display` propios de la portada vigente. `title`, `auth-title`, `body` y `label` mantienen su alcance en el resto de la interfaz; el antiguo rol `display` no gobierna el nuevo hero.
 
-El título principal crece en `sm` (3.75rem) y en `lg` (4.5rem); el encabezado del panel crece en `sm` (1.875rem). Las notas usan texto pequeño (0.875rem) con interlineado amplio (1.5rem); el pie usa texto menor (0.75rem) con interlineado (1.25rem). Los enlaces de texto tienen peso medio (500).
+En home, el titular usa el rol fluido de escritorio; entre los puntos locales de (900px) y (600px) mide (66px), y hasta (600px) usa `home-display-mobile`. Su salto explícito y el reflujo producen dos o tres líneas según el ancho. El énfasis usa el verde existente, sin cursiva. La frase de apoyo «Un hueco para cada cita. Más espacio para lo que haces bien.» ya no tiene salto forzado: ocupa una línea en escritorio y fluye naturalmente hasta (900px). Mide (18px), o (16px) en móvil, con interlineado (1.65).
+
+El recorrido de producto entra directamente en sus tres pasos, sin título o introducción visibles. Cada nombre de apartado usa un tamaño fluido de (32–48px), peso (500) e interlineado (1.08); hasta (900px) mide (40px) y hasta (600px), (36px). El resumen mide (22px), o (20px) en móvil; el cuerpo mide (16px), o (15px) en móvil, con interlineado (1.65). Enlaces de paso usan (14px); contador y pie, (12px). Estos valores observados pertenecen solo a home y no amplían la escala global. Las acciones heredan su altura de (36px), con texto de (12px) en home móvil.
 
 En el espacio privado, los títulos visibles de vista usan el tamaño base de title (1.5rem), aumentan en `sm` (1.875rem) y conservan peso seminegrita (600) y espaciado cerrado. Agenda mantiene su h1 solo para lectores de pantalla; la cabecera visible reúne el nombre del negocio y Nueva cita. Los títulos de panel y estados vacíos usan (1.125rem); las descripciones, etiquetas y listas usan principalmente (0.875rem). La navegación móvil usa (0.75rem) y aumenta en `md` (0.875rem). Las horas y duraciones usan cifras tabulares.
 
 ## Layout
 
-La portada conserva su contenedor centrado de (72rem), con márgenes interiores horizontales de (1.5rem), que aumentan en `sm` (2.5rem). Su estructura ocupa al menos la altura de la ventana, con cabecera, contenido flexible y pie.
+La portada vigente usa un contenedor de hasta (1320px), con (56px) por lado; hasta (900px), los márgenes pasan a (24px). La cabecera mide (88px), o (72px) hasta (600px). Hero, presentación de producto y pie forman un documento vertical abierto, sin el panel de cuenta anterior ni el caption de esquina.
 
-La portada tiene una columna en móvil. En `lg` pasa a dos columnas, con proporción (1.2fr / 1fr), separación (5rem) y texto a la izquierda del panel. Antes de ese punto la separación es (3rem). Las acciones del panel permanecen apiladas.
+El hero coloca el texto a la izquierda y el video a la derecha, con altura mínima fluida entre (600px) y (850px). El texto ocupa (56%) y pasa a (66%) hasta (900px); el video cuadrado admite un ancho de hasta (760px). Hasta (600px), el texto ocupa todo el ancho, el video se sitúa debajo y el hero reserva (390px) inferiores dentro de una altura mínima de (820px). Las acciones comparten fila cuando caben y admiten reflujo; no hay fila secundaria de correo o pausa.
+
+La segunda sección usa tres columnas de escritorio: texto, captura e indicador derecho, con proporción (1:2), columna de (36px) y separación de (40px). Los pasos tienen altura mínima fluida de (420–480px) y relleno vertical de (48px), con la captura sticky centrada en el área visible. Hasta (900px), cada texto lleva debajo su imagen, los pasos recuperan altura natural con relleno vertical de (36px) y una línea entre ellos; el indicador sigue sticky en una columna de (20px) separada (12px). Sus tres botones conservan áreas de (36×36px) y un contador sin salto de línea. Las capturas mantienen la proporción del JPEG (1280×650), ocultando exclusivamente sus (45px) superiores mediante el marco CSS; no se reconstruye el calendario para móvil. El visor limita la imagen al viewport y conserva el mismo recorte superior.
 
 Los puntos de cambio utilizados son `sm` (40rem), `md` (48rem) y `lg` (64rem). El login y el registro comparten `AuthShell`: un panel de dos columnas iguales desde `lg`, con formulario a la izquierda y una fotografía grande a la derecha. Su ancho máximo es (72rem), con fondo exterior verde claro y bordes redondeados. En tamaños inferiores se oculta la fotografía y el formulario conserva un máximo de (24rem). El pie permite que su contenido cambie de línea.
 
@@ -163,9 +192,13 @@ Los filtros de Agenda responden al ancho disponible de su contenedor. Nombre del
 
 Las superficies propias usan fondo, contraste tonal y separadores. No se definen sombras propias. Los paneles contextuales son blancos, con borde fino y sin superposición sobre el contenido. El diálogo de salida con borradores oscurece el fondo con el texto principal al (20%); los diálogos de cancelación y reprogramación usan ese color al (30%). Los formularios conservan los estilos internos oficiales de Clerk.
 
+En la portada, el video se mezcla con el crema mediante `darken`, sin tarjeta, sombra ni imagen sustituta. El recorrido de producto mantiene el campo abierto y usa espacio, jerarquía tipográfica, indicador y borde fino de imagen para ordenar la lectura. Solo el visor superpone un fondo oscuro local (80%) y la captura, sin sombra; no añade un token de elevación global.
+
 ## Shapes
 
 El radio compartido de la aplicación es `app`: 6px (0.375rem). Se aplica a inputs, botones, enlaces de acción, paneles, marco de autenticación, menús y superficies de Clerk. Las superficies propias usan `rounded-md`; Clerk usa su variable oficial y los ajustes de tarjeta y modal. Los avatares conservan su forma circular y los contenedores internos sin superficie visible pueden mantener radio cero. Los separadores de cabecera y pie son líneas finas con `line`.
+
+La portada conserva ese radio en sus acciones y en el indicador de ampliación de (36×36px). Solo el marco de las capturas introduce radios locales de (12px), reducidos a (8px) hasta (600px); el visor usa (8px). Los segmentos del indicador miden (3×36px), con extremos redondeados de (3px); sus botones de navegación conservan (36×36px). Son geometrías locales y no modifican el radio compartido de los controles. La línea estructural y los marcos usan `home-line`.
 
 ## Components
 
@@ -173,7 +206,7 @@ El radio compartido de la aplicación es `app`: 6px (0.375rem). Se aplica a inpu
 
 La marca usa el logo proporcionado por el usuario, con el calendario adaptado al verde de acción y la palabra oscura. La cabecera coloca la marca junto al acceso o menú de cuenta. El enlace para saltar al contenido se hace visible al recibir foco.
 
-El archivo `public/slotly-logo.png` tiene fondo transparente y proporción 3:1. `Brand` lo muestra con `next/image` a 80px de ancho en móvil y 96px desde `sm`, conservando la proporción. La cabecera de portada conserva una altura mínima de (56px); la primera fila privada usa (64px).
+El archivo `public/slotly-logo.png` tiene fondo transparente y proporción 3:1. `Brand` lo muestra con `next/image` a 80px de ancho en móvil y 96px desde `sm`, conservando la proporción. La cabecera de portada mide (88px), o (72px) en su punto móvil local; la primera fila privada histórica usa (64px), con las composiciones vigentes del dashboard detalladas más abajo.
 
 La navegación privada ofrece Agenda, Servicios, Horario y Negocio. Usa iconos de Lucide de (16px), etiquetas sin salto de línea, texto secundario en reposo y acento con borde inferior de (2px) para la vista actual, anunciada con `aria-current="page"`. Al pasar el cursor usa texto principal y superficie verde clara al (50%). Al cambiar de vista, el foco pasa a su h1; en Agenda permanece solo para lectores de pantalla. El título del documento identifica la vista.
 
@@ -199,9 +232,17 @@ El desplegable tiene 18rem de ancho, limitado al ancho de la ventana menos 2rem,
 
 El aviso de desarrollo se oculta mediante la opción oficial `unsafe_disableDevelopmentModeWarnings` para previsualizar el aspecto de producción del menú. La marca «Secured by Clerk» depende de la opción remota **Settings → Branding → Remove "Secured by Clerk" branding**; no se oculta mediante CSS ni se da por eliminada desde el código local.
 
-### Panel de cuenta
+### Portada con partículas y presentación de producto (29/10/2026)
 
-Superficie verde clara con encabezado, descripción y acciones apiladas. El relleno aumenta en `sm` (2.5rem) y el relleno vertical en `lg` (3rem). Su contenido cambia según la sesión.
+La portada sustituye el panel de cuenta por un hero abierto con el MP4 original del usuario. Dos capas del mismo video, desfasadas media duración y con fundido periódico `sin²`, cubren sus reinicios sin modificar el archivo. No hay botón ni estado de pausa manual. Ambas capas se pausan al ocultar la pestaña y ante movimiento reducido; en condiciones normales se reproducen automáticamente. El material es decorativo, silencioso y queda fuera del árbol accesible. No se generó poster ni animación sustituta; las imágenes de producto son capturas de otra sección.
+
+Ver demo aparece en cabecera y como acción principal. El acceso secundario inicia Google mediante Clerk; ofrece estado de conexión y error con recuperación hacia Iniciar sesión. Con sesión, se muestra Ir a mi agenda y la cabecera ofrece Mi agenda junto al UserButton oficial. El hero ya no incluye «O crea tu cuenta con correo». Las flechas son SVG decorativos de (14px), con el mismo trazo; el foco local usa contorno de (2px) separado (5px), y la selección y el caret están definidos para home. Los enlaces subrayan al pasar el cursor mediante una transición local de (160ms), desactivada con movimiento reducido.
+
+El recorrido presenta Agenda, Clientes y Servicios y horarios directamente, sin introducción ni pestañas. Es una adaptación atribuida del registro Sticky Scroll Reveal de Aceternity: Motion sigue el scroll del documento y cambia la captura sticky de escritorio con fundido/desenfoque de (350ms). El apartado activo cambia el tono del título en (300ms); movimiento reducido elimina esa transición y el fundido. Tres segmentos a la derecha reflejan el apartado mediante verde y `aria-current="step"`; cada botón anuncia posición y nombre, y desplaza a su paso con scroll suave o instantáneo ante movimiento reducido. El contador muestra (1/3–3/3) sin partirse y la navegación permanece en móvil. Cada paso reúne nombre, resumen, explicación y enlace: `/demo`, `/demo?vista=clientes` y `/demo?vista=servicios`. La única dependencia directa nueva es Motion (14.7.1); no cambia el sistema global.
+
+Los JPEG locales `public/media/product/{agenda,clientes,servicios}.jpg` proceden de capturas nativas CUA del dashboard original en la demo, con datos ficticios y contactos `example.test`, a (1280×650). Los archivos conservan su aviso y origen embebido sin edición de píxeles; preview y visor ocultan los (45px) superiores mediante margen negativo y clipping CSS. No hay captions inferiores y los enlaces siguen junto al texto. En la aplicación, las importaciones estáticas de Next Image aportan hash y dimensiones, `sizes` adapta la carga diferida y cada captura abre un Dialog oficial de Radix con título accesible, foco contenido y retorno al disparador. Enter abre; Escape o clic exterior cierran; pulsar la imagen la mantiene abierta. El sidecar representa los tres estados con sus imágenes y recorte como muestras estáticas: no reproduce Motion, el diálogo Radix ni la optimización de Next Image.
+
+La demo monta el workspace, calendario, paneles, formularios y diálogos originales con adaptadores locales; conserva su fondo, densidad y desplazamiento interior. Solo la banda de demo, su reinicio y la cuenta ficticia identifican el entorno; el recorte de las imágenes no retira esa banda del entorno real. El crema, el video y la escala fluida pertenecen a `/`, sin overrides de identidad sobre ese dashboard. Evidencia nueva y límites del refinamiento en `.impeccable/review/home-sticky/documentation.md`; las pruebas históricas de home, home-product y Reto 13 conservan su alcance.
 
 ### Autenticación
 

@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Clock3, ListChecks, Store, Users, X } from "@/components/ui/icons";
 import { Tooltip } from "radix-ui";
 import { Button } from "@/components/ui/button";
-import { dashboardHref, readDashboardView, type DashboardView } from "@/lib/dashboard-navigation";
+import { currentWorkspaceHref, dashboardHref, readDashboardView, type DashboardView } from "@/lib/dashboard-navigation";
 import { usePanelMotion } from "@/components/use-panel-motion";
 
 export const workspaceSections = [{ view: 'clientes', label: 'Clientes', icon: Users }, { view: 'servicios', label: 'Servicios', icon: ListChecks }, { view: 'horario', label: 'Horario', icon: Clock3 }, { view: 'negocio', label: 'Negocio', icon: Store }] as const;
@@ -20,7 +20,7 @@ export function openWorkspaceSection(view: DashboardView, createService = false)
   const source = new URLSearchParams(window.location.search);
   source.delete('crear');
   if (createService) source.set('crear', 'servicio');
-  window.history.pushState(null, '', dashboardHref(view, source.get('fecha'), source));
+  window.history.pushState(null, '', currentWorkspaceHref(dashboardHref(view, source.get('fecha'), source)));
   if (createService) window.dispatchEvent(new Event('slotly:new-service'));
 }
 
