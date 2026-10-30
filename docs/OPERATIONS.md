@@ -1,5 +1,7 @@
 # Operación y verificación de Slotly
 
+**Preparación30/10/2026:** el procedimiento y veredicto vigentes para producción están en [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md). Añade CI, configuración, salud, backups y recuperación explícita de scheduler; conserva las limitaciones reales pendientes. Las publicaciones/configuraciones inferiores son registros históricos y no acreditan que la transición actual a producción esté completa. Correo transaccional excluido por decisión del propietario.
+
 Guía contrastada el25/10/2026 para la copia principal. El Reto19 dejó la preparación operativa aceptada; el despliegue20 fue revisado dentro de su alcance anónimo, según [RELEASE.md](RELEASE.md).21 concilia la presentación sin ejecutar nuevos procesos ni publicaciones.
 
 ## Requisitos y configuración

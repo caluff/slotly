@@ -1,0 +1,67 @@
+name: Verificar Slotly
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['docs/**']
+  pull_request:
+    paths-ignore: ['docs/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Código, build e integración real
+    runs-on: windows-latest
+    timeout-minutes: 40
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      SLOTLY_APP_ENV: development
+      SLOTLY_EMAIL_READY: 'false'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 12.11.2
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm verify:build
+      - run: pnpm audit --prod --audit-level=high
+      - name: Motor oficial con checksum fijo
+        shell: pwsh
+        run: |
+          $engineDir = Join-Path $env:RUNNER_TEMP 'slotly-engine'
+          New-Item -ItemType Directory -Path $engineDir | Out-Null
+          $zipPath = Join-Path $engineDir 'backend.zip'
+          Invoke-WebRequest 'https://github.com/convex/convex-backend/releases/download/precompiled-2026-10-10-72ce13c/convex-local-backend-x86_64-pc-windows-msvc.zip' -OutFile $zipPath
+          if ((Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant() -ne '1f7cde2e8456b3ffdc408aeee5a9f4d55e29121ecfd85f0ea9f9934ec02cbe32') { throw 'Checksum del motor incorrecto' }
+          Expand-Archive -LiteralPath $zipPath -DestinationPath $engineDir
+          "SLOTLY_CONVEX_BACKEND=$(Join-Path $engineDir 'convex-local-backend.exe')" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Reservas, disponibilidad, permisos y concurrencia
+        run: pnpm test:appointments:engine
+      - name: Llegada y ausencia
+        run: pnpm test:appointments:engine --appointment-attention-only
+      - name: Clientes por correo y Deshacer de servicios
+        run: pnpm test:appointments:engine --auto-email-only --with-service-regressions
+      - name: Calendario público
+        run: pnpm test:appointments:engine --booking-calendar-only
+      - name: Archivo de citas
+        run: pnpm test:appointments:engine --appointment-archive-only
+      - name: Autogestión pública, sin proveedores reales
+        run: pnpm test:appointments:engine --public-rescheduling-only --with-rescheduling-regressions
+      - name: Personalización pública
+        run: pnpm test:appointments:engine --public-appearance-only
+      - name: Recuperación desde snapshot
+        run: pnpm test:appointments:engine --backup-restore-only

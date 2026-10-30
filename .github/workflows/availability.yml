@@ -1,0 +1,29 @@
+name: Disponibilidad pública
+
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    if: vars.SLOTLY_MONITOR_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 12.11.2
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - name: Lecturas anónimas y salud del backend
+        env:
+          SLOTLY_SMOKE_ORIGIN: ${{ vars.SLOTLY_SMOKE_ORIGIN }}
+        run: pnpm --config.verifyDepsBeforeRun=false verify:smoke --base-url "$SLOTLY_SMOKE_ORIGIN"

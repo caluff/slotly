@@ -188,7 +188,9 @@ export async function appointmentResultScenarios({ setup, date, start, makeClien
   const { who, row } = await seed();
   const slug = (await who.client.mutation("bookingLinks:setMyBookingLink", { enabled: true })).slug, receiptKey = randomUUID();
   const publicId = await who.client.mutation("engineFixtures:pastAppointment", { serviceId: who.serviceId, receiptKey });
-  const original = (await raw(who)).appointments.find(r => r._id === publicId), anonymous = makeClient();
+  // This fixture is an original pre-email receipt. Replay its exact legacy
+  // payload instead of the regression adapter adding a new contact field.
+  const original = (await raw(who)).appointments.find(r => r._id === publicId), anonymous = makeClient(undefined, undefined, false);
   const publicArgs = { slug, attemptKey: receiptKey, serviceId: original.serviceId, date: original.date, start: original.start, clientName: original.clientName };
   const receipt = await anonymous.mutation("publicBooking:confirm", publicArgs); assert.equal(receipt.ok, true);
   const revision = () => anonymous.query("publicBooking:getAvailabilityRevision", { slug, serviceId: who.serviceId, date });
@@ -217,7 +219,10 @@ export async function appointmentResultScenarios({ setup, date, start, makeClien
   for (const key of ["business", "services", "weeklySchedules", "specialDates", "timeBlocks"]) assert.deepEqual(contextAfter[key], contextBefore[key]);
   const stablePast = await raw(who);
   await assert.rejects(who.client.mutation("appointments:createMyAppointment", {serviceId:who.serviceId,date:original.date,start:original.start,clientName:"Retroactive booking"}), /SLOT_UNAVAILABLE/);
-  const retroactive = await anonymous.mutation("publicBooking:confirm", {...publicArgs,attemptKey:randomUUID()}); assert.equal(retroactive.ok,false); assert.equal(retroactive.code,"SLOT_UNAVAILABLE");
+  const currentPublicService = await who.client.query("services:getMyService", { id: who.serviceId });
+  const retroactive = await anonymous.mutation("publicBooking:confirm", {...publicArgs,attemptKey:randomUUID(),email:"regression@example.test",
+    expectedService:{name:currentPublicService.name,durationMinutes:currentPublicService.durationMinutes,version:currentPublicService.version}});
+  assert.equal(retroactive.ok,false); assert.equal(retroactive.code,"SLOT_UNAVAILABLE");
   assert.deepEqual(await raw(who), stablePast);
   for (const result of resultKinds) {
     const current = (await raw(who)).appointments.find(r => r._id === publicId);

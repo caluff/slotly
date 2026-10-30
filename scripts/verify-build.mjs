@@ -40,6 +40,7 @@ for (const key of Object.keys(process.env)) {
   if (/^(CONVEX_|NEXT_PUBLIC_CONVEX_|CLERK_|NEXT_PUBLIC_CLERK_|SLOTLY_EMAIL_|RESEND_)/.test(key)) delete process.env[key];
 }
 Object.assign(process.env, {
+  SLOTLY_APP_ENV: "development", VERCEL: "0", VERCEL_ENV: "development",
   NEXT_PUBLIC_CONVEX_URL: "http://127.0.0.1:59998",
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_" + Buffer.from("clerk.synthetic.invalid$").toString("base64"),
   CLERK_SECRET_KEY: "",

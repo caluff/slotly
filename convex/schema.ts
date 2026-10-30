@@ -10,6 +10,9 @@ import { rescheduleReceiptFields } from "./publicReschedulingValidators";
 import { appearanceProfileFields } from "./publicAppearanceValidators";
 
 export default defineSchema({
+  recoveryCommands: defineTable({
+    operationId: v.string(), appointmentId: v.id("appointments"), version: v.number(), start: v.number(), end: v.number(),
+  }).index("by_operationId_and_appointmentId", ["operationId", "appointmentId"]),
   publicBookingProfiles: defineTable(appearanceProfileFields).index("by_businessId", ["businessId"]),
   publicRescheduleReceipts: defineTable(rescheduleReceiptFields).index("by_accessId_and_operationId", ["accessId", "operationId"]),
   publicBookingAccesses: defineTable(publicAccessFields).index("by_secretHash", ["secretHash"]).index("by_appointmentId", ["appointmentId"]),

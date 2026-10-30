@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn, execFileSync } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
-import { cp, mkdir, mkdtemp, readFile, realpath, rm, symlink, writeFile, readdir } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, realpath, rename, rm, symlink, writeFile, readdir } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir, homedir } from "node:os";
 import path from "node:path";
@@ -28,6 +28,7 @@ import { publicReschedulingScenarios, redactReschedulingEvidence } from "./publi
 import { appearanceFixtureSource, appearanceScenarios } from "./public-appearance-engine-scenarios.mjs";
 import { archiveFixtureSource, archiveScenarios } from "./appointment-archive-engine-scenarios.mjs";
 import { bookingCalendarScenarios } from "./booking-calendar-engine-scenarios.mjs";
+import { recoveryFixtureSource, backupRestoreScenarios } from "./backup-restore-engine-scenarios.mjs";
 
 // REAL engine integration, entirely synthetic. Never reads .env.local or .convex.
 // Requires the Convex backend binary cached by the CLI, or SLOTLY_CONVEX_BACKEND.
@@ -94,6 +95,7 @@ try {
   await cp(path.join(repo, "convex"), path.join(workspace, "convex"), { recursive: true });
   await cp(path.join(repo, "lib"), path.join(workspace, "lib"), { recursive: true });
   await cp(path.join(repo, "package.json"), path.join(workspace, "package.json"));
+  if (process.argv.includes("--backup-restore-only")) await writeFile(path.join(workspace, "convex", "recoveryFixtures.ts"), recoveryFixtureSource);
   if (process.argv.includes("--confirmations-only") || process.argv.includes("--public-management-only") || process.argv.includes("--public-rescheduling-only")) {
     mailProvider = await startControlledEmailProvider();
     const target = path.join(workspace, "convex", "emailDispatch.ts"), source = await readFile(target, "utf8");
@@ -217,6 +219,7 @@ export const snapshot = internalQuery({
   await symlink(path.join(repo, "node_modules"), path.join(workspace, "node_modules"), process.platform === "win32" ? "junction" : "dir");
   const envFile = path.join(workspace, "isolated.env");
   await writeFile(envFile, `CONVEX_SELF_HOSTED_URL=${url}\nCONVEX_SELF_HOSTED_ADMIN_KEY=${adminKey}\n`);
+  async function deployIsolated() {
   const deploy = spawn(process.execPath, [path.join(repo, "node_modules/convex/bin/main.js"), "dev", "--once", "--env-file", envFile, "--typecheck", "enable"],
     { cwd: workspace, env: cleanEnv, windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
   let deployOutput = "";
@@ -224,6 +227,8 @@ export const snapshot = internalQuery({
   deploy.stderr.on("data", (data) => { deployOutput += data; });
   const deployed = await new Promise((resolve) => deploy.once("exit", resolve));
   if (deployed !== 0) throw new Error(deployOutput.replaceAll(adminKey, "[redacted]").replaceAll(secret, "[redacted]"));
+  }
+  await deployIsolated();
   console.log("Esquema y funciones desplegados solo en backend temporal loopback.");
   let emailEnvironmentInitialized = false;
   async function setEmailEnvironment(enabled) {
@@ -315,6 +320,29 @@ export const snapshot = internalQuery({
     }
     await rm(destination,{force:true});await rm(destination+".stop",{force:true});
     report.previewOnly=true;
+  } else if (process.argv.includes("--backup-restore-only")) {
+    const command = async args => {
+      const child = spawn(process.execPath, [path.join(repo, "node_modules/convex/bin/main.js"), ...args, "--env-file", envFile], { cwd: workspace, env: cleanEnv, windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
+      let output = "";
+      child.stdout.on("data", data => { output += data; }); child.stderr.on("data", data => { output += data; });
+      const code = await new Promise((resolve, reject) => { child.once("exit", resolve); child.once("error", reject); });
+      if (code !== 0) throw Error(output.replaceAll(adminKey, "[redacted]").replaceAll(secret, "[redacted]"));
+    };
+    await backupRestoreScenarios({ setup, makeClient, race, date, start, report, workspace, command,
+      restart: async () => { await stopBackend(); await startBackend(); },
+      freshDatabase: async () => {
+        await stopBackend();
+        assert.equal(path.dirname(await realpath(workspace)), temporaryRoot);
+        assert.equal(await readFile(path.join(workspace, "owned-test-workspace"), "utf8"), marker);
+        for (const suffix of ["", "-wal", "-shm"]) {
+          try { await rename(path.join(workspace, "data.sqlite3" + suffix), path.join(workspace, "before-restore.sqlite3" + suffix)); }
+          catch (error) { if (error.code !== "ENOENT" || suffix === "") throw error; }
+        }
+        await rename(path.join(workspace, "storage"), path.join(workspace, "before-restore-storage"));
+        await startBackend();
+        await deployIsolated();
+      },
+    });
   } else if (process.argv.includes("--booking-calendar-only")) {
     await bookingCalendarScenarios({ setup, makeClient, report, date, restart: async () => { await stopBackend(); await startBackend(); } });
   } else if (process.argv.includes("--appointment-archive-only")) {
@@ -622,6 +650,14 @@ export const snapshot = internalQuery({
 } catch (cause) {
   // Do not emit raw backend logs or generated administrative credentials.
   console.error(redactReschedulingEvidence(redactManagementEvidence(cause.message)));
+  const frame = cause.stack?.split("\n").find(line => /scripts[\\/].*:\d+:\d+/.test(line));
+  const location = frame?.match(/([^\\/\s]+\.(?:mjs|js)):(\d+):(\d+)/)?.slice(1).join(":");
+  if (location) console.error("Scenario location: " + location);
+  const failureIndex = process.argv.indexOf("--report");
+  if (failureIndex !== -1 && path.isAbsolute(process.argv[failureIndex + 1] ?? "")) {
+    await mkdir(path.dirname(process.argv[failureIndex + 1]), { recursive: true });
+    await writeFile(process.argv[failureIndex + 1], JSON.stringify({ success: false, synthetic: true, location, reason: "Integration scenario failed; see sanitized command output" }, null, 2) + "\n");
+  }
   process.exitCode = 1;
 } finally {
   await stopBackend();

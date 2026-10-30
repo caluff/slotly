@@ -4,10 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/check-production-config.mjs && next build",
     "start": "next start",
     "lint": "eslint",
     "verify:build": "node scripts/verify-build.mjs",
+    "verify:production-config": "node scripts/check-production-config.mjs",
+    "verify:smoke": "node scripts/verify-smoke.mjs",
     "test:appointments:engine": "node scripts/test-appointments-engine.mjs",
     "convex:dev": "convex dev",
     "typecheck": "next typegen && tsc --noEmit"
