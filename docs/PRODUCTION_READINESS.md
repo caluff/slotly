@@ -15,7 +15,7 @@ Clerk conserva la instancia de producción anterior y su proxy en `slotly-gold.v
 - `/api/health` se ejecuta por petición, sin caché. Comprueba una consulta constante de Convex con límite de cuatro segundos; devuelve únicamente `{"status":"ok"}`/200 o `{"status":"unavailable"}`/503. No enumera negocios, versiones, contactos, destinos o credenciales. No comprueba Google ni garantiza una transacción de reserva.
 - Cabeceras generales: `nosniff`, `SAMEORIGIN`, `no-referrer`, permisos de cámara/micrófono/geolocalización desactivados y CSP para `frame-ancestors`, `object-src` y `base-uri`. No se presenta esta política como una CSP completa contra XSS.
 - CI en GitHub Actions: Node24, pnpm12.11.2, lockfile congelado, lint, build aislado, auditoría y motor real sintético. Acciones fijadas por SHA, permisos `contents: read`, sin credenciales cloud. El ZIP oficial del motor Windows se verifica por SHA256 antes de ejecutarlo. Las pruebas de autogestión solo usan un stub local para correo; nunca Resend real.
-- La primera ejecución remota pasó instalación/lint/build/auditoría y encontró un problema del arnés al compilar componentes entre unidades Windows distintas (checkout D:, temporal C:). Se añade un fallback bajo `node_modules/.cache` en la misma unidad, exclusivamente para el workspace sintético con marcador y limpieza acotada. No configura otro backend de aplicación ni toca `.env.local` real. El resultado del siguiente CI debe verificarse antes de declararlo superado.
+- La primera ejecución remota pasó instalación/lint/build/auditoría y encontró un problema del arnés al compilar componentes entre unidades Windows distintas (checkout D:, temporal C:). Se añadió un fallback bajo `node_modules/.cache` en la misma unidad, exclusivamente para el workspace sintético con marcador y limpieza acotada. No configura otro backend de aplicación ni toca `.env.local` real. La [segunda ejecución remota](https://github.com/caluff/slotly/actions/runs/41067313957), fuentes `0df42836dd7ac4542772d23a25f2d57955dea1c4`, terminó **success** en todos los pasos, incluido export/import y rearme. La ejecución fallida anterior no se cuenta como cobertura superada.
 - Un workflow separado prepara lecturas públicas cada quince minutos, sin sesión ni escrituras. Permanece deshabilitado hasta fijar `SLOTLY_MONITOR_ENABLED=true` y `SLOTLY_SMOKE_ORIGIN` tras verificar la release. La planificación de GitHub puede retrasarse y sus avisos dependen de la configuración de notificaciones del propietario; no se promete monitorización con SLA ni entrega de alertas ya probada.
 
 ## Respaldo y recuperación
@@ -51,16 +51,19 @@ Evidencia privada: `C:/Users/dcalu/.codex/slotly-evidence/production-readiness-2
 | Archivo / apariencia | 24HTTP/12carreras y18HTTP/9carreras, respectivamente, en ejecuciones distintas. |
 | Calendario público | Seis grupos seriales, sin carreras. |
 | Dependencias de ejecución | Auditoría nueva: cero vulnerabilidades conocidas reportadas. No es garantía universal de seguridad. |
+| CI remoto | Instalación congelada, lint, build, auditoría y los ocho pasos de integración del workflow correctos en Windows limpio. Repite las campañas en otro entorno; no suma sus casos a las métricas locales. |
 
 No se suman estas ejecuciones como casos únicos. La suite general detectó un drift del arnés: el adaptador añadía correo a un replay legado sin correo. Se corrigió el caller de esa prueba para enviar el payload original exacto; la comprobación de una reserva nueva en el pasado ahora aporta el contacto/contexto requeridos. No se cambió el contrato público para conseguir un resultado verde. La ejecución general final superó ambas comprobaciones; los intentos fallidos anteriores no se cuentan como cobertura superada adicional.
 
 El backend de desarrollo recibió esquema/código aditivo y producción las fuentes actuales en su destino existente; el correo de producción quedó explícitamente `false`. Comparación de desarrollo antes/después:20citas,4clientes,48trabajos, demás documentos y archivos protegidos por hashes, sin nuevas reservas ni acciones sobre R13.
 
+Los cambios se subieron a `main` en `71a7936` y el ajuste del arnés en `0df4283`. Vercel rechazó la build candidata por la configuración de desarrollo existente: faltan `SLOTLY_APP_ENV=production`, claves Clerk live, selección/URL de Convex producción y origen HTTPS. No se eludió la guarda. El alias conserva la release anterior `dpl_DNgggnzoYj8Yj9Su3FwidFQLf2ck` en estado READY, fuentes `977a235`. Esto verifica la conservación de la versión activa ante un build rechazado; no equivale a un rollback/promoción de una nueva release de producción.
+
 ## Puertas aún abiertas
 
 - Dominio/configuración definitiva de Clerk y Google de producción; cuenta real, recarga, salida, rechazo anónimo y lectura de Convex en esa release.
 - Política periódica de backups acordada, activada y comprobada; la opción nativa observada requiere PRO.
-- CI remoto, monitor activado y publicación frontend final: no se deducen de que existan sus archivos locales.
+- Monitor activado y publicación frontend final: siguen pendientes de configurar y verificar el destino. El CI remoto sí está superado en el commit de código enlazado arriba.
 - Ensayo de rollback/promoción de la release verificada y confirmación del alias/datos después. Todavía no se ejecutó en este trabajo.
 - R13 real: entrega nativa/segundo plano y tramo con toda la app cerrada siguen pendientes. El permiso de Notification aparece granted en IAB, lo que no demuestra entrega del SO. No se repiten las citas protegidas del lunes ni se crea otra cita sin un plan concreto de prueba.
 
