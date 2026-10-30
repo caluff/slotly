@@ -2,6 +2,18 @@
 
 **Decisión30/10/2026:** publicación gratuita de portfolio en `slotly-gold.vercel.app`, mismo proyecto y rama main, con `SLOTLY_APP_ENV=portfolio` y servicios de desarrollo existentes. Coste cero, sin correo transaccional ni backups automáticos PRO. El ámbito Production de Vercel ejecuta un build optimizado, pero la instancia Clerk sigue siendo Development. El modo estricto `production` conserva su validación live/prod. Estado de la publicación y límites en [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md); los registros inferiores conservan su fecha histórica.
 
+## Publicación gratuita verificada —30/10/2026
+
+[Slotly](https://slotly-gold.vercel.app) publicado desde main, código `19e3a3a414e5dbdb8a9d77c7f49d41af19032342`, despliegue `dpl_FFUwmSRca4Kr1uY3ePYTzhpumBb3` READY y alias confirmado. Plan Vercel Hobby observado; ninguna compra o subida de plan. Se ajustaron modo/origen/selector de desarrollo únicamente en el ámbito publicado; secretos existentes, otros ámbitos y configuración local conservados.
+
+Ocho controles de configuración y seis comprobaciones HTTP públicos correctos; lint/tipos/build aislada correctos. Google real con la cuenta de prueba autorizada vuelve a Agenda, lee el negocio y persiste al recargar; demo publicada sin errores de consola observados. Esta ejecución no repite logout ni amplía el público OAuth. Monitor de lecturas activado, [ejecución manual correcta](https://github.com/caluff/slotly/actions/runs/41071081019), planificación cada quince minutos sujeta a retrasos de GitHub, sin garantía de entrega de alertas.
+
+[CI completo de las fuentes19e3a3a](https://github.com/caluff/slotly/actions/runs/41070559052) terminado success: instalación/lint/build/auditoría y ocho pasos de integración sobre motor real sintético en Windows limpio. Los cambios documentales posteriores conservan esas fuentes de ejecución.
+
+Rollback real al despliegue anterior `dpl_DNgggnzoYj8Yj9Su3FwidFQLf2ck` observado; nueva promoción devuelve el alias a `dpl_FFUwmSRca4Kr1uY3ePYTzhpumBb3`, READY. Hashes propios antes/después idénticos en17 tablas/sistemas:20citas/4fichas/48jobs y demás documentos; tres archivos protegidos iguales. No se restauran datos ni se tocan las pruebas del lunes.
+
+Evidencia privada: `C:/Users/dcalu/.codex/slotly-evidence/portfolio-release-20261030/`. Backups manuales aceptados, correo desactivado y límites Development conservados: listo para mostrar como portfolio, sin certificar operación comercial ni cerrar R13 nativo/app cerrada.
+
 ## Configuración vigente: una app y un desarrollo
 
 25/10/2026. Por decisión del humano, la única rama de publicación es `main` de `caluff/slotly` y la app local/publicada utiliza los mismos servicios de desarrollo: Clerk `ins_3KvjGvQ2kKr8mecSAvIOrwwzstM` y Convex `determined-poodle-377`. Se reutiliza el proyecto Vercel `slotly`; no se crean otras apps o bases. Sus ámbitos Production/Preview/Development tienen los mismos destinos de desarrollo; Production es el nombre que Vercel da a la publicación pública de main. No se establece `NODE_ENV=development` en el servidor publicado: el build de Next sigue siendo optimizado.
