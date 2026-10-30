@@ -34,13 +34,21 @@ import { recoveryFixtureSource, backupRestoreScenarios } from "./backup-restore-
 // Requires the Convex backend binary cached by the CLI, or SLOTLY_CONVEX_BACKEND.
 // Run: pnpm test:appointments:engine [--report <absolute JSON output path>]
 const repo = fileURLToPath(new URL("../", import.meta.url));
-const temporaryRoot = await realpath(tmpdir());
+const systemTemporaryRoot = await realpath(tmpdir());
+// Convex's component bundler computes relative imports. On Windows, a runner
+// with checkout on D: and TEMP on C: otherwise produces invalid ./D:/ imports.
+// Keep only the owned synthetic engine workspace on the checkout volume.
+const crossVolume = process.platform === "win32" && path.parse(systemTemporaryRoot).root.toLowerCase() !== path.parse(repo).root.toLowerCase();
+const temporaryBase = crossVolume ? path.join(repo, "node_modules", ".cache", "slotly-engine-workspaces") : systemTemporaryRoot;
+await mkdir(temporaryBase, { recursive: true });
+const temporaryRoot = await realpath(temporaryBase);
 const workspace = await mkdtemp(path.join(temporaryRoot, "slotly-appointments-engine-"));
 const marker = randomUUID();
 await writeFile(path.join(workspace, "owned-test-workspace"), marker);
 let backend;
 let mailProvider;
 const report = { environment: "isolated real Convex engine / SQLite", synthetic: true, scenarios: [] };
+report.workspaceLocation = crossVolume ? "owned same-volume fallback" : "OS temporary directory";
 const cleanEnv = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^(CONVEX_|NEXT_PUBLIC_CONVEX_|CLERK_|NEXT_PUBLIC_CLERK_|SLOTLY_EMAIL_|RESEND_)/.test(key)));
 
 async function freePort() {
