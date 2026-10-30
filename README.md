@@ -22,6 +22,8 @@ No incluye pagos, marketplace, múltiples empleados ni sincronización con calen
 
 ## Estado comprobado
 
+**Publicación de portfolio a coste cero:** dominio gratuito Vercel, modo explícito `portfolio` y las instancias Clerk/Convex de desarrollo existentes. Correo transaccional desactivado y respaldos manuales; no se contratan planes ni dominio. Este alcance permite mostrar y probar el proyecto, con la demo sin registro, y conserva las limitaciones de los servicios de desarrollo. [Decisión y verificación](docs/PRODUCTION_READINESS.md).
+
 **Una única app, rama `main` y servicios de desarrollo.** Local y la publicación de Vercel comparten la instancia Clerk Development y el mismo backend Convex de desarrollo. No se mantienen perfiles de aplicación separados para practicar. Vercel llama Production al despliegue público de `main`; las claves y los datos utilizados son de desarrollo.
 
 Google está configurado en Clerk Development con el cliente propio de Slotly. Se comprobó acceso real con Google en local y en la app publicada, persistencia tras recarga, cierre de sesión y redirección al entrar sin sesión al dashboard. La cuenta aprobada corresponde a un único usuario Clerk, con correo verificado y Google vinculado. La publicación desde Git y su evidencia se registran en [RELEASE.md](docs/RELEASE.md). Las pruebas del lunes26/10 conservan su alcance y están pendientes de su ejecución programada.

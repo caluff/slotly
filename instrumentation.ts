@@ -3,7 +3,7 @@ import { productionConfigErrors } from "./lib/production-config";
 
 export function register() {
   const errors = productionConfigErrors(process.env);
-  if (errors.length) throw new Error("Configuración de producción inválida: " + errors.join("; "));
+  if (errors.length) throw new Error("Configuración de publicación inválida: " + errors.join("; "));
 }
 
 export const onRequestError: Instrumentation.onRequestError = (_error, request, context) => {

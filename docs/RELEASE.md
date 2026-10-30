@@ -1,5 +1,7 @@
 # Publicación de Slotly
 
+**Decisión30/10/2026:** publicación gratuita de portfolio en `slotly-gold.vercel.app`, mismo proyecto y rama main, con `SLOTLY_APP_ENV=portfolio` y servicios de desarrollo existentes. Coste cero, sin correo transaccional ni backups automáticos PRO. El ámbito Production de Vercel ejecuta un build optimizado, pero la instancia Clerk sigue siendo Development. El modo estricto `production` conserva su validación live/prod. Estado de la publicación y límites en [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md); los registros inferiores conservan su fecha histórica.
+
 ## Configuración vigente: una app y un desarrollo
 
 25/10/2026. Por decisión del humano, la única rama de publicación es `main` de `caluff/slotly` y la app local/publicada utiliza los mismos servicios de desarrollo: Clerk `ins_3KvjGvQ2kKr8mecSAvIOrwwzstM` y Convex `determined-poodle-377`. Se reutiliza el proyecto Vercel `slotly`; no se crean otras apps o bases. Sus ámbitos Production/Preview/Development tienen los mismos destinos de desarrollo; Production es el nombre que Vercel da a la publicación pública de main. No se establece `NODE_ENV=development` en el servidor publicado: el build de Next sigue siendo optimizado.

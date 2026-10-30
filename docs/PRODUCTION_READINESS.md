@@ -4,9 +4,13 @@
 
 ## Veredicto actual
 
-**Preparación técnica implementada; la activación y validación final de producción siguen pendientes.** La publicación que existía al comenzar servía `977a235` con Clerk/Convex de desarrollo. No se presenta esa publicación como una release ya convertida a producción.
+**Decisión posterior30/10: publicación gratuita de portfolio.** El propietario no dispone de dominio propio y elige conservar `slotly-gold.vercel.app` y coste cero. Se acepta usar Clerk/Convex de desarrollo para esa finalidad, sin contratar PRO, comprar dominio, migrar datos o activar correo. Esta decisión cierra la solicitud de elegir dominio/plan: no se siguen solicitando para publicar el portfolio. No constituye una certificación de operación comercial con clientes reales.
 
-Clerk conserva la instancia de producción anterior y su proxy en `slotly-gold.vercel.app`; el diagnóstico oficial indica DNS/SSL completos, correo DNS pendiente y Google sin credenciales de producción. La guía vigente de Clerk exige un dominio propio para su despliegue soportado en Vercel. Se ha pedido al propietario qué dominio utilizar; no se compra uno ni se usa el estado histórico del proxy como certificación nueva. Google de desarrollo no equivale a Google de producción.
+Se incorpora `SLOTLY_APP_ENV=portfolio` como modo explícito. Su build/arranque exige claves Clerk de desarrollo, destino Convex `dev:` coincidente con su URL HTTPS, origen público HTTPS y correo desactivado. El modo `production` conserva sus exigencias live/prod; no se desactiva la comprobación ni se confunde el ámbito Production de Vercel con el tipo de instancia de autenticación. El código publicado se compila optimizado con `NODE_ENV=production`.
+
+La activación/verificación de esta publicación gratuita se registra al concluir su despliegue. La release `977a235` y los rechazos posteriores descritos abajo son antecedentes, no una release comercial validada.
+
+Clerk conserva la instancia de producción anterior y su proxy en `slotly-gold.vercel.app`; el diagnóstico oficial indicó DNS/SSL completos, correo DNS pendiente y Google sin credenciales de producción. La [guía vigente](https://clerk.com/docs/guides/development/deployment/vercel) exige dominio propio para producción. Se mantiene la instancia Development existente; sus [límites y arquitectura](https://clerk.com/docs/guides/development/managing-environments) no se presentan como producción. La demo anónima permite probar el producto sin crear una cuenta. Google sigue con la conexión de desarrollo existente y sus cuentas de prueba, sin ampliar el público OAuth en este trabajo.
 
 ## Cambios operativos
 
@@ -22,7 +26,7 @@ Clerk conserva la instancia de producción anterior y su proxy en `slotly-gold.v
 
 Se exportaron snapshots nuevos de desarrollo y producción mediante la CLI oficial, con almacenamiento, a evidencia privada fuera de Git. Producción tenía cero negocios/citas/clientes. Además se creó desde el panel un respaldo inicial de `tremendous-chihuahua-369`, con almacenamiento, completado en un segundo y retención indicada de siete días. No se importó ningún snapshot en cloud.
 
-El panel marca la programación automática como **PRO** y actualmente `Never`. No se cambió el plan. La decisión de coste permanece pendiente; un respaldo inicial no sustituye una política periódica de recuperación.
+El panel marca la programación automática como **PRO** y actualmente `Never`. El propietario decidió mantener coste cero: se conservan respaldos/exportaciones manuales y el procedimiento de restauración probado, sin activar periodicidad de pago. Se acepta esta limitación para el portfolio; un respaldo inicial no equivale a una política periódica ni garantiza recuperación continua de datos reales.
 
 El ZIP conserva documentos y archivos, pero **no incluye código, configuración, variables ni trabajos programados**. El procedimiento de recuperación es:
 
@@ -59,11 +63,11 @@ El backend de desarrollo recibió esquema/código aditivo y producción las fuen
 
 Los cambios se subieron a `main` en `71a7936` y el ajuste del arnés en `0df4283`. Vercel rechazó la build candidata por la configuración de desarrollo existente: faltan `SLOTLY_APP_ENV=production`, claves Clerk live, selección/URL de Convex producción y origen HTTPS. No se eludió la guarda. El alias conserva la release anterior `dpl_DNgggnzoYj8Yj9Su3FwidFQLf2ck` en estado READY, fuentes `977a235`. Esto verifica la conservación de la versión activa ante un build rechazado; no equivale a un rollback/promoción de una nueva release de producción.
 
-## Puertas aún abiertas
+## Límites de una futura operación comercial
 
-- Dominio/configuración definitiva de Clerk y Google de producción; cuenta real, recarga, salida, rechazo anónimo y lectura de Convex en esa release.
-- Política periódica de backups acordada, activada y comprobada; la opción nativa observada requiere PRO.
-- Monitor activado y publicación frontend final: siguen pendientes de configurar y verificar el destino. El CI remoto sí está superado en el commit de código enlazado arriba.
+- Dominio/configuración definitiva de Clerk y Google de producción; cuenta real, recarga, salida, rechazo anónimo y lectura de Convex en esa release. No bloquea la publicación gratuita de portfolio aceptada.
+- Política periódica de backups activada y comprobada; la opción nativa observada requiere PRO y queda excluida del presupuesto actual.
+- La publicación y el monitor del portfolio se verifican en su evidencia específica; no sustituyen los E2E de una eventual instancia comercial. El CI remoto anterior sí está superado en el commit de código enlazado arriba.
 - Ensayo de rollback/promoción de la release verificada y confirmación del alias/datos después. Todavía no se ejecutó en este trabajo.
 - R13 real: entrega nativa/segundo plano y tramo con toda la app cerrada siguen pendientes. El permiso de Notification aparece granted en IAB, lo que no demuestra entrega del SO. No se repiten las citas protegidas del lunes ni se crea otra cita sin un plan concreto de prueba.
 
