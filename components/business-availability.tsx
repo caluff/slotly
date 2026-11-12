@@ -4,7 +4,7 @@ import { AppointmentArchiveWorkspace } from "@/components/appointment-archive";
 import { useAction, useConvex, useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import type { FunctionReturnType } from "convex/server";
-import { Plus } from "@/components/ui/icons";
+import { Plus, X } from "@/components/ui/icons";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -91,6 +91,7 @@ export function AvailabilityPanel({ storageKey, businessName, services, loading,
   onDraftDateChange?: (date: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [setupNoticeDismissed, setSetupNoticeDismissed] = useState(false);
   const [draftDate, setDraftDate] = useState<string | null>(null);
   const [suggestedStart, setSuggestedStart] = useState<number | undefined>();
   const [serviceId, setServiceId] = useState("");
@@ -104,6 +105,7 @@ export function AvailabilityPanel({ storageKey, businessName, services, loading,
   const dirty = selectionDirty || !!(draft.start || draft.clientName || draft.email || draft.pending || draft.uncertain);
   useDraftWarning(dirty || saving);
   const [attempt, setAttempt] = useState(0);
+  const agendaHeading = useRef<HTMLHeadingElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const selection = useMemo(() => serviceId && draftDate && isLocalDate(draftDate) ? { serviceId: serviceId as Id<"services">, date: draftDate } : null, [serviceId, draftDate]);
   useEffect(() => {
@@ -150,13 +152,32 @@ export function AvailabilityPanel({ storageKey, businessName, services, loading,
   </>;
 
   return <>
-    <h1 tabIndex={-1} className="sr-only">Agenda</h1>
+    <h1 ref={agendaHeading} tabIndex={-1} className="sr-only">Agenda</h1>
     {restoreError && <p role="alert" className="text-sm text-destructive">{restoreError}</p>}
     <div className={typeof agenda === "function" ? "sr-only" : "mb-5 flex flex-wrap items-center justify-between gap-3"}>
       <p className="text-sm font-medium text-muted wrap-anywhere">{businessName}</p>
       {typeof agenda !== "function" && newButton}
     </div>
-    {!loading && services.length === 0 && <p className="mb-6 rounded-md bg-surface p-4 text-sm leading-6">Para crear tu primera cita, <WorkspaceLink view="servicios">añade un servicio</WorkspaceLink> y <WorkspaceLink view="horario">define tu horario</WorkspaceLink>. Puedes consultar cualquier día de la agenda.</p>}
+    {!loading && services.length === 0 && !setupNoticeDismissed && (
+      <div className="mb-6 flex items-start gap-3 rounded-md bg-surface py-2.5 pr-3 pl-4">
+        <p className="min-w-0 flex-1 py-1.5 text-sm leading-6">
+          Para crear tu primera cita, <WorkspaceLink view="servicios">añade un servicio</WorkspaceLink> y <WorkspaceLink view="horario">define tu horario</WorkspaceLink>. Puedes consultar cualquier día de la agenda.
+        </p>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="hover:bg-accent/10"
+          aria-label="Cerrar aviso de configuración inicial"
+          onClick={() => {
+            setSetupNoticeDismissed(true);
+            agendaHeading.current?.focus({ preventScroll: true });
+          }}
+        >
+          <X aria-hidden="true" />
+        </Button>
+      </div>
+    )}
     {!loading && services.length > 0 && scheduleMissing && <p className="mb-6 rounded-md bg-surface p-4 text-sm leading-6"><WorkspaceLink view="horario">Configura el horario de atención</WorkspaceLink> para habilitar las opciones de tus servicios.</p>}
     <div className={typeof agenda === "function" ? "availability-agenda" : open ? "workspace-grid" : ""}>
       {typeof agenda === "function" ? <AppointmentEditor open={open} context={context} trigger={trigger} busy={busy} saving={saving} dirty={dirty} created={created} onClose={() => setOpen(false)}>{editor}</AppointmentEditor>
