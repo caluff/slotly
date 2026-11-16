@@ -1,7 +1,7 @@
 .demo-original-shell { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
 .demo-original-shell > .workspace-root { flex: 1; height: auto; min-height: 0; }
 .demo-original-shell .workspace-sidepanel { position: absolute; height: 100%; }
-.demo-original-banner { flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 4px 16px; border-bottom: 1px solid var(--line); background: var(--surface); font-size: 12px; }
+.demo-original-banner { flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 4px 16px; border-bottom: 1px solid var(--line); background-color: var(--surface); font-size: 12px; }
 .demo-original-banner p, .demo-original-banner > div { display: flex; align-items: center; gap: 14px; }
 .demo-original-banner p > span { color: var(--muted); }
 .demo-original-banner [data-slot="button"] { font-size: 12px; }

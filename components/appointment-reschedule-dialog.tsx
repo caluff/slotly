@@ -1,6 +1,6 @@
 "use client";
 
-import { Dialog } from "radix-ui";
+import { Dialog, DialogBackdrop, DialogContent, DialogDescription, DialogTitle } from "@ui-sdk/react/dialog";
 import { ConvexError } from "convex/values";
 import type { FunctionArgs, FunctionReturnType } from "convex/server";
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -70,6 +70,7 @@ export function AppointmentRescheduleDialog({ appointment: initial, latest = ini
     if (inFlight.current) return;
     if (result && latest.version > result.version && !cancelled) onMoved({ ...result, version: latest.version, date: latest.date, start: latest.start, end: latest.end });
     onClose();
+    requestAnimationFrame(onReturnFocus);
   }
   useEffect(() => { onDateChange?.(date); }, [date, onDateChange]);
   useEffect(() => {
@@ -122,14 +123,12 @@ export function AppointmentRescheduleDialog({ appointment: initial, latest = ini
     if (blocked || !slot || stalePreview) return;
     void send({ appointmentId: appointment._id, expectedVersion: appointment.version, date, start: slot.start });
   }
-  return <Dialog.Root open onOpenChange={(open) => { if (!open) close(); }}><Dialog.Portal>
-    <Dialog.Overlay className="fixed inset-0 z-50 bg-foreground/30" />
-    <Dialog.Content className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-line bg-background p-5 sm:p-6"
-      onOpenAutoFocus={(event) => { event.preventDefault(); dateRef.current?.focus(); }}
-      onCloseAutoFocus={(event) => { event.preventDefault(); onReturnFocus(); }}
-      onEscapeKeyDown={(event) => { if (inFlight.current) event.preventDefault(); }} onInteractOutside={(event) => event.preventDefault()}>
-      <Dialog.Title className="text-lg font-semibold tracking-tight">Reprogramar cita</Dialog.Title>
-      <Dialog.Description className="sr-only">Cambia la fecha y el horario de la cita de {appointment.clientName}, {appointment.serviceName}.</Dialog.Description>
+  return <Dialog open closeOnOutsidePress={false} onOpenChange={(open, details) => { if (!open) { if (inFlight.current) details.cancel(); else close(); } }}>
+    <DialogBackdrop className="fixed inset-0 z-50 bg-foreground/30" />
+    <DialogContent className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-line bg-background p-5 sm:p-6"
+      initialFocus={() => dateRef.current} finalFocus="none">
+      <DialogTitle className="text-lg font-semibold tracking-tight">Reprogramar cita</DialogTitle>
+      <DialogDescription className="sr-only">Cambia la fecha y el horario de la cita de {appointment.clientName}, {appointment.serviceName}.</DialogDescription>
       <dl className="my-5 space-y-3 border-y border-line py-4 text-sm">
         <div><dt className="text-muted">Horario original revisado</dt><dd className="mt-1">{interval(appointment)}<br /><span className="text-muted wrap-anywhere">{timeZone}</span></dd></div>
       </dl>
@@ -137,7 +136,7 @@ export function AppointmentRescheduleDialog({ appointment: initial, latest = ini
       {result ? <div role="status" className="mb-5 space-y-3 text-sm leading-6">
         <p>{result.outcome === "unchanged" ? "Elegiste el mismo intervalo. La cita no cambió." : result.outcome === "already_rescheduled" ? "Este movimiento ya estaba aplicado. No se volvió a modificar la cita." : "El nuevo horario quedó guardado."}</p>
         <p>{latest.version > result.version ? `La cita volvió a cambiar después de este intento. ${cancelled ? "Ya no está confirmada." : `Horario actual: ${interval(latest)} (${timeZone}).`}` : `Horario de la cita: ${interval(result)} (${timeZone}).`}</p>
-        {!cancelled && <Button asChild variant="outline"><a href={dayHref(latest.version > result.version ? latest.date : result.date)} onClick={(event) => { close(); navigateWorkspace(event); }}>Localizar fecha</a></Button>}
+        {!cancelled && <Button variant="outline" render={<a href={dayHref(latest.version > result.version ? latest.date : result.date)} onClick={(event) => { close(); navigateWorkspace(event); }} />}>Localizar fecha</Button>}
       </div> : <form onSubmit={submit} className="space-y-4" aria-busy={pending}>
         {!pending && (changed || stalePreview || cancelled) && <div role="status" className="space-y-3 text-sm leading-6">
           <p>{cancelled ? "La cita ya no está confirmada y no se puede reprogramar." : `La cita cambió en otra pestaña. Horario actual: ${interval(latest)} (${timeZone}). Revisa el contexto actualizado antes de confirmar.`}</p>
@@ -157,6 +156,6 @@ export function AppointmentRescheduleDialog({ appointment: initial, latest = ini
       </form>}
       {result && <div className="flex justify-end"><Button variant="outline" onClick={close}>Cerrar</Button></div>}
       <p role="status" className="sr-only">{pending ? "Confirmando la reprogramación…" : ""}</p>
-    </Dialog.Content>
-  </Dialog.Portal></Dialog.Root>;
+    </DialogContent>
+  </Dialog>;
 }

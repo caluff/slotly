@@ -2,7 +2,7 @@
 
 import { useConvex, useMutation, usePaginatedQuery, type UsePaginatedQueryReturnType } from "convex/react";
 import { Plus, Clock3, EllipsisVertical, Pencil, Archive, ArchiveRestore } from "@/components/ui/icons";
-import { DropdownMenu } from "radix-ui";
+import { Menu, MenuContent, MenuItem, MenuTrigger } from "@ui-sdk/react/menu";
 import { Component, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { ServiceForm } from "@/components/service-form";
@@ -133,12 +133,18 @@ export function ServicesPanel({ results, status, onCreate, onChange, onUndo, onL
 
 function ServiceMenu({ service, disabled, onAction }: { service: ServiceDetail; disabled: boolean; onAction: (kind: ServiceCommand["change"]["kind"], element: HTMLButtonElement | null) => void }) {
   const trigger = useRef<HTMLButtonElement>(null), pending = useRef<ServiceCommand["change"]["kind"] | null>(null);
-  const [container, setContainer] = useState<HTMLElement | undefined>();
   const item = "flex cursor-default select-none items-center gap-2 rounded-sm px-3 py-2 text-sm outline-none data-[highlighted]:bg-surface [&_svg]:size-4";
-  return <DropdownMenu.Root onOpenChange={open => { if (open) setContainer(trigger.current?.closest("dialog") ?? undefined); }}><DropdownMenu.Trigger asChild><Button ref={trigger} variant="ghost" size="icon" disabled={disabled} aria-label={`Opciones de ${service.name}`}><EllipsisVertical aria-hidden="true" /></Button></DropdownMenu.Trigger>
-    <DropdownMenu.Portal container={container}><DropdownMenu.Content align="end" sideOffset={4} collisionPadding={12} className="z-50 max-w-[calc(100vw-1.5rem)] rounded-md border border-line bg-background p-1 text-foreground" onCloseAutoFocus={event => { if (pending.current) { event.preventDefault(); const kind = pending.current; pending.current = null; onAction(kind, trigger.current); } }}>
-      {!service.archived && <DropdownMenu.Item className={item} onSelect={() => { pending.current = "edit"; }}><Pencil aria-hidden="true" />Editar</DropdownMenu.Item>}
-      <DropdownMenu.Item className={item} onSelect={() => { pending.current = service.archived ? "restore" : "archive"; }}>{service.archived ? <ArchiveRestore aria-hidden="true" /> : <Archive aria-hidden="true" />}{service.archived ? "Restaurar" : "Archivar"}</DropdownMenu.Item>
-    </DropdownMenu.Content></DropdownMenu.Portal>
-  </DropdownMenu.Root>;
+  function handleOpenChangeComplete(open: boolean) {
+    if (open || !pending.current) return;
+    const kind = pending.current;
+    pending.current = null;
+    onAction(kind, trigger.current);
+  }
+  return <Menu onOpenChangeComplete={handleOpenChangeComplete}>
+    <MenuTrigger render={<Button size="icon" variant="ghost" />} ref={trigger} disabled={disabled} aria-label={`Opciones de ${service.name}`}><EllipsisVertical aria-hidden="true" /></MenuTrigger>
+    <MenuContent align="end" sideOffset={4} collisionPadding={12} className="z-50 max-w-[calc(100vw-1.5rem)] rounded-md border border-line bg-background p-1 text-foreground" finalFocus={() => pending.current ? null : trigger.current}>
+      {!service.archived && <MenuItem className={item} onSelect={() => { pending.current = "edit"; }}><Pencil aria-hidden="true" />Editar</MenuItem>}
+      <MenuItem className={item} onSelect={() => { pending.current = service.archived ? "restore" : "archive"; }}>{service.archived ? <ArchiveRestore aria-hidden="true" /> : <Archive aria-hidden="true" />}{service.archived ? "Restaurar" : "Archivar"}</MenuItem>
+    </MenuContent>
+  </Menu>;
 }

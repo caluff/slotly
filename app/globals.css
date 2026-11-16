@@ -1,10 +1,15 @@
+@layer ui-sdk;
 @import "tailwindcss";
+@import "@ui-sdk/core/web.css" layer(components);
 @import "@clerk/ui/themes/shadcn.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   color-scheme: light;
+  --slotly-grain-tile: url("/media/home-grain.png");
+  --slotly-grain-mask: var(--slotly-grain-tile) 0 0 / 224px 224px repeat;
+  --slotly-grain-veil: 94.5%;
   --background: #fcfdfb;
   --foreground: #183c30;
   --accent: #176348;
@@ -47,10 +52,23 @@
   --border: var(--line);
   --input: var(--line);
   --ring: var(--accent);
+  --ui-background: var(--card);
+  --ui-foreground: var(--foreground);
+  --ui-muted: var(--surface);
+  --ui-muted-foreground: var(--muted);
+  --ui-border: var(--line);
+  --ui-input: var(--muted);
+  --ui-primary: var(--accent);
+  --ui-primary-foreground: var(--primary-foreground);
+  --ui-destructive: var(--destructive);
+  --ui-ring: var(--accent);
+  --ui-ring-border: var(--accent);
+  --ui-radius: var(--radius-md);
 }
 
 :root.dark {
   color-scheme: dark;
+  --slotly-grain-veil: 95.1%;
   --background: #101b16;
   --card: #17271f;
   --foreground: #e4efe7;
@@ -94,7 +112,6 @@
   --color-surface: var(--surface);
   --color-muted: var(--muted);
   --color-line: var(--line);
-  /* shadcn aliases preserve Slotly's existing accent and muted semantics. */
   --color-primary: var(--accent);
   --color-primary-foreground: var(--primary-foreground);
   --color-destructive-foreground: var(--destructive-foreground);
@@ -110,11 +127,30 @@
 }
 
 body {
-  background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), sans-serif;
   overflow-wrap: anywhere;
 }
+
+/* Paint grain into structural backgrounds, below text, controls and events. */
+:where(
+  body,
+  .workspace-root, .workspace-rail, .workspace-panel-rail, .workspace-sidepanel,
+  .agenda-toolbar, .agenda-sidebar, .agenda-scroll, .agenda-fullcalendar [role="table"], .agenda-table-header,
+  .demo-original-banner, .loading-workspace, .loading-calendar-overlay,
+  .appearance-preview, .appearance-preview-page
+) {
+  --slotly-grain-base: var(--background);
+  --slotly-grain-wash: color-mix(in srgb, var(--slotly-grain-base) var(--slotly-grain-veil), transparent);
+  background-color: var(--slotly-grain-base);
+  background-image: linear-gradient(var(--slotly-grain-wash), var(--slotly-grain-wash)), var(--slotly-grain-tile);
+  background-size: auto, 224px 224px;
+  background-blend-mode: normal, difference;
+}
+
+:is(.agenda-scroll, .agenda-fullcalendar [role="table"], .agenda-table-header) { --slotly-grain-base: var(--card); }
+.demo-original-banner { --slotly-grain-base: var(--surface); }
+.appearance-preview { --slotly-grain-base: color-mix(in srgb, var(--surface) 35%, var(--background)); }
 
 ::selection {
   background: var(--selection);
@@ -132,7 +168,63 @@ body {
   outline-offset: 4px;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  :where(
+    [data-slot="dialog-content"],
+    [data-slot="alert-dialog-content"],
+    [data-slot="popover-content"]
+  )[data-open] {
+    transform-origin: var(--transform-origin, center);
+    animation: slotly-popup-enter 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+@keyframes slotly-popup-enter {
+  from { opacity: 0.45; scale: 0.965; }
+  to { opacity: 1; scale: 1; }
+}
+
 @layer components {
+  /* These parts use Slotly's existing layout while the SDK manages behavior. */
+  :where(
+    [data-slot="dialog-trigger"], [data-slot="dialog-close"], [data-slot="alert-dialog-close"],
+    [data-slot="dialog-content"], [data-slot="alert-dialog-content"],
+    [data-slot="dialog-backdrop"], [data-slot="alert-dialog-backdrop"],
+    [data-slot="dialog-title"], [data-slot="alert-dialog-title"],
+    [data-slot="dialog-description"], [data-slot="alert-dialog-description"],
+    [data-slot="menu-content"], [data-slot="menu-item"], [data-slot="menu-separator"],
+    [data-slot="popover-content"], [data-slot="popover-title"], [data-slot="popover-description"],
+    [data-slot="tooltip-content"],
+    [data-slot="tabs"], [data-slot="tabs-list"], [data-slot="tabs-tab"], [data-slot="tabs-panel"],
+    [data-slot="checkbox"], [data-slot="checkbox-indicator"]
+  ) {
+    all: revert;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border: 0 solid;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+  }
+
+  :where(
+    [data-slot="dialog-content"], [data-slot="alert-dialog-content"],
+    [data-slot="menu-content"], [data-slot="popover-content"], [data-slot="tooltip-content"]
+  ) {
+    inset: auto;
+  }
+
+  :where([data-slot][hidden]:not([hidden="until-found"])) {
+    display: none;
+  }
+
+  /* Preserve Tailwind's link reset outside individually styled controls. */
+  a {
+    color: inherit;
+    text-decoration: inherit;
+  }
+
   .workspace-width {
     @apply mx-auto w-full max-w-7xl px-4 sm:px-8 lg:px-12;
   }
@@ -162,7 +254,7 @@ body {
   }
   .button-primary,
   .button-secondary {
-    @apply inline-flex min-h-9 items-center justify-center gap-2 px-4 py-1.5 text-sm leading-5 font-semibold transition-colors motion-reduce:transition-none;
+    @apply inline-flex min-h-9 items-center justify-center gap-2 px-4 py-1.5 text-sm leading-5 font-semibold;
     border-radius: var(--radius-md);
   }
 

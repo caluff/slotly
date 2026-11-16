@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { Clock3, ListChecks, Store, Users, X } from "@/components/ui/icons";
-import { Tooltip } from "radix-ui";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@ui-sdk/react/tooltip";
 import { Button } from "@/components/ui/button";
 import { currentWorkspaceHref, dashboardHref, readDashboardView, type DashboardView } from "@/lib/dashboard-navigation";
 import { usePanelMotion } from "@/components/use-panel-motion";
@@ -26,12 +26,10 @@ export function openWorkspaceSection(view: DashboardView, createService = false)
 
 export function WorkspaceRail({ insidePanel = false }: { insidePanel?: boolean }) {
   const params = useSearchParams(), active = readDashboardView(params.get('vista'));
-  return <Tooltip.Provider delayDuration={200}><nav aria-label={insidePanel ? 'Secciones del panel' : 'Secciones del negocio'} className={insidePanel ? 'workspace-panel-rail' : 'workspace-rail'}>
+  return <nav aria-label={insidePanel ? 'Secciones del panel' : 'Secciones del negocio'} className={insidePanel ? 'workspace-panel-rail' : 'workspace-rail'}>
     <div className="workspace-account-slot" data-workspace-account-host={insidePanel ? undefined : ''} data-workspace-account-modal-host={insidePanel ? '' : undefined} />
-    {workspaceSections.map(({ view, label, icon: Icon }) => <Tooltip.Root key={view}><Tooltip.Trigger asChild>
-      <Button size="icon" variant="ghost" data-workspace-trigger={insidePanel ? undefined : view} aria-label={label} aria-controls="workspace-sidepanel" aria-expanded={active === view} className={active === view ? 'workspace-rail-selected' : ''} onClick={() => openWorkspaceSection(readDashboardView(new URLSearchParams(window.location.search).get('vista')) === view ? 'agenda' : view)}><Icon aria-hidden="true" /></Button>
-    </Tooltip.Trigger><Tooltip.Portal><Tooltip.Content side="left" sideOffset={8} className="workspace-rail-tooltip">{label}</Tooltip.Content></Tooltip.Portal></Tooltip.Root>)}
-  </nav></Tooltip.Provider>;
+    {workspaceSections.map(({ view, label, icon: Icon }) => <Tooltip key={view} delay={200}><TooltipTrigger render={<Button size="icon" variant="ghost" />} data-workspace-trigger={insidePanel ? undefined : view} aria-label={label} aria-controls="workspace-sidepanel" aria-expanded={active === view} className={active === view ? 'workspace-rail-selected' : ''} onClick={() => openWorkspaceSection(readDashboardView(new URLSearchParams(window.location.search).get('vista')) === view ? 'agenda' : view)}><Icon aria-hidden="true" /></TooltipTrigger><TooltipContent side="left" sideOffset={8} className="workspace-rail-tooltip">{label}</TooltipContent></Tooltip>)}
+  </nav>;
 }
 
 export function WorkspacePanels({ clients, services, schedule, business }: { clients?: ReactNode; services: ReactNode; schedule: ReactNode; business: ReactNode }) {
@@ -71,7 +69,12 @@ export function WorkspacePanels({ clients, services, schedule, business }: { cli
   useEffect(() => () => { window.dispatchEvent(new CustomEvent('slotly:toast-host', { detail: null })); window.dispatchEvent(new CustomEvent('slotly:account-host', { detail: null })); }, []);
   const close = () => { if (!panelBusy()) openWorkspaceSection('agenda'); };
   return <PanelSurface.Provider value={true}><dialog ref={panel} id="workspace-sidepanel" className="workspace-sidepanel" aria-labelledby="workspace-panel-heading"
-    onCancel={event => { event.preventDefault(); close(); }} onKeyDown={event => { if (!compact && event.key === 'Escape') { event.preventDefault(); close(); } }}
+    onCancel={event => { event.preventDefault(); close(); }} onKeyDown={event => {
+      if (compact || event.key !== 'Escape' || event.defaultPrevented) return;
+      if (event.target instanceof Element && event.target.closest('[role="menu"]')) return;
+      event.preventDefault();
+      close();
+    }}
     onClick={event => { if (compact && event.target === event.currentTarget) { const rect = event.currentTarget.getBoundingClientRect(); if (event.clientX < rect.left || event.clientY < rect.top || event.clientX > rect.right || event.clientY > rect.bottom) close(); } }}>
     <div className="workspace-panel-heading"><h2 id="workspace-panel-heading" tabIndex={-1}>{workspaceSections.find(row => row.view === displayedSection)?.label ?? 'Panel del negocio'}</h2><Button variant="ghost" size="icon" aria-label="Cerrar panel" disabled={busy} onClick={close}><X aria-hidden="true" /></Button></div>
     <div className="workspace-panel-content">

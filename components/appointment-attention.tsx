@@ -10,7 +10,8 @@ import {
   type ComponentType,
 } from "react";
 import { createPortal } from "react-dom";
-import { DropdownMenu, Popover } from "radix-ui";
+import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from "@ui-sdk/react/menu";
+import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "@ui-sdk/react/popover";
 import {
   Bell,
   Check,
@@ -294,36 +295,30 @@ function NotificationMenu({
   const moveReason =
     common || (!canMove ? "Solo se puede reprogramar antes del inicio." : "");
   return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger asChild>
-        <Button
+    <Menu onOpenChangeComplete={open => {
+      if (open || !pending.current) return;
+      const action = pending.current;
+      pending.current = null;
+      onAction(action, trigger.current);
+    }}>
+      <MenuTrigger render={<Button size="icon" variant="ghost" />}
           ref={trigger}
-          size="icon"
-          variant="ghost"
           aria-label={
             "Opciones de " +
             (notice.appointment?.clientName ?? "la notificación anterior")
           }
         >
           <EllipsisVertical aria-hidden="true" />
-        </Button>
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content
+        </MenuTrigger>
+
+        <MenuContent
           className="appointment-notice-menu"
           align="end"
           sideOffset={4}
           collisionPadding={8}
-          onCloseAutoFocus={(event) => {
-            const action = pending.current;
-            pending.current = null;
-            if (action) {
-              event.preventDefault();
-              onAction(action, trigger.current);
-            }
-          }}
+          finalFocus={() => pending.current ? null : trigger.current}
         >
-          <DropdownMenu.Item
+          <MenuItem
             disabled={!windowOpen || blocked}
             aria-label={"Ya llegó" + (windowReason ? ". " + windowReason : "")}
             className="appointment-notice-menu-item"
@@ -332,8 +327,8 @@ function NotificationMenu({
             }}
           >
             Ya llegó
-          </DropdownMenu.Item>
-          <DropdownMenu.Item
+          </MenuItem>
+          <MenuItem
             disabled={!canMove || blocked}
             aria-label={"Reprogramar" + (moveReason ? ". " + moveReason : "")}
             className="appointment-notice-menu-item"
@@ -342,8 +337,8 @@ function NotificationMenu({
             }}
           >
             Reprogramar
-          </DropdownMenu.Item>
-          <DropdownMenu.Item
+          </MenuItem>
+          <MenuItem
             disabled={!windowOpen || blocked}
             aria-label={
               "Cancelar Cita" + (windowReason ? ". " + windowReason : "")
@@ -354,11 +349,11 @@ function NotificationMenu({
             }}
           >
             Cancelar Cita
-          </DropdownMenu.Item>
+          </MenuItem>
           {notice.undo && notice.contextCurrent && (
             <>
-              <DropdownMenu.Separator className="appointment-notice-menu-separator" />
-              <DropdownMenu.Item
+              <MenuSeparator className="appointment-notice-menu-separator" />
+              <MenuItem
                 disabled={blocked}
                 className="appointment-notice-menu-item"
                 onSelect={() => {
@@ -366,12 +361,12 @@ function NotificationMenu({
                 }}
               >
                 Deshacer
-              </DropdownMenu.Item>
+              </MenuItem>
             </>
           )}
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
+        </MenuContent>
+
+    </Menu>
   );
 }
 function relativePublication(at: number, now: number | null, exact: string) {
@@ -535,6 +530,7 @@ export function AppointmentAttention({
   }, []);
   function changeOpen(value: boolean) {
     if (value) {
+      openingDialog.current = false;
       onPermissionGesture?.();
       retryReads();
       setGroups(Object.fromEntries(notices.slice(0, 5).map((n) => [key(n), !n.read])));
@@ -672,12 +668,9 @@ export function AppointmentAttention({
   const fresh = visibleNotices.filter((n) => groups[key(n)] ?? !n.read),
     read = visibleNotices.filter((n) => !(groups[key(n)] ?? !n.read));
   const bellUI = (
-    <Popover.Root open={open} onOpenChange={changeOpen}>
-      <Popover.Trigger asChild>
-        <Button
+    <Popover open={open} onOpenChange={changeOpen}>
+      <PopoverTrigger render={<Button size="icon" variant="ghost" />}
           ref={bell}
-          size="icon"
-          variant="ghost"
           aria-label={
             "Notificaciones" + (unread ? ", " + unread + " sin leer" : "")
           }
@@ -690,23 +683,14 @@ export function AppointmentAttention({
               {more && unread <= 99 ? "+" : ""}
             </span>
           )}
-        </Button>
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content
+        </PopoverTrigger>
+
+        <PopoverContent
           className="appointment-attention-list"
           sideOffset={8}
           collisionPadding={8}
           align="end"
-          aria-label={
-            settings ? "Ajustes de notificaciones" : "Notificaciones de citas"
-          }
-          onCloseAutoFocus={(event) => {
-            if (openingDialog.current) {
-              event.preventDefault();
-              openingDialog.current = false;
-            }
-          }}
+          finalFocus={() => openingDialog.current ? null : bell.current}
         >
           <div className="appointment-notice-heading">
             {settings && (
@@ -719,7 +703,9 @@ export function AppointmentAttention({
                 <ChevronLeft aria-hidden="true" />
               </Button>
             )}
-            <h2>{settings ? "Ajustes" : "Notificaciones"}</h2>
+            <PopoverTitle aria-label={settings ? "Ajustes de notificaciones" : "Notificaciones de citas"}>
+              {settings ? "Ajustes" : "Notificaciones"}
+            </PopoverTitle>
             {!settings && (
               <Button
                 ref={gear}
@@ -877,9 +863,9 @@ export function AppointmentAttention({
               </div>
             </>
           )}
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+        </PopoverContent>
+
+    </Popover>
   );
   return (
     <AttentionContext.Provider value={bellUI}>

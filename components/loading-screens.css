@@ -1,6 +1,6 @@
 .skeleton { border-radius: 6px; background: color-mix(in srgb,var(--line) 65%,var(--surface)); animation: skeleton-breathe 1.8s ease-in-out infinite; }
 @keyframes skeleton-breathe { 50% { opacity: .45; } }
-.loading-workspace { width: 100%; height: 100dvh; min-height: 400px; display: flex; flex-direction: column; background: var(--background); }
+.loading-workspace { width: 100%; height: 100dvh; min-height: 400px; display: flex; flex-direction: column; background-color: var(--background); }
 .loading-workspace[data-embedded="true"] { height: 100%; }
 .loading-toolbar { display: flex; align-items: center; gap: 24px; height: 80px; flex-shrink: 0; padding: 20px 24px; }
 .loading-brand { width: 96px; height: 32px; }
@@ -31,7 +31,7 @@
 .loading-list-row { display: flex; flex-direction: column; gap: 12px; padding-block: 20px; border-bottom: 1px solid var(--line); }
 .loading-list-title { width: 62%; height: 20px; }
 .loading-list-detail { width: 85%; height: 14px; }
-.loading-calendar-overlay { position: absolute; inset: 0; z-index: 1; overflow: hidden; border-radius: 6px; background: var(--background); }
+.loading-calendar-overlay { position: absolute; inset: 0; z-index: 1; overflow: hidden; border-radius: 6px; background-color: var(--background); }
 .agenda-calendar[aria-busy="true"] .agenda-fullcalendar { visibility: hidden; }
 @media(max-width:700px) { .loading-toolbar { height: 72px; padding-inline: 16px; gap: 16px; } .loading-date { width: 120px; } .loading-view { width: 72px; } .loading-filters { display: none; } .loading-dashboard-body { gap: 12px; padding-inline: 12px; } .loading-days { gap: 8px; padding: 16px 8px; } .loading-rail { width: 28px; } .loading-rail .skeleton { width: 28px; height: 28px; } .loading-form-content { flex-direction: column; } .loading-booking-calendar { width: 100%; } }
 @media(prefers-reduced-motion:reduce) { .skeleton { animation: none; } }

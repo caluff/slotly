@@ -72,7 +72,7 @@ function AuthenticatedBusinessProfile({ timeZones, enabled }: { timeZones: strin
         <div className="py-5"><dt className="text-sm text-muted">Zona horaria</dt><dd className="mt-1 wrap-anywhere">{business.timeZone}</dd></div>
       </dl>
       <BusinessBookingLink enabled={enabled && active === "negocio"} />
-      <div className="mt-6"><Button asChild variant="outline"><a href={dashboardHref("personalizar", params.get("fecha"), params)} onClick={navigateWorkspace}>Personalizar vista pública</a></Button></div>
+      <div className="mt-6"><Button variant="outline" render={<a href={dashboardHref("personalizar", params.get("fecha"), params)} onClick={navigateWorkspace} />}>Personalizar vista pública</Button></div>
       <BusinessEmailConfirmations enabled={enabled && active === "negocio"} />
       <p className="mt-6 max-w-prose text-sm leading-6 text-muted">Las fechas y horas de tu <WorkspaceLink view="agenda">agenda</WorkspaceLink> y tu <WorkspaceLink view="horario">horario de atención</WorkspaceLink> se muestran en esta zona.</p>
     </>} />

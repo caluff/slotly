@@ -2,7 +2,7 @@
 
 import { useAction, useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { Dialog } from "radix-ui";
+import { Dialog, DialogBackdrop, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@ui-sdk/react/dialog";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
@@ -95,14 +95,13 @@ export function PublicReschedule({ secret, view, journal, pending, blocked, open
       <Button disabled={busy || blocked} onClick={() => void perform(pending, true)}>{busy ? "Comprobando…" : "Reintentar reprogramación"}</Button></div>
       : view.canCancel && <Button ref={trigger} variant="outline" disabled={busy || blocked} onClick={begin}>Reprogramar cita</Button>}
     {error && !open && <p ref={alert} tabIndex={-1} role="alert" className="mt-4 text-sm leading-6 text-destructive">{error}</p>}
-    <Dialog.Root open={open} onOpenChange={next => { if (!lock.current) onOpen(next); }}><Dialog.Portal>
-      <Dialog.Overlay className="fixed inset-0 z-50 bg-foreground/30" />
-      <Dialog.Content className="appointment-editor fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-line bg-background p-5 text-foreground sm:p-6"
-        onEscapeKeyDown={event => { if (lock.current) event.preventDefault(); }} onInteractOutside={event => { if (lock.current) event.preventDefault(); }}
-        onCloseAutoFocus={event => { event.preventDefault(); requestAnimationFrame(() => { if (error && alert.current) alert.current.focus(); else if (trigger.current) trigger.current.focus(); else onReturnFocus(); }); }}>
-        <div className="flex items-start justify-between gap-3"><Dialog.Title className="text-lg font-semibold">{reviewed ? "Confirmar reprogramación" : "Reprogramar cita"}</Dialog.Title>
-          <Dialog.Close asChild><Button variant="ghost" size="icon" aria-label="Cerrar reprogramación" disabled={busy}><X aria-hidden="true" /></Button></Dialog.Close></div>
-        <Dialog.Description className="sr-only">Elige y revisa un nuevo horario para la misma cita antes de confirmar.</Dialog.Description>
+    <Dialog open={open} onOpenChange={(next, details) => { if (lock.current) details.cancel(); else onOpen(next); }}>
+      <DialogBackdrop className="fixed inset-0 z-50 bg-foreground/30" />
+      <DialogContent className="appointment-editor fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-line bg-background p-5 text-foreground sm:p-6"
+        finalFocus={() => { if (error && alert.current) return alert.current; if (trigger.current) return trigger.current; requestAnimationFrame(onReturnFocus); return null; }}>
+        <div className="flex items-start justify-between gap-3"><DialogTitle className="text-lg font-semibold">{reviewed ? "Confirmar reprogramación" : "Reprogramar cita"}</DialogTitle>
+          <DialogClose render={<Button variant="ghost" size="icon" />} aria-label="Cerrar reprogramación" disabled={busy}><X aria-hidden="true" /></DialogClose></div>
+        <DialogDescription className="sr-only">Elige y revisa un nuevo horario para la misma cita antes de confirmar.</DialogDescription>
         {origin && (reviewed ? <Comparison origin={origin} start={reviewed.start} /> : <div className="my-5 text-sm"><p className="font-medium wrap-anywhere">{origin.serviceName}</p><p className="mt-2"><Interval start={origin.start} end={origin.end} zone={origin.timeZone} /></p><p className="mt-1 text-muted wrap-anywhere">{origin.timeZone}</p></div>)}
         {!reviewed && <div className="space-y-5"><div className="grid gap-2"><Label htmlFor="public-move-date">Nueva fecha</Label><Input id="public-move-date" type="date" value={date} disabled={busy || stale}
           onChange={event => { setDate(event.target.value); setSelected(""); setOptions(null); setStatus("loading"); setError(""); }} /></div>
@@ -120,7 +119,7 @@ export function PublicReschedule({ secret, view, journal, pending, blocked, open
           {reviewed ? <Button disabled={busy || stale || reviewedUnavailable} className="w-full sm:w-auto" onClick={() => { if (origin) void perform({ operationId: crypto.randomUUID(), revision: origin.revision, date, start: reviewed.start, origin }, false); }}>{busy ? "Reprogramando…" : "Confirmar cambio"}</Button>
             : <Button disabled={busy || stale || !slots.some(s => String(s.start) === selected)} className="w-full sm:w-auto" onClick={() => { setError(""); setReviewed(slots.find(s => String(s.start) === selected) ?? null); }}>Revisar cambio</Button>}
         </div>
-      </Dialog.Content>
-    </Dialog.Portal></Dialog.Root>
+      </DialogContent>
+    </Dialog>
   </>;
 }

@@ -10,7 +10,11 @@ import "@fullcalendar/react/skeleton.css";
 import "@fullcalendar/react/themes/classic/theme.css";
 import { usePaginatedQuery, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { Dialog, DropdownMenu, Popover, Tabs, Tooltip } from "radix-ui";
+import { Dialog, DialogBackdrop, DialogContent, DialogDescription, DialogTitle } from "@ui-sdk/react/dialog";
+import { Menu as AgendaMenu, MenuContent, MenuItem, MenuTrigger } from "@ui-sdk/react/menu";
+import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "@ui-sdk/react/popover";
+import { Tabs, TabsList, TabsPanel, TabsTab } from "@ui-sdk/react/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@ui-sdk/react/tooltip";
 import { CalendarClock, CalendarX2, ChevronDown, ChevronLeft, ChevronRight, LockKeyhole, Menu, Plus, X } from "@/components/ui/icons";
 import { Component, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -102,33 +106,38 @@ function AgendaCalendarContent({ date, view, today, timeZone, filters, enabled, 
     window.history.pushState(null, '', `${destination.pathname}${destination.search}`);
   };
   const activeFilters = !!(filters.client || filters.service || filters.status);
-  return <CalendarCreationVisibility.Provider value={!panelOpen}><Tabs.Root className="agenda-root" value={view} activationMode="manual" onValueChange={value => onNavigate(date, value as CalendarView)}>
+  return <CalendarCreationVisibility.Provider value={!panelOpen}><Tabs className="agenda-root" value={view} activation="manual" onValueChange={value => { if (value) onNavigate(date, value); }}>
       <div className="agenda-toolbar">
         <div className="agenda-toolbar-navigation"><Button ref={filterTrigger} size="icon" variant="ghost" aria-label={panelOpen ? 'Ocultar filtros' : 'Mostrar filtros'} aria-expanded={panelOpen} aria-controls="agenda-filters-panel" onClick={() => mobile ? setShowFilters(value => !value) : setLeftVisible(value => !value)}><Menu aria-hidden="true" /></Button><Brand /><Button variant="outline" onClick={() => onNavigate(today, view)}>Hoy</Button><div className="flex">
           <Button size="icon" variant="ghost" aria-label="Intervalo anterior" onClick={() => onNavigate(stepCalendar(date, view, -1), view)}><ChevronLeft aria-hidden="true" /></Button>
           <Button size="icon" variant="ghost" aria-label="Intervalo siguiente" onClick={() => onNavigate(stepCalendar(date, view, 1), view)}><ChevronRight aria-hidden="true" /></Button></div>
           <h2 className="agenda-title" aria-live="polite">{view === "dia" ? new Intl.DateTimeFormat("es-UY", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" }).format(new Date(`${date}T12:00Z`)) : view === "mes" ? new Intl.DateTimeFormat("es-UY", { timeZone: "UTC", month: "long", year: "numeric" }).format(new Date(`${date}T12:00Z`)) : `${range.from.slice(8)}/${range.from.slice(5,7)} – ${range.until.slice(8)}/${range.until.slice(5,7)}/${range.until.slice(0,4)}`}</h2></div>
-        <div className="agenda-toolbar-actions"><AppointmentAttentionBell />{activeFilters && !panelOpen && <span className="agenda-active-filters" role="status">Filtros activos</span>}<Tabs.List aria-label="Vista del calendario" className="agenda-view-tabs">
-          {([['dia', 'Día'], ['semana', 'Semana'], ['mes', 'Mes']] as const).map(([value, label]) => <Tabs.Trigger key={value} value={value} asChild><Button variant="ghost">{label}</Button></Tabs.Trigger>)}
-        </Tabs.List></div>
+        <div className="agenda-toolbar-actions"><AppointmentAttentionBell />{activeFilters && !panelOpen && <span className="agenda-active-filters" role="status">Filtros activos</span>}<TabsList aria-label="Vista del calendario" className="agenda-view-tabs">
+          {([['dia', 'Día'], ['semana', 'Semana'], ['mes', 'Mes']] as const).map(([value, label]) => <TabsTab key={value} value={value} render={<Button variant="ghost" />}>{label}</TabsTab>)}
+        </TabsList></div>
       </div>
     <div className="agenda-layout" data-left-visible={!mobile && leftVisible}>
-      <div className="agenda-sidebar-slot"><dialog ref={filterPanel} id="agenda-filters-panel" aria-label="Calendario y filtros" className="agenda-sidebar" onCancel={event => { event.preventDefault(); closeFilters(); }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); closeFilters(); } }} onClick={event => { if (mobile && event.target === event.currentTarget) { const r = event.currentTarget.getBoundingClientRect(); if (event.clientX > r.right || event.clientX < r.left) closeFilters(); } }}>
+      <div className="agenda-sidebar-slot"><dialog ref={filterPanel} id="agenda-filters-panel" aria-label="Calendario y filtros" className="agenda-sidebar" onCancel={event => { event.preventDefault(); closeFilters(); }} onKeyDown={event => {
+        if (event.key !== 'Escape' || event.defaultPrevented) return;
+        if (event.target instanceof Element && event.target.closest('[role="menu"]')) return;
+        event.preventDefault();
+        closeFilters();
+      }} onClick={event => { if (mobile && event.target === event.currentTarget) { const r = event.currentTarget.getBoundingClientRect(); if (event.clientX > r.right || event.clientX < r.left) closeFilters(); } }}>
         {mobile && <div className="agenda-filter-heading"><h2>Filtros</h2><Button size="icon" variant="ghost" aria-label="Cerrar filtros" onClick={closeFilters}><X aria-hidden="true" /></Button></div>}{sidebar}
       </dialog></div>
       <div className="agenda-canvas">
-      {(['dia', 'semana', 'mes'] as const).map(value => <Tabs.Content key={value} value={value} className="agenda-tab-panel">
+      {(['dia', 'semana', 'mes'] as const).map(value => <TabsPanel key={value} value={value} className="agenda-tab-panel">
       {view === value && <>
       <p className="sr-only">{timeZone}{filters.client ? ` · Cliente: ${filters.client}` : ""}{filters.service ? ` · ${services.find(service => service._id === filters.service)?.name ?? "Servicio seleccionado"}` : ""}{` · ${appointmentStatusSummary(filters.status)}`}</p>
       {filters.status === "none" && <p role="status" className="mb-3 text-sm text-muted">Ningún estado seleccionado. Marca un estado para ver citas.</p>}
       <CalendarReadBoundary key={JSON.stringify([range, filters.client, filters.service, filters.status, enabled])}>{calendarContent ?? <ConnectedCalendar date={date} view={view} timeZone={timeZone} enabled={enabled} filters={filters} dayHref={dayHref} onNew={onNew} onSelectDate={value => onNavigate(value, view)} />}</CalendarReadBoundary>
       </>}
-      </Tabs.Content>)}
+      </TabsPanel>)}
       </div>
     </div>
     <AgendaNameResults open={resultsOpen} modal={mobile} name={filters.client} onClose={closeResults}>{SearchComponent ? <SearchComponent onLocate={locate} /> : searchContent ?? <AppointmentSearch hideFilters filters={filters} today={today} timeZone={timeZone} enabled={enabled && resultsOpen} services={services} moreServices={moreServices} loadingServices={loadingServices} onLoadServices={onLoadServices} onSearch={onSearch} dayHref={dayHref} onLocate={locate} />}</AgendaNameResults>
     {archivedDetail && <ArchivedDetailComponent appointment={archivedDetail} latest={archivedDetail} timeZone={timeZone} now={0} onClose={() => setArchivedDetail(null)} onReturnFocus={() => { const input = document.querySelector<HTMLElement>('#search-client'); (input?.getBoundingClientRect().width ? input : filterTrigger.current)?.focus(); }} onAction={() => undefined} />}
-  </Tabs.Root></CalendarCreationVisibility.Provider>;
+  </Tabs></CalendarCreationVisibility.Provider>;
 }
 
 class CalendarReadBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
@@ -323,13 +332,23 @@ export function CalendarSurface({ date, view, timeZone, appointments, blocks = [
 
 function CalendarCreateButton({ date, onNew }: { date: string; onNew: (date: string, start?: number, context?: CreateContext) => void }) {
   const blocks = useTimeBlockActions(), trigger = useRef<HTMLButtonElement>(null);
-  return <div className="agenda-create-options"><Tooltip.Provider delayDuration={150}><Tooltip.Root><Tooltip.Trigger asChild><Button className="agenda-calendar-create" size="icon" variant="ghost" aria-label="Añadir cita" aria-haspopup="dialog" onPointerDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); onNew(date, undefined, { element: event.currentTarget }); }}><Plus aria-hidden="true" /></Button></Tooltip.Trigger><Tooltip.Portal><Tooltip.Content side="right" sideOffset={6} className="workspace-rail-tooltip">Añadir cita</Tooltip.Content></Tooltip.Portal></Tooltip.Root></Tooltip.Provider><BlockCreateMenu trigger={trigger} onCreate={() => blocks?.create(date, { element: trigger.current! })} /></div>;
+  return <div className="agenda-create-options"><Tooltip delay={150}><TooltipTrigger render={<Button size="icon" variant="ghost" />} className="agenda-calendar-create" aria-label="Añadir cita" aria-haspopup="dialog" onPointerDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); onNew(date, undefined, { element: event.currentTarget }); }}><Plus aria-hidden="true" /></TooltipTrigger><TooltipContent side="right" sideOffset={6} className="workspace-rail-tooltip">Añadir cita</TooltipContent></Tooltip><BlockCreateMenu trigger={trigger} onCreate={() => blocks?.create(date, { element: trigger.current! })} /></div>;
 }
 
 function BlockCreateMenu({ trigger, onCreate }: { trigger: React.RefObject<HTMLButtonElement | null>; onCreate: () => void }) {
-  const [next, setNext] = useState(false), [open, setOpen] = useState(false);
-  const [container, setContainer] = useState<HTMLElement | undefined>();
-  return <DropdownMenu.Root open={open} onOpenChange={value => { if (value) setContainer(trigger.current?.closest<HTMLDialogElement>("dialog[open]") ?? undefined); setOpen(value); }}><DropdownMenu.Trigger asChild><Button ref={trigger} size="icon" variant="ghost" aria-label="Más opciones de Agenda" onPointerDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}><ChevronDown aria-hidden="true" /></Button></DropdownMenu.Trigger><DropdownMenu.Portal container={container}><DropdownMenu.Content className="z-50 min-w-44 rounded-md border border-line bg-background p-1 text-sm text-foreground shadow-md" sideOffset={4} collisionPadding={16} onCloseAutoFocus={event => { if (next) { event.preventDefault(); setNext(false); onCreate(); } }}><DropdownMenu.Item className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 outline-none focus:bg-surface" onSelect={() => setNext(true)}><LockKeyhole size={16} aria-hidden="true" />Bloquear tiempo</DropdownMenu.Item></DropdownMenu.Content></DropdownMenu.Portal></DropdownMenu.Root>;
+  const next = useRef(false);
+  return <AgendaMenu onOpenChangeComplete={open => {
+    if (open || !next.current) return;
+    next.current = false;
+    onCreate();
+  }}>
+    <MenuTrigger render={<Button size="icon" variant="ghost" />} ref={trigger} aria-label="Más opciones de Agenda" onPointerDown={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}>
+      <ChevronDown aria-hidden="true" />
+    </MenuTrigger>
+    <MenuContent className="z-50 min-w-44 rounded-md border border-line bg-background p-1 text-sm text-foreground shadow-md" sideOffset={4} collisionPadding={16} finalFocus={() => next.current ? null : trigger.current}>
+      <MenuItem className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 outline-none data-[highlighted]:bg-surface" onSelect={() => { next.current = true; }}><LockKeyhole size={16} aria-hidden="true" />Bloquear tiempo</MenuItem>
+    </MenuContent>
+  </AgendaMenu>;
 }
 
 function CoincidencePreview({ date, preview, rows, timeZone, onOpenChange, onSelect }: {
@@ -340,14 +359,19 @@ function CoincidencePreview({ date, preview, rows, timeZone, onOpenChange, onSel
   useEffect(() => () => { if (open) onOpenChange(false); }, [open, onOpenChange]);
   const time = new Intl.DateTimeFormat('es-UY', { timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
   const change = (value: boolean) => { setOpen(value); onOpenChange(value); };
-  return <div className="agenda-preview-wrap"><button type="button" className={`agenda-event-content agenda-preview-content${preview.end - preview.start < 45 * 60_000 ? " agenda-preview-compact" : ""}`} aria-label={`${time.format(preview.start)} a ${time.format(preview.end)}, ${preview.clientName}, ${preview.serviceName}, ${appointmentStatusLabels[preview.status]}. Ver detalle`} onKeyDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); onSelect(preview, event.currentTarget); }}><time>{<AppointmentStatusIcon status={preview.status} />}{time.format(preview.start)}</time><strong>{preview.clientName}</strong>{preview.end - preview.start >= 45 * 60_000 && <span>{appointmentStatusLabels[preview.status]}</span>}</button><Popover.Root modal open={open} onOpenChange={change}>
-    <Popover.Trigger asChild><Button ref={button} variant="ghost" className="agenda-time-more" aria-label={`${rows.length - 1} ${rows.length === 2 ? 'cita más' : 'citas más'}, ${rows.length} en el grupo, ${formatLocalDate(date)}. Ver lista completa`} onKeyDown={event => event.stopPropagation()} onPointerDown={event => event.stopPropagation()} onMouseDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}>+{rows.length - 1} más</Button></Popover.Trigger>
-    <Popover.Portal><Popover.Content className="agenda-coincidence-panel" side="bottom" align="start" sideOffset={6} collisionPadding={16} aria-label={`Citas con horarios coincidentes, ${formatLocalDate(date)}`}
-      onCloseAutoFocus={event => { if (next.current && button.current) { event.preventDefault(); const row = next.current; next.current = null; onSelect(row, button.current); } }}>
-      <div className="agenda-coincidence-heading"><div><h3>{rows.length} citas en este grupo</h3><p>{formatLocalDate(date)}</p></div></div>
+  return <div className="agenda-preview-wrap"><button type="button" className={`agenda-event-content agenda-preview-content${preview.end - preview.start < 45 * 60_000 ? " agenda-preview-compact" : ""}`} aria-label={`${time.format(preview.start)} a ${time.format(preview.end)}, ${preview.clientName}, ${preview.serviceName}, ${appointmentStatusLabels[preview.status]}. Ver detalle`} onKeyDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); onSelect(preview, event.currentTarget); }}><time>{<AppointmentStatusIcon status={preview.status} />}{time.format(preview.start)}</time><strong>{preview.clientName}</strong>{preview.end - preview.start >= 45 * 60_000 && <span>{appointmentStatusLabels[preview.status]}</span>}</button><Popover modal open={open} onOpenChange={change} onOpenChangeComplete={open => {
+    if (open || !next.current || !button.current) return;
+    const row = next.current;
+    next.current = null;
+    onSelect(row, button.current);
+  }}>
+    <PopoverTrigger render={<Button variant="ghost" />} ref={button} className="agenda-time-more" aria-label={`${rows.length - 1} ${rows.length === 2 ? 'cita más' : 'citas más'}, ${rows.length} en el grupo, ${formatLocalDate(date)}. Ver lista completa`} onKeyDown={event => event.stopPropagation()} onPointerDown={event => event.stopPropagation()} onMouseDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}>+{rows.length - 1} más</PopoverTrigger>
+    <PopoverContent className="agenda-coincidence-panel" side="bottom" align="start" sideOffset={6} collisionPadding={16}
+      finalFocus={() => next.current ? null : button.current}>
+      <div className="agenda-coincidence-heading"><div><PopoverTitle render={<h3 />} aria-label={`Citas con horarios coincidentes, ${formatLocalDate(date)}`}>{rows.length} citas en este grupo</PopoverTitle><p>{formatLocalDate(date)}</p></div></div>
       <ul className="agenda-coincidence-list" onPointerDown={event => event.stopPropagation()} onMouseDown={event => event.stopPropagation()}>{rows.map(row => <li key={row._id} className="agenda-coincidence-row" data-archivable={row.status === 'cancelled'}><button type="button" className={`agenda-coincidence-item agenda-coincidence-${row.status}`} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") event.stopPropagation(); }} onClick={() => { next.current = row; change(false); }}><time>{time.format(row.start)}–{time.format(row.end)}</time><strong>{row.clientName}</strong><span>{row.serviceName} · {appointmentStatusLabels[row.status]}{row._id === preview._id ? ' · Visible en el calendario' : ''}</span></button><AppointmentArchiveButton appointment={row} className="agenda-archive-button" onChanged={() => { change(false); requestAnimationFrame(() => document.querySelector<HTMLElement>(`.agenda-canvas [data-calendar-date="${date}"]`)?.focus()); }} /></li>)}</ul>
-    </Popover.Content></Popover.Portal>
-  </Popover.Root></div>;
+    </PopoverContent>
+  </Popover></div>;
 }
 
 type DetailProps = { appointment: CalendarAppointment; latest: CalendarAppointment; timeZone: string; now: number; onClose: () => void; onReturnFocus: () => void; onAction: (mode: "cancel" | "reschedule", row: CalendarAppointment) => void; emailStatus?: ReactNode };
@@ -359,11 +383,16 @@ export function AppointmentDetail({ latest: row, timeZone, now, onClose, onRetur
   const future = now > 0 && row.status === "confirmed" && row.start > now;
   const outcomes = useAppointmentResults();
   const ended = now > 0 && row.status === "confirmed" && row.end <= now;
-  return <Dialog.Root open={!next} onOpenChange={open => { if (!open) onClose(); }}><Dialog.Portal><Dialog.Overlay className="fixed inset-0 z-50 bg-foreground/30" />
-    <Dialog.Content onOpenAutoFocus={event => { event.preventDefault(); heading.current?.focus(); }} onEscapeKeyDown={event => event.stopPropagation()} className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-line bg-background p-5 sm:p-6"
-      onCloseAutoFocus={event => { event.preventDefault(); if (next) onAction(next.mode, next.appointment); else onReturnFocus(); }}>
-      <div className="flex items-start justify-between gap-3"><Dialog.Title ref={heading} tabIndex={-1} className="text-lg font-semibold focus:outline-none">Detalle de la cita</Dialog.Title><AppointmentArchiveButton appointment={row} onChanged={onClose} /></div>
-      <Dialog.Description className="sr-only">Consulta los datos y las acciones disponibles de esta cita.</Dialog.Description>
+  function closeDetail() {
+    onClose();
+    requestAnimationFrame(onReturnFocus);
+  }
+  return <Dialog open={!next} onOpenChange={open => { if (!open) closeDetail(); }} onOpenChangeComplete={open => {
+    if (!open && next) onAction(next.mode, next.appointment);
+  }}><DialogBackdrop className="fixed inset-0 z-50 bg-foreground/30" />
+    <DialogContent initialFocus={() => heading.current} finalFocus="none" className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-line bg-background p-5 sm:p-6">
+      <div className="flex items-start justify-between gap-3"><DialogTitle ref={heading} tabIndex={-1} className="text-lg font-semibold focus:outline-none">Detalle de la cita</DialogTitle><AppointmentArchiveButton appointment={row} onChanged={closeDetail} /></div>
+      <DialogDescription className="sr-only">Consulta los datos y las acciones disponibles de esta cita.</DialogDescription>
       <dl className="my-5 space-y-4 text-sm"><div><dt className="text-muted">Cliente</dt><dd className="mt-1 font-semibold wrap-anywhere">{row.clientName}</dd></div><div><dt className="text-muted">Servicio</dt><dd className="mt-1 wrap-anywhere">{row.serviceName}</dd></div><div><dt className="text-muted">Fecha y horario</dt><dd className="mt-1">{formatLocalDate(row.date)}<br />{time.format(row.start)}–{time.format(row.end)}<br /><span className="text-muted wrap-anywhere">{timeZone}</span></dd></div><div><dt className="text-muted">Estado</dt><dd className={`mt-1 font-semibold appointment-status-${row.status}`}>{appointmentStatusLabels[row.status]}</dd></div>
         {emailStatus}
         {row.cancelledAt !== undefined && <div><dt className="text-muted">Cancelada el</dt><dd>{new Intl.DateTimeFormat("es-UY", { timeZone, dateStyle: "short", timeStyle: "short" }).format(row.cancelledAt)}</dd></div>}
@@ -371,7 +400,7 @@ export function AppointmentDetail({ latest: row, timeZone, now, onClose, onRetur
         {row.resultAt !== undefined && <div><dt className="text-muted">Resultado registrado el</dt><dd>{new Intl.DateTimeFormat("es-UY", { timeZone, dateStyle: "short", timeStyle: "short" }).format(row.resultAt)}</dd></div>}
         {row.rescheduledAt !== undefined && <div><dt className="text-muted">Última reprogramación</dt><dd>{new Intl.DateTimeFormat("es-UY", { timeZone, dateStyle: "short", timeStyle: "short" }).format(row.rescheduledAt)}</dd></div>}
       </dl>
-      {ended && outcomes && <div className="flex flex-wrap gap-3 border-t border-line pt-4"><Button variant="outline" className="appointment-status-completed" disabled={outcomes.blocked} onClick={() => { void outcomes.mark(row, "completed"); onClose(); }}>Completada</Button><Button variant="outline" className="appointment-status-no_show" disabled={outcomes.blocked} onClick={() => { void outcomes.mark(row, "no_show"); onClose(); }}>No asistió</Button></div>}
+      {ended && outcomes && <div className="flex flex-wrap gap-3 border-t border-line pt-4"><Button variant="outline" className="appointment-status-completed" disabled={outcomes.blocked} onClick={() => { void outcomes.mark(row, "completed"); closeDetail(); }}>Completada</Button><Button variant="outline" className="appointment-status-no_show" disabled={outcomes.blocked} onClick={() => { void outcomes.mark(row, "no_show"); closeDetail(); }}>No asistió</Button></div>}
       {future && <div className="flex flex-wrap gap-3 border-t border-line pt-4"><Button variant="outline" onClick={() => setNext({ mode: "reschedule", appointment: { ...row } })}><CalendarClock aria-hidden="true" />Reprogramar</Button><Button variant="outline" className="text-destructive" onClick={() => setNext({ mode: "cancel", appointment: { ...row } })}><CalendarX2 aria-hidden="true" />Cancelar cita</Button></div>}
-  </Dialog.Content></Dialog.Portal></Dialog.Root>;
+  </DialogContent></Dialog>;
 }

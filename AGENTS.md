@@ -28,10 +28,10 @@
 
 ## Stack y herramientas
 
-- Stack elegido: Next.js 16 con App Router, React 19, TypeScript, Tailwind CSS 4, shadcn/ui y Clerk.
+- Stack elegido: Next.js 16 con App Router, React 19, TypeScript, Tailwind CSS 4, UI SDK y Clerk.
 - Usa exclusivamente pnpm para gestionar dependencias y ejecutar scripts. No uses npm, yarn ni bun; para ejecutables de paquetes usa `pnpm exec` o `pnpm dlx` cuando corresponda.
 - Consulta `package.json` y `pnpm-lock.yaml` para determinar las versiones reales. No asumas versiones a partir del stack elegido.
-- shadcn/ui es una elección del stack, pero su incorporación debe responder a una necesidad del reto; no asumir que ya está instalado.
+- Antes de usar UI SDK, sigue la skill `ui-sdk` si está instalada y lee `node_modules/@ui-sdk/react/docs/llms.txt`. Para construir un componente nuevo con sus primitivas, busca también por encabezado en `node_modules/@ui-sdk/react/docs/core.md` y lee `rendering.md` en el mismo directorio.
 - Preferencia visual permanente y explícita del usuario: los inputs, selects y botones propios de Slotly se mantienen compactos, con **36px de altura por defecto en escritorio y móvil**; `Button size="icon"` mide **36×36px**. Definir la altura en las primitivas `Input`, `NativeSelect` y `Button`, y heredarla en sus consumidores sin repetir `h-9`/`min-h-9`. No volver a imponer 44px por defecto mediante overrides locales sin una petición del usuario. Conservar variantes de tamaño solicitadas deliberadamente; esta regla no redimensiona Textarea, navegación ni el `UserButton` oficial de Clerk.
 - **Preferencia visual importante y permanente del usuario:** Evita etiquetas y descripciones secundarias innecesarias. Deja que el diseño haga la explicación.
 - Clerk gestiona la autenticación. Reutiliza sus componentes y APIs oficiales; no desarrolles autenticación propia ni almacenamiento manual de tokens.

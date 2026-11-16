@@ -2,7 +2,7 @@
 
 import Image, { type StaticImageData } from "next/image";
 import Link from "next/link";
-import { Dialog } from "radix-ui";
+import { Dialog, DialogBackdrop, DialogContent, DialogTitle, DialogTrigger } from "@ui-sdk/react/dialog";
 import { StickyScroll } from "@/components/ui/sticky-scroll-reveal";
 import agendaImage from "@/public/media/product/agenda.jpg";
 import clientsImage from "@/public/media/product/clientes.jpg";
@@ -44,23 +44,20 @@ export function HomeProduct() {
 }
 
 function ProductScreenshot({ image, alt, label }: { image: StaticImageData; alt: string; label: string }) {
-  return <Dialog.Root>
+  return <Dialog>
     <figure className="home-product-figure">
-      <Dialog.Trigger asChild>
-        <button type="button" className="home-product-image" aria-label={`Ampliar captura de ${label}`}>
-          <Image src={image} sizes="(max-width: 900px) calc(100vw - 48px), (max-width: 1432px) 60vw, 840px" alt={alt} />
-          <span className="home-product-zoom" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4 4M10.5 7.5v6M7.5 10.5h6" /></svg></span>
-        </button>
-      </Dialog.Trigger>
+      <DialogTrigger className="home-product-image" aria-label={`Ampliar captura de ${label}`}>
+        <Image src={image} sizes="(max-width: 900px) calc(100vw - 48px), (max-width: 1432px) 60vw, 840px" alt={alt} />
+        <span className="home-product-zoom" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4 4M10.5 7.5v6M7.5 10.5h6" /></svg></span>
+      </DialogTrigger>
     </figure>
-    <Dialog.Portal>
-      <Dialog.Overlay className="home-image-overlay" />
-      <Dialog.Content className="home-image-dialog" aria-describedby={undefined}>
-        <Dialog.Title className="sr-only">Captura ampliada de {label}</Dialog.Title>
-        <Image src={image} alt={alt} unoptimized />
-      </Dialog.Content>
-    </Dialog.Portal>
-  </Dialog.Root>;
+
+    <DialogBackdrop className="home-image-overlay" />
+    <DialogContent className="home-image-dialog" initialFocus="content">
+      <DialogTitle className="sr-only">Captura ampliada de {label}</DialogTitle>
+      <Image src={image} alt={alt} unoptimized />
+    </DialogContent>
+  </Dialog>;
 }
 
 function ProductArrow() {

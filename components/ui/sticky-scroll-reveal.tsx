@@ -2,8 +2,8 @@
 
 // Adapted from Aceternity UI's Sticky Scroll Reveal registry component.
 // https://ui.aceternity.com/registry/sticky-scroll-reveal-demo.json
-import { useRef, useState, type ReactNode } from "react";
-import { motion, useMotionValueEvent, useReducedMotion, useScroll } from "motion/react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { motion, useMotionValue, useScroll, useTransform, type MotionValue } from "motion/react";
 
 type StickyScrollItem = {
   id: string;
@@ -14,60 +14,133 @@ type StickyScrollItem = {
   action: ReactNode;
 };
 
+type Reveal = { index: number; opacity: number } | null;
+
+function useStepOpacity(reveal: MotionValue<Reveal>, index: number) {
+  return useTransform(reveal, (value) => value === null ? 1 : value.index === index ? value.opacity : 0);
+}
+
+function ProductStep({ item, index, active, reveal }: {
+  item: StickyScrollItem;
+  index: number;
+  active: boolean | undefined;
+  reveal: MotionValue<Reveal>;
+}) {
+  const opacity = useStepOpacity(reveal, index);
+  return (
+    <motion.article
+      className="sticky-reveal-step"
+      data-active={active}
+      inert={active === false}
+      aria-labelledby={`product-${item.id}`}
+      style={{ opacity }}
+    >
+      <h3 id={`product-${item.id}`}>{item.title}</h3>
+      <p className="sticky-reveal-summary">{item.summary}</p>
+      <p className="sticky-reveal-description">{item.description}</p>
+      {item.action}
+      <div className="sticky-reveal-mobile">{item.content}</div>
+    </motion.article>
+  );
+}
+
+function ProductFrame({ item, index, reveal }: { item: StickyScrollItem; index: number; reveal: MotionValue<Reveal> }) {
+  const opacity = useStepOpacity(reveal, index);
+  const visibility = useTransform(opacity, (value) => value > 0 ? "visible" : "hidden");
+  return <motion.div className="sticky-reveal-frame" style={{ opacity, visibility }}>{item.content}</motion.div>;
+}
+
 export function StickyScroll({ content }: { content: StickyScrollItem[] }) {
-  const [activeCard, setActiveCard] = useState(0);
+  const [activeCard, setActiveCard] = useState<number | null>(null);
   const ref = useRef<HTMLDivElement>(null);
-  const reduceMotion = useReducedMotion();
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start center", "end center"],
-  });
+  const reveal = useMotionValue<Reveal>(null);
+  const { scrollY } = useScroll();
+  const count = content.length;
 
-  useMotionValueEvent(scrollYProgress, "change", (progress) => {
-    const index = Math.min(content.length - 1, Math.floor(progress * content.length));
-    setActiveCard(index);
-  });
+  useLayoutEffect(() => {
+    const root = ref.current;
+    if (!root || !count) return;
+    const steps = Array.from(root.querySelectorAll<HTMLElement>(".sticky-reveal-step"));
+    let centers: number[] = [];
+    let viewportMiddle = 0;
+    let active = -1;
 
-  if (!content.length) return null;
+    function update(scroll: number) {
+      const viewportCenter = scroll + viewportMiddle;
+      let index = 0;
+      while (index < centers.length - 1 && viewportCenter >= (centers[index] + centers[index + 1]) / 2) index++;
 
-  return <div className="sticky-reveal" ref={ref}>
-    <div className="sticky-reveal-copy">
-      {content.map((item, index) => <article
-        className="sticky-reveal-step"
-        data-active={activeCard === index}
-        key={item.id}
-        aria-labelledby={`product-${item.id}`}
-      >
-        <motion.h3
-          id={`product-${item.id}`}
-          animate={{ color: activeCard === index ? "var(--home-foreground)" : "var(--home-muted)" }}
-          transition={{ duration: reduceMotion ? 0 : .3 }}
-        >{item.title}</motion.h3>
-        <p className="sticky-reveal-summary">{item.summary}</p>
-        <p className="sticky-reveal-description">{item.description}</p>
-        {item.action}
-        <div className="sticky-reveal-mobile">{item.content}</div>
-      </article>)}
+      const distance = viewportCenter - centers[index];
+      const neighbor = centers[index + (distance < 0 ? -1 : 1)];
+      const range = neighbor === undefined ? viewportMiddle * 0.7 : Math.abs(neighbor - centers[index]) / 2;
+      const fraction = Math.min(1, Math.max(0, (Math.abs(distance) / Math.max(1, range) - 0.22) / 0.78));
+      reveal.set({ index, opacity: 1 - fraction * fraction * (3 - 2 * fraction) });
+
+      if (index !== active) {
+        active = index;
+        setActiveCard(index);
+      }
+    }
+
+    function measure() {
+      const scroll = window.scrollY;
+      viewportMiddle = window.innerHeight / 2;
+      const lastReachableCenter = document.documentElement.scrollHeight - viewportMiddle;
+      centers = steps.map((step, index) => {
+        const { top, height } = step.getBoundingClientRect();
+        const center = top + scroll + height / 2;
+        return index === steps.length - 1 ? Math.min(center, lastReachableCenter) : center;
+      });
+      update(scroll);
+    }
+
+    measure();
+    const unsubscribe = scrollY.on("change", update);
+    const resize = new ResizeObserver(measure);
+    steps.forEach((step) => resize.observe(step));
+    window.addEventListener("resize", measure);
+    return () => {
+      unsubscribe();
+      resize.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [count, reveal, scrollY]);
+
+  if (!count) return null;
+  const selected = activeCard ?? 0;
+  const item = content[selected];
+
+  function goTo(index: number) {
+    const step = ref.current?.querySelectorAll(".sticky-reveal-step")[index];
+    step?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+      block: "center",
+    });
+  }
+
+  return (
+    <div className="sticky-reveal" ref={ref}>
+      <nav className="sticky-reveal-progress" aria-label="Secciones del producto">
+        <div className="sticky-reveal-track">
+          {content.map((step, index) => (
+            <button
+              key={step.id}
+              type="button"
+              aria-label={`${index + 1} de ${count}, ${step.title}`}
+              aria-current={selected === index ? "step" : undefined}
+              onClick={() => goTo(index)}
+            ><span aria-hidden="true" /></button>
+          ))}
+        </div>
+      </nav>
+      <div className="sticky-reveal-copy">
+        {content.map((step, index) => (
+          <ProductStep key={step.id} item={step} index={index} active={activeCard === null ? undefined : selected === index} reveal={reveal} />
+        ))}
+      </div>
+      <div className="sticky-reveal-stage" data-active-feature={item.id}>
+        <ProductFrame key={item.id} item={item} index={selected} reveal={reveal} />
+      </div>
     </div>
-    <div className="sticky-reveal-stage" data-active-feature={content[activeCard].id}>
-      <motion.div
-        key={content[activeCard].id}
-        initial={reduceMotion ? false : { opacity: .45, filter: "blur(3px)" }}
-        animate={{ opacity: 1, filter: "blur(0px)" }}
-        transition={{ duration: .35, ease: [.16, 1, .3, 1] }}
-      >{content[activeCard].content}</motion.div>
-    </div>
-    <nav className="sticky-reveal-progress" aria-label="Secciones del producto">
-      {content.map((item, index) => <button
-        key={item.id}
-        type="button"
-        aria-label={`${index + 1} de ${content.length}: ${item.title}`}
-        aria-current={activeCard === index ? "step" : undefined}
-        onClick={() => document.getElementById(`product-${item.id}`)?.closest("article")?.scrollIntoView({
-          behavior: reduceMotion ? "instant" : "smooth", block: "center",
-        })}
-      ><span aria-hidden="true" /></button>)}
-      <span className="sticky-reveal-count" aria-hidden="true">{activeCard + 1}/{content.length}</span>
-    </nav>
-  </div>;
+  );
 }

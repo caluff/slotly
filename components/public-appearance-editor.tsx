@@ -4,7 +4,7 @@ import { useAction, usePaginatedQuery, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
-import { Tabs } from "radix-ui";
+import { Tabs, TabsList, TabsPanel, TabsTab } from "@ui-sdk/react/tabs";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -108,10 +108,10 @@ function Editor({ initial, latest, businessName, timeZone, enabled }: { initial:
       {changedElsewhere && <div className="appearance-notice"><p role="status">Hay una versión guardada más reciente.</p><Button type="button" variant="outline" disabled={busy || !!pending} onClick={reload}>Cargar versión guardada</Button></div>}
       {error && <p ref={alert} tabIndex={-1} id="appearance-error" role="alert" className="appearance-error">{error}</p>}
     </div>}
-    <Tabs.Root value={mobileTab} onValueChange={setMobileTab} className="appearance-tabs" activationMode="manual">
-      <Tabs.List aria-label="Editor y vista previa" className="appearance-mobile-tabs"><Tabs.Trigger value="edit">Editar</Tabs.Trigger><Tabs.Trigger value="preview">Vista previa</Tabs.Trigger></Tabs.List>
+    <Tabs value={mobileTab} onValueChange={value => { if (value) setMobileTab(value); }} className="appearance-tabs" activation="manual">
+      <TabsList aria-label="Editor y vista previa" className="appearance-mobile-tabs"><TabsTab value="edit">Editar</TabsTab><TabsTab value="preview">Vista previa</TabsTab></TabsList>
       <div className="appearance-columns" data-mobile-tab={mobileTab}>
-        <Tabs.Content forceMount value="edit" asChild><div className="appearance-settings" aria-label="Ajustes de la vista pública">
+        <TabsPanel render={props => <div {...props} hidden={undefined} />} keepMounted value="edit" className="appearance-settings" aria-label="Ajustes de la vista pública">
           <form ref={form} id="public-appearance-form" onSubmit={submit} noValidate aria-busy={busy}>
             <fieldset disabled={frozen} className="appearance-fieldset"><legend className="sr-only">Personalización</legend>
               <details open className="appearance-section"><summary>Presentación<ChevronDown aria-hidden="true" /></summary><div className="appearance-fields">
@@ -138,12 +138,12 @@ function Editor({ initial, latest, businessName, timeZone, enabled }: { initial:
               </div></details>
             </fieldset>
           </form>
-        </div></Tabs.Content>
-        <Tabs.Content forceMount value="preview" asChild><div className="appearance-preview" aria-label="Vista previa de reservas"><div className="appearance-preview-label">Vista previa <span>Los cambios se publican al guardar</span></div>
+        </TabsPanel>
+        <TabsPanel render={props => <div {...props} hidden={undefined} />} keepMounted value="preview" className="appearance-preview" aria-label="Vista previa de reservas"><div className="appearance-preview-label">Vista previa <span>Los cambios se publican al guardar</span></div>
           <div className="appearance-preview-page"><Preview businessName={businessName} timeZone={timeZone} settings={settings} photoUrl={photoUrl} enabled={enabled} /></div>
-        </div></Tabs.Content>
+        </TabsPanel>
       </div>
-    </Tabs.Root>
+    </Tabs>
   </section>;
 }
 function EditorField({ label, name, value, onChange, max, type = "text", placeholder, invalid }: { label: string; name: string; value: string; onChange: (value: string) => void; max: number; type?: string; placeholder?: string; invalid: string | null }) {

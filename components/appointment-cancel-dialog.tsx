@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertDialog } from "radix-ui";
+import { AlertDialog, AlertDialogBackdrop, AlertDialogClose, AlertDialogContent, AlertDialogDescription, AlertDialogTitle } from "@ui-sdk/react/alert-dialog";
 import { ConvexError } from "convex/values";
 import type { FunctionReturnType } from "convex/server";
 import { useEffect, useRef, useState } from "react";
@@ -51,7 +51,7 @@ export function AppointmentCancelDialog({ appointment: initial, latest = initial
       if (!mounted.current) return;
       if (result.outcome === "cancelled") {
         toast.success("Cita cancelada.");
-        onClose();
+        close();
       } else {
         setRepeatedAt(result.cancelledAt);
       }
@@ -64,16 +64,19 @@ export function AppointmentCancelDialog({ appointment: initial, latest = initial
       if (mounted.current) setPending(false);
     }
   }
-  return <AlertDialog.Root open onOpenChange={(open) => { if (!open && !inFlight.current) onClose(); }}>
-    <AlertDialog.Portal>
-      <AlertDialog.Overlay className="fixed inset-0 z-50 bg-foreground/30" />
-      <AlertDialog.Content className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-line bg-background p-5 sm:p-6"
-        onEscapeKeyDown={(event) => { if (inFlight.current) event.preventDefault(); }}
-        onCloseAutoFocus={(event) => { event.preventDefault(); onReturnFocus(); }}>
-        <AlertDialog.Title className="text-lg font-semibold tracking-tight">{cancelled ? "Cita ya cancelada" : "Cancelar cita"}</AlertDialog.Title>
-        <AlertDialog.Description className="sr-only">
+  function close() {
+    onClose();
+    requestAnimationFrame(onReturnFocus);
+  }
+  return <AlertDialog open onOpenChange={(open, details) => { if (!open) { if (inFlight.current) details.cancel(); else close(); } }}>
+
+      <AlertDialogBackdrop className="fixed inset-0 z-50 bg-foreground/30" />
+      <AlertDialogContent className="fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-line bg-background p-5 sm:p-6"
+        finalFocus="none">
+        <AlertDialogTitle className="text-lg font-semibold tracking-tight">{cancelled ? "Cita ya cancelada" : "Cancelar cita"}</AlertDialogTitle>
+        <AlertDialogDescription className="sr-only">
           {cancelled ? "Esta cita ya estaba cancelada." : `Cancela la cita de ${appointment.clientName}, ${appointment.serviceName}.`}
-        </AlertDialog.Description>
+        </AlertDialogDescription>
         <dl className="my-5 space-y-3 border-y border-line py-4 text-sm">
           <div><dt className="text-muted">Fecha y horario</dt><dd className="mt-1">{formatLocalDate(appointment.date)}<br /><span className="tabular-nums">{time.format(appointment.start)}–{time.format(appointment.end)}</span><br /><span className="text-muted wrap-anywhere">{timeZone}</span></dd></div>
         </dl>
@@ -81,11 +84,11 @@ export function AppointmentCancelDialog({ appointment: initial, latest = initial
         {changed && !cancelled && !pending && <div role="status" className="mb-5 space-y-3 text-sm leading-6"><p>La cita cambió en otra pestaña. Estado actual: {latest.status === "completed" ? "Completada" : latest.status === "no_show" ? "No asistió" : "Confirmada"}, para el {formatLocalDate(latest.date)}, {time.format(latest.start)}–{time.format(latest.end)} ({timeZone}). Revisa este horario antes de cancelar.</p><Button variant="outline" disabled={pending} onClick={() => { setAppointment(latest); setError(null); }}>Revisar horario actualizado</Button></div>}
         {error && !cancelled && <p ref={errorRef} role="alert" tabIndex={-1} className="mb-5 text-sm leading-6 text-destructive">{error}</p>}
         <div className="flex flex-wrap justify-end gap-3" aria-busy={pending}>
-          <AlertDialog.Cancel asChild><Button variant="outline" disabled={pending}>{cancelled ? "Cerrar" : "Volver"}</Button></AlertDialog.Cancel>
-          {!cancelled && <AlertDialog.Action asChild><Button variant="destructive" disabled={pending || changed || terminal} onClick={(event) => { event.preventDefault(); void confirm(); }}>{pending ? "Cancelando…" : "Cancelar cita"}</Button></AlertDialog.Action>}
+          <AlertDialogClose render={<Button variant="outline" />} disabled={pending}>{cancelled ? "Cerrar" : "Volver"}</AlertDialogClose>
+          {!cancelled && <Button type="button" variant="destructive" disabled={pending || changed || terminal} onClick={() => void confirm()}>{pending ? "Cancelando…" : "Cancelar cita"}</Button>}
         </div>
         <p role="status" className="sr-only">{pending ? "Confirmando la cancelación…" : ""}</p>
-      </AlertDialog.Content>
-    </AlertDialog.Portal>
-  </AlertDialog.Root>;
+      </AlertDialogContent>
+
+  </AlertDialog>;
 }

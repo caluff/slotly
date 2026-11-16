@@ -34,7 +34,7 @@ La revisión de seguridad no confirmó vulnerabilidades dentro de su alcance; no
 
 ## Stack y decisiones
 
-Next.js16.4.2 con App Router, React19.3.0, TypeScript, Tailwind CSS4 y componentes shadcn/ui adaptados; Clerk Next7.9.17 y Convex1.47.0. Versiones efectivas en [package.json](package.json) y [pnpm-lock.yaml](pnpm-lock.yaml).
+Next.js 16.4.2 con App Router, React 19.3.0, TypeScript y Tailwind CSS 4. UI SDK proporciona los controles, diálogos y menús compartidos. Clerk Next 7.9.17 y Convex 1.47.0. Versiones efectivas en [package.json](package.json) y [pnpm-lock.yaml](pnpm-lock.yaml).
 
 Clerk gestiona las sesiones. Next protege la entrada privada en servidor y Convex vuelve a verificar identidad y propietario en cada recurso privado. Las transacciones revalidan disponibilidad y revisión al guardar; un horario mostrado no reserva ocupación. Los comandos durables permiten reintentar la misma intención sin duplicar citas. [Diagrama y decisiones](docs/ARCHITECTURE.md).
 

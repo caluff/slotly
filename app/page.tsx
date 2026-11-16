@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Brand } from "@/components/brand";
 import { GoogleSignInButton } from "@/components/google-sign-in-button";
-import { ParticleFilm } from "@/components/particle-film";
+import { HomeParticleCalendar } from "@/components/home-particle-calendar";
 import { HomeProduct } from "@/components/home-product";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -16,12 +16,12 @@ export default function Home() {
     <header className="home-header"><Brand /><nav aria-label="Acceso"><Link href="/demo" prefetch={false}>Ver demo</Link><Suspense fallback={<Link href="/sign-in">Iniciar sesión</Link>}><AccountNavigation /></Suspense><ThemeToggle /></nav></header>
     <main id="main-content">
       <section className="home-hero" aria-labelledby="home-heading">
-        <ParticleFilm />
         <div className="home-copy">
           <h1 id="home-heading">Tu agenda.<br />Con otra <em>calma.</em></h1>
           <p>Un hueco para cada cita. Más espacio para lo que haces bien.</p>
-          <div className="home-actions"><Button asChild><Link href="/demo" prefetch={false}>Ver demo <HomeArrow diagonal /></Link></Button><Suspense fallback={<Button variant="outline" asChild><Link href="/sign-in">Iniciar con Google</Link></Button>}><HomeAccess /></Suspense></div>
+          <div className="home-actions"><Button render={<Link href="/demo" prefetch={false} />}>Ver demo <HomeArrow diagonal /></Button><Suspense fallback={<Button variant="outline" render={<Link href="/sign-in" />}>Iniciar con Google</Button>}><HomeAccess /></Suspense></div>
         </div>
+        <HomeParticleCalendar />
       </section>
       <HomeProduct />
     </main>
@@ -36,7 +36,7 @@ async function AccountNavigation() {
 
 async function HomeAccess() {
   const { isAuthenticated } = await auth();
-  return isAuthenticated ? <Button variant="outline" asChild><Link href="/dashboard" prefetch={false}>Ir a mi agenda</Link></Button> : <GoogleSignInButton />;
+  return isAuthenticated ? <Button variant="outline" render={<Link href="/dashboard" prefetch={false} />}>Ir a mi agenda</Button> : <GoogleSignInButton />;
 }
 
 function HomeArrow({ diagonal = false }: { diagonal?: boolean }) {

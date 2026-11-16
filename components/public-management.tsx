@@ -2,7 +2,7 @@
 
 import { useAction, useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { Dialog } from "radix-ui";
+import { Dialog, DialogBackdrop, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@ui-sdk/react/dialog";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
@@ -134,18 +134,17 @@ export function PublicManagement() {
       </div>
       <PublicManagementLink secret={secret ?? undefined} showOpen={false} />
     </>}
-    <Dialog.Root open={!!reviewed} onOpenChange={open => { if (!open && !lock.current) setReviewed(null); }}><Dialog.Portal>
-      <Dialog.Overlay className="fixed inset-0 z-50 bg-foreground/30" />
-      <Dialog.Content className="appointment-editor fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-line bg-background p-5 text-foreground sm:p-6"
-        onEscapeKeyDown={event => { if (lock.current) event.preventDefault(); }} onInteractOutside={event => { if (lock.current) event.preventDefault(); }}
-        onCloseAutoFocus={event => { event.preventDefault(); requestAnimationFrame(() => (error ? alert.current : trigger.current ?? heading.current)?.focus()); }}>
-        <div className="flex items-start justify-between gap-3"><Dialog.Title className="text-lg font-semibold">Cancelar cita</Dialog.Title><Dialog.Close asChild><Button variant="ghost" size="icon" aria-label="Cerrar confirmación" disabled={busy}><X aria-hidden="true" /></Button></Dialog.Close></div>
-        <Dialog.Description className="mt-3 text-sm leading-6 text-muted">La cita se cancelará y su horario quedará libre.</Dialog.Description>
+    <Dialog open={!!reviewed} onOpenChange={(open, details) => { if (!open) { if (lock.current) details.cancel(); else setReviewed(null); } }}>
+      <DialogBackdrop className="fixed inset-0 z-50 bg-foreground/30" />
+      <DialogContent className="appointment-editor fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-line bg-background p-5 text-foreground sm:p-6"
+        finalFocus={() => error ? alert.current : trigger.current ?? heading.current}>
+        <div className="flex items-start justify-between gap-3"><DialogTitle className="text-lg font-semibold">Cancelar cita</DialogTitle><DialogClose render={<Button variant="ghost" size="icon" />} aria-label="Cerrar confirmación" disabled={busy}><X aria-hidden="true" /></DialogClose></div>
+        <DialogDescription className="mt-3 text-sm leading-6 text-muted">La cita se cancelará y su horario quedará libre.</DialogDescription>
         {reviewed && <Context view={reviewed} />}
         {stale && <p role="alert" className="text-sm text-destructive">La cita cambió. Cierra esta confirmación y revisa los datos actuales.</p>}
-        <div className="mt-6 flex flex-wrap justify-end gap-3"><Dialog.Close asChild><Button variant="outline" disabled={busy} className="w-full sm:w-auto">Volver</Button></Dialog.Close>
+        <div className="mt-6 flex flex-wrap justify-end gap-3"><DialogClose render={<Button variant="outline" />} disabled={busy} className="w-full sm:w-auto">Volver</DialogClose>
           <Button variant="destructive" disabled={busy || stale} className="w-full sm:w-auto" onClick={() => { if (reviewed) void perform({ operationId: crypto.randomUUID(), revision: reviewed.revision }, false); }}>{busy ? "Cancelando…" : "Confirmar cancelación"}</Button></div>
-      </Dialog.Content>
-    </Dialog.Portal></Dialog.Root>
+      </DialogContent>
+    </Dialog>
   </section>;
 }

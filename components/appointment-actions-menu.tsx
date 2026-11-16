@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarClock, CalendarDays, CalendarX2, CheckCheck, EllipsisVertical, UserX } from "@/components/ui/icons";
-import { DropdownMenu } from "radix-ui";
+import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from "@ui-sdk/react/menu";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { navigateWorkspace } from "@/components/dashboard-workspace";
@@ -17,40 +17,34 @@ export function AppointmentActionsMenu({ label, date, dayHref, canReschedule, ca
   const trigger = useRef<HTMLButtonElement>(null);
   const pendingAction = useRef<AppointmentAction | null>(null);
   const [open, setOpen] = useState(false);
-  return <DropdownMenu.Root open={open} onOpenChange={setOpen}>
-    <DropdownMenu.Trigger asChild>
-      <Button ref={trigger} type="button" variant="ghost" size="icon" aria-label={label}>
-        <EllipsisVertical aria-hidden="true" />
-      </Button>
-    </DropdownMenu.Trigger>
-    <DropdownMenu.Portal>
-      <DropdownMenu.Content align="end" sideOffset={6} collisionPadding={12}
-        className="z-40 max-h-[var(--radix-dropdown-menu-content-available-height)] w-48 max-w-[calc(100vw-1.5rem)] overflow-y-auto rounded-md border border-line bg-card p-1 text-foreground outline-none"
-        onCloseAutoFocus={(event) => {
-          const action = pendingAction.current;
-          if (!action) return;
-          // Let Radix close/unmount its focus scope before opening the dialog.
-          // Its default focus restoration must not steal the dialog's focus.
-          event.preventDefault();
-          pendingAction.current = null;
-          onAction(action, trigger.current);
-        }}>
-        <DropdownMenu.Item asChild className={itemClass}>
-          <a href={dayHref} onClick={(event) => { setOpen(false); navigateWorkspace(event); }} aria-label={`Localizar fecha ${date}`}><CalendarDays aria-hidden="true" />Localizar fecha</a>
-        </DropdownMenu.Item>
-        {canReschedule && <DropdownMenu.Item className={itemClass} onSelect={() => { pendingAction.current = "reschedule"; }}>
-          <CalendarClock aria-hidden="true" />Reprogramar
-        </DropdownMenu.Item>}
-        {canMarkResult && <>
-          <DropdownMenu.Item disabled={resultBlocked} className={`${itemClass} appointment-status-completed data-[disabled]:opacity-60`} onSelect={() => { pendingAction.current = "completed"; }}><CheckCheck aria-hidden="true" />Completada</DropdownMenu.Item>
-          <DropdownMenu.Item disabled={resultBlocked} className={`${itemClass} appointment-status-no_show data-[disabled]:opacity-60`} onSelect={() => { pendingAction.current = "no_show"; }}><UserX aria-hidden="true" />No asistió</DropdownMenu.Item>
-        </>}
-        {canCancel && <><DropdownMenu.Separator className="my-1 h-px bg-line" />
-          <DropdownMenu.Item className={`${itemClass} text-destructive data-[highlighted]:bg-destructive/5`} onSelect={() => { pendingAction.current = "cancel"; }}>
-            <CalendarX2 aria-hidden="true" />Cancelar cita
-          </DropdownMenu.Item>
-        </>}
-      </DropdownMenu.Content>
-    </DropdownMenu.Portal>
-  </DropdownMenu.Root>;
+  function whenClosed(open: boolean) {
+    if (open || !pendingAction.current) return;
+    const action = pendingAction.current;
+    pendingAction.current = null;
+    onAction(action, trigger.current);
+  }
+  return <Menu open={open} onOpenChange={setOpen} onOpenChangeComplete={whenClosed}>
+    <MenuTrigger render={<Button size="icon" variant="ghost" />} ref={trigger} aria-label={label}>
+      <EllipsisVertical aria-hidden="true" />
+    </MenuTrigger>
+    <MenuContent align="end" sideOffset={6} collisionPadding={12}
+      className="z-40 max-h-[var(--available-height)] w-48 max-w-[calc(100vw-1.5rem)] overflow-y-auto rounded-md border border-line bg-card p-1 text-foreground outline-none"
+      finalFocus={() => pendingAction.current ? null : trigger.current}>
+      <MenuItem className={itemClass} render={<a href={dayHref} onClick={event => { setOpen(false); navigateWorkspace(event); }} />} aria-label={`Localizar fecha ${date}`}>
+        <CalendarDays aria-hidden="true" />Localizar fecha
+      </MenuItem>
+      {canReschedule && <MenuItem className={itemClass} onSelect={() => { pendingAction.current = "reschedule"; }}>
+        <CalendarClock aria-hidden="true" />Reprogramar
+      </MenuItem>}
+      {canMarkResult && <>
+        <MenuItem disabled={resultBlocked} className={`${itemClass} appointment-status-completed data-[disabled]:opacity-60`} onSelect={() => { pendingAction.current = "completed"; }}><CheckCheck aria-hidden="true" />Completada</MenuItem>
+        <MenuItem disabled={resultBlocked} className={`${itemClass} appointment-status-no_show data-[disabled]:opacity-60`} onSelect={() => { pendingAction.current = "no_show"; }}><UserX aria-hidden="true" />No asistió</MenuItem>
+      </>}
+      {canCancel && <><MenuSeparator className="my-1 h-px bg-line" />
+        <MenuItem className={`${itemClass} text-destructive data-[highlighted]:bg-destructive/5`} onSelect={() => { pendingAction.current = "cancel"; }}>
+          <CalendarX2 aria-hidden="true" />Cancelar cita
+        </MenuItem>
+      </>}
+    </MenuContent>
+  </Menu>;
 }

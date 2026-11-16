@@ -1,6 +1,6 @@
 "use client";
 
-import { Checkbox } from "radix-ui";
+import { Checkbox, CheckboxIndicator } from "@ui-sdk/react/checkbox";
 import { Check, Search } from "@/components/ui/icons";
 import { useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
@@ -37,9 +37,8 @@ export function AgendaFiltersForm({ filters, services, moreServices, loadingServ
     <fieldset><legend className="mb-1 text-sm font-medium">Estado</legend>
       {appointmentStatuses.map(status => {
         const checked = selectedAppointmentStatuses(filters.status)?.includes(status) ?? false;
-        return <Checkbox.Root key={status} asChild checked={checked} onCheckedChange={() => { const values = current(); apply({ ...values, status: toggleCalendarStatus(values.status, status) }); }}>
-          <Button type="button" variant="ghost" className={`w-full justify-start px-2 appointment-status-${status}`}><span className="flex size-4 items-center justify-center rounded-sm border border-current" aria-hidden="true"><Checkbox.Indicator><Check className="size-3" /></Checkbox.Indicator></span>{appointmentStatusFilters[status]}</Button>
-        </Checkbox.Root>;
+        return <Checkbox key={status} render={<Button type="button" variant="ghost" className={`w-full justify-start px-2 appointment-status-${status}`} />} checked={checked} onCheckedChange={() => { const values = current(); apply({ ...values, status: toggleCalendarStatus(values.status, status) }); }}><span className="flex size-4 items-center justify-center rounded-sm border border-current" aria-hidden="true"><CheckboxIndicator><Check className="size-3" /></CheckboxIndicator></span>{appointmentStatusFilters[status]}
+        </Checkbox>;
       })}
     </fieldset>
     <p id="search-name-help" className="sr-only">Escribe un fragmento con o sin tildes y pulsa Enter o Buscar por nombre para consultar todas las fechas. Servicio y estado se aplican al cambiar; conservan el último nombre aplicado.</p>
