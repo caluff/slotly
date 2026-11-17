@@ -13,7 +13,7 @@ const args = process.argv.slice(2);
 assert(args.length === 0 || (args.length === 2 && args[0] === "--output" && path.isAbsolute(args[1])),
   "Uso: pnpm verify:build [--output <directorio absoluto de evidencia>]");
 const require = createRequire(import.meta.url);
-assert.equal(require("next/package.json").version, "16.4.2", "Revisa el transporte de configuración antes de actualizar Next.");
+assert.equal(require("next/package.json").version, "16.4.6", "Revisa el transporte de configuración antes de actualizar Next.");
 const marker = randomUUID();
 const distDir = "node_modules/.cache/slotly-verify-build-" + marker;
 const buildPath = path.resolve(root, distDir);
@@ -62,7 +62,7 @@ try {
     exclude: [absolute("node_modules")],
   }, null, 2), { flag: "wx" });
   // Public distDir/tsconfigPath options, delivered through the installed Next
-  // 16.4.2 serialized-config transport in this verification child only.
+  // 16.4.6 serialized-config transport in this verification child only.
   const effective = await loadConfig(PHASE_PRODUCTION_BUILD, root, {
     customConfig: { ...projectConfig, distDir,
       typescript: { ...projectConfig.typescript, tsconfigPath: distDir + ".tsconfig.json" } },
@@ -91,14 +91,14 @@ try {
   assert.equal(runtime.code, 0);
   assert.match(runtime.output, /^v24\./, "El proceso hijo de pnpm debe usar Node24.");
   childNode = runtime.output;
-  console.log("Build aislado: " + childNode + ", Next16.4.2, salida " + marker);
+  console.log("Build aislado: " + childNode + ", Next16.4.6, salida " + marker);
   const result = await pnpm(["exec", "next", "build"]);
   buildExit = result.code;
   assert.equal(buildExit, 0, "El build no terminó correctamente.");
   const buildId = (await fs.readFile(path.join(buildPath, "BUILD_ID"), "utf8")).trim();
   await fs.writeFile(path.join(destination, "build-result-" + marker + ".json"), JSON.stringify({
     at: new Date().toISOString(), marker, buildExit, node: process.version, childNode,
-    next: "16.4.2", buildId, distDir, syntheticBuildValues: true,
+    next: "16.4.6", buildId, distDir, syntheticBuildValues: true,
     sharedNextUsedAsBuildOutput: false, applicationRoot: root,
     privateConfigTransportPinnedToInstalledNext: true,
   }, null, 2), { flag: "wx" });
