@@ -3,18 +3,14 @@
 import { Temporal } from "@js-temporal/polyfill";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ChevronLeft, ChevronRight } from "@/components/ui/icons";
 import { todayInZone } from "@/lib/agenda-date";
 import { isLocalDate } from "@/lib/local-date";
 import "@/components/public-booking-presentation.css";
 
 export type BookingDaysLoader = (month: string) => Promise<string[] | null>;
-type Props = { id: string; value: string; onChange: (value: string) => void; mode: "native" | "calendar"; timeZone: string; invalid?: boolean; errorId?: string; availabilityKey: string; loadDays?: BookingDaysLoader };
-export function PublicBookingDate(props: Props) {
-  return props.mode === "native" ? <Input id={props.id} name="date" type="date" value={props.value} onChange={event => props.onChange(event.target.value)} required aria-invalid={props.invalid} aria-describedby={props.invalid ? props.errorId : undefined} /> : <InlineDate {...props} />;
-}
-function InlineDate({ id, value, onChange, timeZone, invalid, errorId, availabilityKey, loadDays }: Props) {
+type Props = { id: string; value: string; onChange: (value: string) => void; timeZone: string; invalid?: boolean; errorId?: string; availabilityKey: string; loadDays?: BookingDaysLoader };
+export function PublicBookingDate({ id, value, onChange, timeZone, invalid, errorId, availabilityKey, loadDays }: Props) {
   const [today] = useState(() => todayInZone(timeZone, Date.now()));
   const [focal, setFocal] = useState(isLocalDate(value) ? value : today);
   const [seenValue, setSeenValue] = useState(value);

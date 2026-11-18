@@ -54,6 +54,7 @@ export default defineSchema({
     publicBookingSlug: v.optional(v.string()),
     publicBookingEnabled: v.optional(v.boolean()),
     emailConfirmationsEnabled: v.optional(v.boolean()),
+    emailConfirmationsTestEnabled: v.optional(v.boolean()),
     emailConfirmationsVersion: v.optional(v.number()),
   }).index("by_ownerId", ["ownerId"])
     .index("by_publicBookingSlug", ["publicBookingSlug"]),

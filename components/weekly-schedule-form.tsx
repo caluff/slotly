@@ -1,13 +1,15 @@
+import { Accordion, AccordionHeader, AccordionItem, AccordionPanel, AccordionTrigger } from "@ui-sdk/react/accordion";
+import { Checkbox, CheckboxIndicator } from "@ui-sdk/react/checkbox";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ConvexError } from "convex/values";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { Controller, useForm, useWatch, type FieldPath } from "react-hook-form";
 import { toast } from "sonner";
 import { useDraftWarning } from "@/components/use-draft-warning";
 import { Button } from "@/components/ui/button";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import { Check } from "@/components/ui/icons";
 import { Input } from "@/components/ui/input";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import {
   scheduleFormValues, weekDays, weeklyScheduleSchema,
   type WeeklyScheduleFormValues, type WeeklyScheduleValues,
@@ -29,6 +31,8 @@ export function WeeklyScheduleForm({ schedule, onSave }: WeeklyScheduleFormProps
   useDraftWarning(isDirty || isSubmitting);
   const { reset, setFocus } = form;
   const days = useWatch({ control: form.control, name: "days" });
+  const formId = useId();
+  const [expandedDays, setExpandedDays] = useState<string[]>([]);
   const [savedOnce, setSavedOnce] = useState(false);
   const submissionLock = useRef(false);
   const focusAfterSubmit = useRef<FormField | null>(null);
@@ -48,7 +52,12 @@ export function WeeklyScheduleForm({ schedule, onSave }: WeeklyScheduleFormProps
       setFocus(focusAfterSubmit.current);
       focusAfterSubmit.current = null;
     }
-  }, [isSubmitting, submitCount, setFocus]);
+  }, [expandedDays, isSubmitting, submitCount, setFocus]);
+
+  function revealInvalidTime(index: number, time: "start" | "end") {
+    focusAfterSubmit.current = `days.${index}.${time}`;
+    setExpandedDays([weekDays[index]]);
+  }
 
   async function onSubmit(values: WeeklyScheduleValues) {
     try {
@@ -68,7 +77,7 @@ export function WeeklyScheduleForm({ schedule, onSave }: WeeklyScheduleFormProps
             ? "El cierre debe ser posterior a la apertura, dentro del mismo día."
             : "Escribe una hora válida (HH:mm).",
         });
-        focusAfterSubmit.current = field;
+        revealInvalidTime(index, data.field);
         return;
       }
       form.setError("root.server", {
@@ -93,7 +102,7 @@ export function WeeklyScheduleForm({ schedule, onSave }: WeeklyScheduleFormProps
         for (let index = 0; index < 7; index++) {
           const day = fieldErrors.days?.[index];
           if (day?.start || day?.end) {
-            focusAfterSubmit.current = `days.${index}.${day.start ? "start" : "end"}`;
+            revealInvalidTime(index, day.start ? "start" : "end");
             break;
           }
         }
@@ -105,53 +114,66 @@ export function WeeklyScheduleForm({ schedule, onSave }: WeeklyScheduleFormProps
 
   return (
     <form onSubmit={handleSubmit} noValidate aria-label="Horario semanal" aria-busy={isSubmitting}>
-      {schedule === null && !savedOnce && <p className="mb-5 text-sm text-muted">Todavía no has guardado un horario.</p>}
+      {schedule === null && !savedOnce && <p className="mb-3 text-sm text-muted">Todavía no has guardado un horario.</p>}
       <fieldset disabled={isSubmitting}>
         <legend className="sr-only">Semana de atención</legend>
-        <FieldGroup className="gap-0 divide-y divide-line border-y border-line">
-          {weekDays.map((label, index) => (
-            <fieldset key={label} className="grid min-w-0 grid-cols-2 gap-4 py-4 sm:grid-cols-[8rem_minmax(0,1fr)_minmax(0,1fr)]">
-              <legend className="sr-only">{label}</legend>
-              <Controller name={`days.${index}.isOpen`} control={form.control} render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid} className="col-span-2 flex-row items-center justify-between gap-4 sm:col-span-1 sm:flex-col sm:items-start sm:justify-start sm:gap-2 [&>[data-slot=native-select-wrapper]]:w-32 [&>[data-slot=native-select-wrapper]]:shrink-0">
-                  <FieldLabel htmlFor={`schedule-${index}-state`} className="font-semibold">{label}</FieldLabel>
-                  <NativeSelect ref={field.ref} id={`schedule-${index}-state`} name={field.name}
-                    value={field.value ? "open" : "closed"} onBlur={field.onBlur}
-                    onChange={(event) => {
-                      field.onChange(event.target.value === "open");
-                      form.clearErrors([`days.${index}.start`, `days.${index}.end`]);
-                    }} className="w-full" aria-invalid={fieldState.invalid}>
-                    <NativeSelectOption value="closed">Cerrado</NativeSelectOption>
-                    <NativeSelectOption value="open">Abierto</NativeSelectOption>
-                  </NativeSelect>
-                </Field>
-              )} />
-              {days[index].isOpen ? (["start", "end"] as const).map((timeField) => (
-                <Controller key={timeField} name={`days.${index}.${timeField}`} control={form.control} render={({ field, fieldState }) => {
-                  const enabled = days[index].isOpen;
-                  const id = `schedule-${index}-${timeField}`;
-                  return (
-                    <Field data-invalid={enabled && fieldState.invalid} data-disabled={!enabled || isSubmitting} className="min-w-0 gap-2">
-                      <FieldLabel htmlFor={id} className="font-semibold">
-                        {timeField === "start" ? "Apertura" : "Cierre"}<span className="sr-only"> del {label.toLowerCase()}</span>
-                      </FieldLabel>
-                      <Input {...field} id={id} type="time" step={60} min="00:00" max="23:59"
-                        required={enabled} disabled={!enabled || isSubmitting} autoComplete="off"
-                        className="w-full tabular-nums" aria-invalid={enabled && fieldState.invalid}
-                        aria-describedby={enabled && fieldState.invalid ? `${id}-error` : undefined} />
-                      {enabled && fieldState.invalid && <FieldError id={`${id}-error`} errors={[fieldState.error]} />}
-                    </Field>
-                  );
-                }} />
-              )) : <p className="hidden self-center text-sm text-muted sm:col-span-2 sm:block">Sin atención</p>}
-            </fieldset>
-          ))}
-        </FieldGroup>
+        <Accordion aria-label="Días de atención" value={expandedDays} onValueChange={setExpandedDays} disabled={isSubmitting} className="max-w-none border-line">
+          {weekDays.map((label, index) => {
+            const { isOpen, start, end } = days[index];
+            const invalid = Boolean(errors.days?.[index]?.start || errors.days?.[index]?.end);
+            const summary = !isOpen ? "Cerrado" : start && end ? `${start}–${end}` : "Sin completar";
+            return (
+              <AccordionItem key={label} value={label} className="border-line last:border-b-0">
+                <AccordionHeader>
+                  <AccordionTrigger type="button" className="min-h-9 gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-surface focus-visible:-outline-offset-2 data-open:bg-surface">
+                    <span className="mr-auto font-semibold">{label}</span>
+                    <span className={invalid ? "text-destructive" : "text-muted tabular-nums"}>
+                      {invalid ? "Revisar horas" : summary}
+                    </span>
+                  </AccordionTrigger>
+                </AccordionHeader>
+                <AccordionPanel className="px-2 pt-2 pb-3">
+                  <Controller name={`days.${index}.isOpen`} control={form.control} render={({ field }) => (
+                    <Checkbox checked={field.value} disabled={isSubmitting} onBlur={field.onBlur}
+                      render={<Button type="button" variant="ghost" className="group justify-start px-0 font-medium hover:bg-transparent" />}
+                      onCheckedChange={(checked) => {
+                        field.onChange(checked === true);
+                        form.clearErrors([`days.${index}.start`, `days.${index}.end`]);
+                      }}>
+                      <span aria-hidden="true" className="flex size-4 shrink-0 items-center justify-center rounded-sm border border-muted bg-background text-primary-foreground group-data-checked:border-accent group-data-checked:bg-accent">
+                        <CheckboxIndicator><Check className="size-3" /></CheckboxIndicator>
+                      </span>
+                      Abierto<span className="sr-only"> el {label.toLowerCase()}</span>
+                    </Checkbox>
+                  )} />
+                  {isOpen && <div className="mt-1 grid grid-cols-2 gap-3">
+                    {(["start", "end"] as const).map((timeField) => (
+                      <Controller key={timeField} name={`days.${index}.${timeField}`} control={form.control} render={({ field, fieldState }) => {
+                        const id = `${formId}-${index}-${timeField}`;
+                        return (
+                          <Field data-invalid={fieldState.invalid} data-disabled={isSubmitting} className="min-w-0 gap-1.5">
+                            <FieldLabel htmlFor={id} className="text-xs font-semibold">
+                              {timeField === "start" ? "Apertura" : "Cierre"}<span className="sr-only"> del {label.toLowerCase()}</span>
+                            </FieldLabel>
+                            <Input {...field} id={id} type="time" step={60} min="00:00" max="23:59"
+                              required disabled={isSubmitting} autoComplete="off" className="w-full tabular-nums"
+                              aria-invalid={fieldState.invalid} aria-describedby={fieldState.invalid ? `${id}-error` : undefined} />
+                            {fieldState.invalid && <FieldError id={`${id}-error`} errors={[fieldState.error]} />}
+                          </Field>
+                        );
+                      }} />
+                    ))}
+                  </div>}
+                </AccordionPanel>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
         {errors.days?.root && <FieldError className="mt-4" errors={[errors.days.root]} />}
         {errors.root?.server && <FieldError className="mt-4" errors={[errors.root.server]} />}
-        <div className="sticky bottom-0 mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-line bg-background py-4">
-          <p role="status" className="text-sm text-muted">{isSubmitting ? "Guardando la semana…" : errors.root?.server ? "No se guardaron los cambios." : isDirty ? "Cambios sin guardar" : savedOnce ? "Todos los cambios guardados" : schedule === null ? "Semana sin configurar" : "Horario guardado"}</p>
-          <Button type="submit" disabled={isSubmitting || (!isDirty && schedule !== null)} className="w-full sm:w-auto">
+        <div className="sticky bottom-0 z-10 mt-3 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 border-t border-line bg-background py-3">
+          <p role="status" className="text-xs text-muted">{isSubmitting ? "Guardando…" : isDirty ? "Cambios sin guardar" : savedOnce ? "Horario guardado" : ""}</p>
+          <Button type="submit" disabled={isSubmitting || (!isDirty && (schedule !== null || savedOnce))}>
             {isSubmitting ? "Guardando…" : "Guardar semana"}
           </Button>
         </div>

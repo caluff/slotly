@@ -239,9 +239,9 @@ export const snapshot = internalQuery({
   await deployIsolated();
   console.log("Esquema y funciones desplegados solo en backend temporal loopback.");
   let emailEnvironmentInitialized = false;
-  async function setEmailEnvironment(enabled) {
+  async function setEmailEnvironment(enabled, overrides = {}) {
     const values = emailEnvironmentInitialized ? [] : [["SLOTLY_EMAIL_FROM", "Slotly <fixture@sender.synthetic>"], ["SLOTLY_EMAIL_RESEND_API_KEY", "re_synthetic_confirmation_only"]];
-    values.push(["SLOTLY_EMAIL_READY", String(enabled)]);
+    values.push(...Object.entries(overrides), ["SLOTLY_EMAIL_READY", String(enabled)]);
     for (const [name, value] of values) {
       const command = spawn(process.execPath, [path.join(repo, "node_modules/convex/bin/main.js"), "env", "set", name, value, "--env-file", envFile], { cwd: workspace, env: cleanEnv, windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
       let output = ""; command.stdout.on("data", d => { output += d; }); command.stderr.on("data", d => { output += d; });
@@ -375,7 +375,17 @@ export const snapshot = internalQuery({
       await serviceUndoScenarios({setup,date,start,makeClient,race,report});
     }
   } else if (process.argv.includes("--confirmations-only")) {
-    await confirmationEmailScenarios({setup,date,start,makeClient,race,report,provider:mailProvider,setEmailEnvironment,restart:async()=>{await stopBackend();await startBackend();}});
+    async function allowIsolatedEmailTestMode(owner) {
+      const deploymentUrl = await owner.client.query("engineFixtures:mailDeploymentUrl", {});
+      assert.ok(["127.0.0.1", "localhost"].includes(new URL(deploymentUrl).hostname));
+      const target = path.join(workspace, "convex", "lib", "emailConfirmation.ts");
+      const source = await readFile(target, "utf8");
+      const developmentUrl = /(?<=const developmentDeploymentUrl = ")[^"\n]+(?=";)/g;
+      assert.equal([...source.matchAll(developmentUrl)].length, 1);
+      await writeFile(target, source.replace(developmentUrl, () => deploymentUrl));
+      await deployIsolated();
+    }
+    await confirmationEmailScenarios({setup,date,start,makeClient,race,report,provider:mailProvider,setEmailEnvironment,allowIsolatedEmailTestMode,restart:async()=>{await stopBackend();await startBackend();}});
     if (process.argv.includes("--with-email-regressions")) {
       await emailClientsScenarios({setup,date,start,makeClient,race,report,restart:async()=>{await stopBackend();await startBackend();}});
       await serviceScenarios({ setup,date,start,makeClient,race,report });

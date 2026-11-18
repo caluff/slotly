@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { publicAppearanceDraft, publicAppearanceForSave } from "../lib/public-appearance.ts";
 
 export const appearanceFixtureSource = `
 export const appearanceSnapshot = internalQuery({ args: {}, returns: v.any(), handler: async ctx => {
@@ -53,6 +54,7 @@ export async function appearanceScenarios({ setup, makeClient, race, report, res
   const visible = await anonymous.query("publicAppearance:getPublic", { slug: link.slug });
   assert.deepEqual(Object.keys(visible).sort(), ["photoUrl", "settings"]);
   assert.equal(visible.settings.phone, ""); assert.equal(visible.photoUrl, null);
+  assert.equal(visible.settings.profileLayout, undefined);
   assert.deepEqual((await snapshot(owner)).protectedRows, before.protectedRows);
   assert.deepEqual((await snapshot(owner)).business, before.business);
   assert.equal((await outsider.client.query("publicAppearance:getMy", {})).version, 0);
@@ -62,7 +64,9 @@ export async function appearanceScenarios({ setup, makeClient, race, report, res
   await errorCode(save(owner, { ...cmd, settings: { ...settings, welcome: "Different payload" } }), "COMMAND_CONFLICT");
   await errorCode(save(owner, command()), "PROFILE_CHANGED");
   serial.push({ group: "defaults-auth-owner-allowlist-exact-replay-payload-stale", passed: true });
-  for (const bad of [{ phone: "javascript:alert(1)" }, { publicName: "x".repeat(101) }, { welcome: "x\u0000" }, { theme: "external-url" }, { datePicker: "unsafe" }, { showPhone: true, phone: "" }]) {
+  for (const bad of [{ phone: "javascript:alert(1)" }, { publicName: "x".repeat(101) }, { welcome: "x\u0000" }, { theme: "external-url" }, { datePicker: "unsafe" }, { showPhone: true, phone: "" },
+    { tagline: "x".repeat(101) }, { bookingNote: "x".repeat(301) }, { profileLayout: "unsafe" }, { headerStyle: "unsafe" }, { bookingAction: "unsafe" },
+    { website: "javascript:alert(1)" }, { website: "https://user:pass@studio.example.test/" }]) {
     await assert.rejects(save(owner, command({ expectedVersion: 1, settings: { ...settings, ...bad } })));
   }
   await errorCode(save(owner, command({ expectedVersion: 1, imageBytes: new Uint8Array(40).buffer })), "INVALID_PHOTO");
@@ -70,6 +74,24 @@ export async function appearanceScenarios({ setup, makeClient, race, report, res
   await errorCode(save(owner, command({ expectedVersion: 1, settings: { ...settings, showPhoto: true } })), "PHOTO_REQUIRED");
   assert.deepEqual((await snapshot(owner)).profile, afterFirst.profile);
   serial.push({ group: "validation-text-phone-themes-photo-size-signature-required", passed: true });
+  const phoneOwner = await setup("Synthetic phone privacy");
+  const phoneLink = await phoneOwner.client.mutation("bookingLinks:setMyBookingLink", { enabled: true });
+  const phoneProfile = () => anonymous.query("publicAppearance:getPublic", { slug: phoneLink.slug });
+  const savedHidden = await save(phoneOwner, command());
+  const emptyPhoneDraft = publicAppearanceDraft(savedHidden.settings);
+  assert.equal(emptyPhoneDraft.phone, "");
+  const savedOtherEdit = await save(phoneOwner, command({ expectedVersion: 1, settings: publicAppearanceForSave({ ...emptyPhoneDraft, tagline: "Contacto" }, savedHidden.settings) }));
+  assert.equal(savedOtherEdit.settings.phone, settings.phone);
+  assert.equal(savedOtherEdit.settings.showPhone, false);
+  assert.equal((await phoneProfile()).settings.phone, "");
+  const newPhone = "+598 98 000 000";
+  const savedPublicPhone = await save(phoneOwner, command({ expectedVersion: 2, settings: publicAppearanceForSave({ ...publicAppearanceDraft(savedOtherEdit.settings), phone: newPhone }, savedOtherEdit.settings) }));
+  assert.equal((await phoneProfile()).settings.phone, newPhone);
+  const removedPhone = await save(phoneOwner, command({ expectedVersion: 3, settings: publicAppearanceForSave({ ...publicAppearanceDraft(savedPublicPhone.settings), phone: "" }, savedPublicPhone.settings) }));
+  assert.equal(removedPhone.settings.phone, "");
+  assert.equal(removedPhone.settings.showPhone, false);
+  assert.equal((await phoneProfile()).settings.phone, "");
+  serial.push({ group: "public-phone-entry-removal-and-legacy-privacy", passed: true });
   const photoCommand = command({ expectedVersion: 1, settings: { ...settings, showPhoto: true, showPhone: true }, imageBytes: bytes });
   const withPhoto = await save(owner, photoCommand), photoSnapshot = await snapshot(owner);
   assert.equal(withPhoto.version, 2); assert.equal(withPhoto.hasPhoto, true);
@@ -93,7 +115,13 @@ export async function appearanceScenarios({ setup, makeClient, race, report, res
   const confirmation = await anonymous.mutation("publicBooking:confirm", booking);
   assert.equal(confirmation.ok, true);
   const booked = await snapshot(owner);
-  await save(owner, command({ expectedVersion: 5, settings: { ...settings, publicName: "Nombre público nuevo" } }));
+  const expandedSettings = { ...settings, publicName: "Nombre público nuevo", theme: "marine", tagline: "Clases a medida",
+    profileLayout: "centered", headerStyle: "tinted", website: "https://studio.example.test/reservas", bookingNote: "Llegá diez minutos antes.", bookingAction: "schedule" };
+  const expandedCommand = command({ expectedVersion: 5, settings: expandedSettings });
+  assert.deepEqual((await save(owner, expandedCommand)).settings, expandedSettings);
+  assert.equal((await save(owner, expandedCommand)).changed, false);
+  assert.deepEqual((await anonymous.query("publicAppearance:getPublic", { slug: link.slug })).settings, { ...expandedSettings, phone: "" });
+  await errorCode(save(owner, { ...expandedCommand, settings: { ...expandedSettings, bookingNote: "Otra indicación" } }), "COMMAND_CONFLICT");
   assert.deepEqual(await anonymous.mutation("publicBooking:confirm", booking), confirmation);
   assert.deepEqual((await snapshot(owner)).protectedRows, booked.protectedRows);
   assert.deepEqual(Object.keys(await anonymous.query("publicBooking:getBusiness", { slug: link.slug })).sort(), ["name", "timeZone"]);
@@ -118,6 +146,7 @@ export async function appearanceScenarios({ setup, makeClient, race, report, res
   }
   const persisted = await snapshot(owner); await restart();
   assert.deepEqual(await snapshot(owner), persisted);
+  assert.deepEqual((await owner.client.query("publicAppearance:getMy", {})).settings, expandedSettings);
   assert.equal((await save(owner, command({ expectedVersion: 6, settings: { ...settings, publicName: "Después de reiniciar" } }))).version, 7);
   serial.push({ group: "SQLite-restart-profile-storage-preservation", passed: true });
   report.publicAppearance = { serial, raceCount: 9, participatingRequests: 18, rounds: 3, synthetic: true, realEngine: true, persistenceAfterRestart: true };

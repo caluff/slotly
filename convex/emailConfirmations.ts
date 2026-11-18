@@ -3,22 +3,25 @@ import { internalMutation, mutation, query, type MutationCtx } from "./_generate
 import type { Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { requireMyAppointment, requireMyBusiness } from "./lib/appointmentData";
-import { emailConfiguration } from "./lib/emailConfirmation";
+import { confirmationDispatchError, emailConfiguration, emailPreferenceEnabled, emailTestModeRequested } from "./lib/emailConfirmation";
 import { emailError, emailState, EMAIL_LEASE_MS, EMAIL_MAX_ATTEMPTS, EMAIL_RETRY_MS, EMAIL_WINDOW_MS } from "./emailConfirmationValidators";
 
-const settings = v.object({ enabled: v.boolean(), version: v.number(), configured: v.boolean() });
+const settings = v.object({ enabled: v.boolean(), version: v.number(), configured: v.boolean(), testMode: v.optional(v.literal(true)) });
 function presentSettings(business: Doc<"businesses">) {
-  return { enabled: business.emailConfirmationsEnabled === true, version: business.emailConfirmationsVersion ?? 0, configured: !!emailConfiguration() };
+  return { enabled: emailPreferenceEnabled(business), version: business.emailConfirmationsVersion ?? 0, configured: !!emailConfiguration(),
+    ...(emailTestModeRequested() ? { testMode: true as const } : {}) };
 }
 export const getMySettings = query({ args: {}, returns: settings, handler: async ctx => presentSettings(await requireMyBusiness(ctx)) });
 export const setMySettings = mutation({
-  args: { enabled: v.boolean(), expectedVersion: v.number() }, returns: v.object({ changed: v.boolean(), settings }),
+  args: { enabled: v.boolean(), expectedVersion: v.number(), expectedTestMode: v.optional(v.literal(true)) }, returns: v.object({ changed: v.boolean(), settings }),
   handler: async (ctx, args) => {
     const business = await requireMyBusiness(ctx), before = presentSettings(business);
-    if (!Number.isSafeInteger(args.expectedVersion) || args.expectedVersion < 0 || args.expectedVersion !== before.version) throw new ConvexError({ code: "EMAIL_SETTINGS_CHANGED" });
+    if (!Number.isSafeInteger(args.expectedVersion) || args.expectedVersion < 0 || args.expectedVersion !== before.version
+      || args.expectedTestMode !== before.testMode) throw new ConvexError({ code: "EMAIL_SETTINGS_CHANGED" });
     if (args.enabled && !before.configured) throw new ConvexError({ code: "EMAIL_NOT_CONFIGURED" });
     if (args.enabled === before.enabled) return { changed: false, settings: before };
-    await ctx.db.patch("businesses", business._id, { emailConfirmationsEnabled: args.enabled, emailConfirmationsVersion: before.version + 1 });
+    const preference = before.testMode ? { emailConfirmationsTestEnabled: args.enabled } : { emailConfirmationsEnabled: args.enabled };
+    await ctx.db.patch("businesses", business._id, { ...preference, emailConfirmationsVersion: before.version + 1 });
     return { changed: true, settings: { ...before, enabled: args.enabled, version: before.version + 1 } };
   },
 });
@@ -35,7 +38,7 @@ export const getMyAppointmentStatus = query({
 const acceptanceUncertain = (event: Doc<"emailConfirmations">) => event.uncertain === true || (event.state === "sending" && event.dispatchedAt !== undefined);
 async function stopIfDisabled(ctx: MutationCtx, event: Doc<"emailConfirmations">, now: number) {
   const business = await ctx.db.get("businesses", event.businessId);
-  if (business?.emailConfirmationsEnabled === true) return false;
+  if (business && emailPreferenceEnabled(business)) return false;
   await ctx.db.patch("emailConfirmations", event._id, { state: acceptanceUncertain(event) ? "review" : "disabled", lastError: "preference_disabled",
     updatedAt: now, finishedAt: now, leaseUntil: undefined, nextAttemptAt: undefined });
   return true;
@@ -49,6 +52,15 @@ async function stopIfObsolete(ctx: MutationCtx, event: Doc<"emailConfirmations">
     return true;
   }
   return false;
+}
+
+async function dispatchPayload(ctx: MutationCtx, event: Doc<"emailConfirmations">, now: number) {
+  const lastError = confirmationDispatchError(emailConfiguration(), event.payloadJson);
+  if (!lastError && event.payloadJson) return event.payloadJson;
+  const state = acceptanceUncertain(event) ? "review" : lastError === "test_recipient_mismatch" ? "suppressed" : "not_configured";
+  await ctx.db.patch("emailConfirmations", event._id, { state, lastError: lastError ?? "configuration_unavailable",
+    updatedAt: now, finishedAt: now, leaseUntil: undefined, nextAttemptAt: undefined });
+  return null;
 }
 
 // A scheduled mutation retries atomically. Each claim schedules both its action
@@ -65,10 +77,7 @@ export const start = internalMutation({
       return null;
     }
     if (await stopIfDisabled(ctx, event, now) || await stopIfObsolete(ctx, event, now)) return null;
-    if (!emailConfiguration() || !event.payloadJson) {
-      await ctx.db.patch("emailConfirmations", eventId, { state: acceptanceUncertain(event) ? "review" : "not_configured", lastError: "configuration_unavailable", finishedAt: now, updatedAt: now, leaseUntil: undefined, nextAttemptAt: undefined });
-      return null;
-    }
+    if (!(await dispatchPayload(ctx, event, now))) return null;
     const generation = event.generation + 1, leaseUntil = now + EMAIL_LEASE_MS;
     await ctx.db.patch("emailConfirmations", eventId, { state: "sending", attempts: event.attempts + 1, generation,
       firstAttemptAt: event.firstAttemptAt ?? now, updatedAt: now, leaseUntil, nextAttemptAt: undefined, dispatchedAt: undefined,
@@ -90,12 +99,10 @@ export const authorize = internalMutation({
       return null;
     }
     if (await stopIfDisabled(ctx, event, now) || await stopIfObsolete(ctx, event, now)) return null;
-    if (!emailConfiguration() || !event.payloadJson) {
-      await ctx.db.patch("emailConfirmations", event._id, { state: acceptanceUncertain(event) ? "review" : "not_configured", lastError: "configuration_unavailable", updatedAt: now, finishedAt: now, leaseUntil: undefined });
-      return null;
-    }
+    const payloadJson = await dispatchPayload(ctx, event, now);
+    if (!payloadJson) return null;
     await ctx.db.patch("emailConfirmations", event._id, { dispatchedAt: now, updatedAt: now });
-    return { payloadJson: event.payloadJson, providerKey: event.providerKey, deadline };
+    return { payloadJson, providerKey: event.providerKey, deadline };
   },
 });
 export const finish = internalMutation({

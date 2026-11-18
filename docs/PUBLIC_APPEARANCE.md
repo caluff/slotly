@@ -2,24 +2,33 @@
 
 ## Alcance autorizado
 
-Desde Negocio, «Personalizar vista pública» abre un editor dentro de la misma aplicación. Escritorio: formulario izquierdo y preview derecha. Móvil: Editar/Vista previa. El usuario autorizó teléfono y foto opcionales, selector de fecha en calendario o nativo, nombre de la persona y bienvenida, y opciones adicionales razonables: nombre público, dirección opcional y paleta de colores accesibles.
+Desde Negocio, «Personalizar vista pública» abre un editor dentro de la misma aplicación. En escritorio se muestran el formulario a la izquierda y la vista previa a la derecha. En móvil se alterna entre Editar y Vista previa.
+
+Desde el 17/11/2026, Presentación reúne nombre, profesional, frase y bienvenida. Apariencia reúne foto, seis colores, alineación y fondo de portada. Contacto reúne dirección, teléfono y sitio HTTPS. Reserva reúne indicaciones y texto del botón. En pantalla ancha, el control segmentado Escritorio/Móvil ajusta el ancho de la vista previa y conserva los datos de reserva seleccionados. Las preferencias nuevas son opcionales para los perfiles guardados anteriormente.
 
 ## Criterios de aceptación
 
 - Perfil por negocio y acceso privado de su propietario. La configuración vive en una tabla nueva; no modifica los negocios, horarios, servicios, citas, recibos o trabajos existentes.
-- Valores ausentes usan nombre del negocio, **calendario visible**, verde y ningún dato de contacto o foto. Una elección explícita guardada de campo nativo se respeta.
-- Al abrir el editor solo Presentación está desplegada. Contacto y foto, y Reservas y estilo comienzan contraídas; siguen pudiendo abrirse independientemente y la validación abre la sección del campo erróneo.
+- Valores ausentes usan nombre del negocio, verde y ningún dato de contacto o foto. El calendario visible se usa también en los perfiles que habían guardado el campo nativo.
+- Al abrir el editor solo Presentación está desplegada. Apariencia, Contacto y Reserva se abren independientemente. La validación abre la sección del campo erróneo.
 - El borrador actualiza la preview sin guardar ni crear reservas. Guardar explícito aplica la configuración; Volver conserva el borrador dentro del workspace. Salir del documento avisa si hay cambios.
-- Los campos son texto plano acotado. Teléfono y foto solo aparecen públicamente si se activa su visibilidad. Ningún ownerId, revisión, comando o identificador de almacenamiento se expone en el DTO público.
+- Los campos son texto plano acotado. Teléfono público usa un selector de país con prefijo visible y formato automático, con Uruguay como opción inicial. Un número completo aparece en la vista previa y se publica en formato internacional al guardar. Vaciar el campo retira el teléfono público. Un número guardado como oculto queda fuera del campo público y conserva su privacidad al guardar otros cambios.
+- Apariencia muestra la miniatura de la foto pública y las acciones para subirla, cambiarla o quitarla. Elegir una foto la muestra de inmediato en la vista previa. Quitar foto la retira del borrador. Guardar aplica la elección a la página de reservas. Las fotos antiguas guardadas como ocultas conservan su privacidad.
 - Foto propia, sin URLs externas proporcionadas por el usuario. El navegador prepara una imagen pequeña; el backend valida tamaño y firma JPEG/PNG/WebP. El cliente no puede asociar un storageId arbitrario. La sustitución conserva el archivo activo ante una respuesta incierta y retira archivos reemplazados cuando se confirma.
 - Guardado con comando estable y revisión esperada, reintento exacto y conflicto ante cambios concurrentes. Reutilizar un comando con otro contenido falla; un replay no cambia timestamps o revisiones.
 - La página pública lee únicamente los campos permitidos de negocios con enlace activo. Desactivar el enlace sigue ocultando su contenido. No activa enlaces ni modifica reservas al personalizar.
-- Calendario y control nativo escriben el mismo campo de fecha de la reserva actual. Servicio, opciones, límites temporales, ocupación, correo, idempotencia, recuperación y enlace de gestión conservan su lógica.
+- El calendario escribe el campo de fecha de la reserva. Durante un reintento se muestra como texto la fecha del intento original. Servicio, opciones, límites temporales, ocupación, correo, idempotencia, recuperación y enlace de gestión conservan su lógica.
 - Elegir servicio carga los días del mes con al menos un horario reservable. Días pasados, cerrados, llenos, bloqueados o sin espacio suficiente para la duración elegida no se pueden seleccionar. Elegir día habilita las horas; cambiar servicio reinicia fecha y hora, cambiar fecha reinicia hora.
-- Servicio, fecha/hora y contacto forman grupos distintos. En escritorio calendario y horas aparecen juntos, y nombre/correo comparten fila. En móvil se apilan los grupos. Las horas se eligen con radios compactos de36px, con el intervalo completo como nombre accesible y resumen al seleccionar. Se conservan los inicios en pasos de15min del resolver vigente y la duración real del servicio; la ocupación puede dejar huecos entre opciones.
+- Servicio, fecha y hora, y contacto forman grupos distintos. En escritorio calendario y horas aparecen juntos, y nombre y correo comparten fila. En móvil se apilan los grupos. Los turnos se agrupan por mañana (antes de las 12), tarde (desde las 12) y noche (desde las 18), en hora local del negocio. Solo se ofrecen franjas con turnos. La cuadrícula se adapta al ancho y usa el desplazamiento de la página. Las horas se eligen con radios de 36 px, con el intervalo completo como nombre accesible y resumen al seleccionar. La zona horaria sigue rigiendo la disponibilidad y se retira de la cabecera pública.
 - Controles36px, foco/teclado, errores recuperables, modo móvil y movimiento reducido. Una sola app, rama main y destinos de desarrollo.
 
 ## Verificación
+
+### Foto, teléfono y franjas horarias · 17/11/2026
+
+- En el navegador, el editor mostró y quitó una foto local en el borrador, formateó números de Uruguay y España y enfocó el teléfono incompleto al validar. Se verificaron las franjas con disponibilidad real, su navegación con flechas y la conservación del horario elegido al cambiar de franja. Se comprobó en el editor a 1280, 390 y 320 px, y en la ruta pública se eligió un horario sin enviar la reserva.
+- El motor Convex aislado verificó la publicación, sustitución y retirada de la foto en el DTO público, incluidos los reintentos y conflictos. No se publicó la foto de prueba en el negocio compartido.
+- En la prueba posterior autorizada sobre `determined-poodle-377`, se publicó una imagen de prueba y se confirmó que la página pública cargaba el mismo archivo guardado por el editor. Después se quitó, se guardó de nuevo y se comprobó su ausencia al recargar la página pública. Se probaron el contraste de la lista de países en claro y oscuro, la selección con flechas y Enter, Escape y el ancho de 320 px.
 
 ### Refinamiento de calendario y formulario —26/10/2026
 

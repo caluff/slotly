@@ -7,8 +7,8 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
-import { PublicBookingSurface, PublicReservationFields } from "@/components/public-booking-presentation";
-import { defaultPublicAppearance } from "@/lib/public-appearance";
+import { PublicBookingSurface, PublicReservationFields, PublicReservationIntro } from "@/components/public-booking-presentation";
+import { defaultPublicAppearance, publicBookingActions } from "@/lib/public-appearance";
 import { clientEmailSchema } from "@/lib/client-email";
 import { appointmentSchema } from "@/lib/appointment-schema";
 import { isLocalDate } from "@/lib/local-date";
@@ -177,7 +177,8 @@ export function PublicBooking({ slug }: { slug: string }) {
     <p role="status" className="mt-4 text-muted">Comprueba la dirección o contacta con el negocio.</p></section>;
   const time = new Intl.DateTimeFormat("es-UY", { timeStyle: "short", timeZone: business.timeZone });
   const pendingSlot = pending ? `${time.format(pending.start)}${pending.expectedService ? ` – ${time.format(pending.start + pending.expectedService.durationMinutes * 60_000)}` : ""}` : "";
-  return <PublicBookingSurface businessName={business.name} timeZone={business.timeZone} appearance={appearance ?? { settings: defaultPublicAppearance, photoUrl: null }}>
+  const settings = appearance?.settings ?? defaultPublicAppearance;
+  return <PublicBookingSurface businessName={business.name} appearance={{ settings, photoUrl: appearance?.photoUrl ?? null }}>
     {receipt ? <div className="mt-8 border-y border-line py-6">
       <CalendarCheck aria-hidden="true" className="mb-4 size-7 text-accent" />
       <h2 ref={success} tabIndex={-1} className="text-xl font-semibold tracking-tight">Confirmación original</h2>
@@ -191,10 +192,10 @@ export function PublicBooking({ slug }: { slug: string }) {
       {error && <p ref={alert} role="alert" tabIndex={-1} className="mt-4 text-sm text-destructive">{error}</p>}
       <Button type="button" variant="outline" className="mt-5" onClick={anotherBooking}>Reservar otra cita</Button>
     </div> : <form ref={form} onSubmit={submit} noValidate aria-label="Reservar cita" aria-busy={busy} className="mt-8">
-      <h2 className="mb-6 text-xl font-semibold tracking-tight">Reservar cita</h2>
+      <PublicReservationIntro note={settings.bookingNote} />
       <fieldset disabled={busy || !!pending} className="grid gap-5">
         <legend className="sr-only">Datos de la reserva</legend>
-        <PublicReservationFields fields={{ ...fields, start: serviceChanged ? "" : fields.start }} change={change} timeZone={business.timeZone} datePicker={(appearance?.settings ?? defaultPublicAppearance).datePicker} invalid={invalid} recovering={!!pending} loadDays={business && fields.serviceId && !pending ? loadDays : undefined}
+        <PublicReservationFields fields={{ ...fields, start: serviceChanged ? "" : fields.start }} change={change} timeZone={business.timeZone} invalid={invalid} recovering={!!pending} loadDays={business && fields.serviceId && !pending ? loadDays : undefined}
           services={pending ? [] : services.results} servicesLoading={services.status === "LoadingFirstPage"}
           fallbackService={pending ? { id: pending.serviceId, label: pending.expectedService ? `${pending.expectedService.name} · ${pending.expectedService.durationMinutes} min` : "Servicio elegido" } : fields.serviceId && !services.results.some(s => s.id === fields.serviceId) ? { id: fields.serviceId, label: "Servicio elegido" } : undefined}
           serviceHelp={<>{!pending && services.status === "Exhausted" && !services.results.length && <p role="status" className="text-sm text-muted">No hay servicios disponibles.</p>}{!pending && (services.status === "CanLoadMore" || services.status === "LoadingMore") && <Button type="button" variant="outline" disabled={services.status !== "CanLoadMore"} onClick={() => services.loadMore(30)}>{services.status === "LoadingMore" ? "Cargando…" : "Ver más servicios"}</Button>}</>}
@@ -203,7 +204,7 @@ export function PublicBooking({ slug }: { slug: string }) {
           startHelp={<>{serviceChanged && <p role="status" className="text-sm">El servicio cambió. Revisa su nombre y duración y vuelve a elegir un horario.</p>}{readyOptions && options.error ? <div><p role="alert" className="text-sm text-destructive">{options.error}</p><Button type="button" variant="outline" className="mt-3" onClick={() => setRefresh(value => value + 1)}>Reintentar horarios</Button></div> : readyOptions && !slots.length && <p role="status" className="text-sm text-muted">No hay horarios disponibles para esta fecha.</p>}</>} />
       </fieldset>
       {error && <p ref={alert} id="booking-error" role="alert" tabIndex={-1} className="mt-5 text-sm leading-6 text-destructive">{error}</p>}
-      <Button type="submit" disabled={busy} className="mt-6 w-full sm:w-auto">{busy ? "Confirmando…" : pending ? "Reintentar confirmación" : "Confirmar cita"}</Button>
+      <Button type="submit" disabled={busy} className="public-booking-action mt-6">{busy ? "Confirmando…" : pending ? "Reintentar confirmación" : publicBookingActions[settings.bookingAction ?? "confirm"]}</Button>
     </form>}
   </PublicBookingSurface>;
 }

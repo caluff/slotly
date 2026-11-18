@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
-import { emailConfiguration } from "./lib/emailConfirmation";
+import { confirmationDispatchError, emailConfiguration } from "./lib/emailConfirmation";
 
 // Fixed provider destination. Only the isolated engine harness replaces this
 // literal in its own temporary workspace; there is no runtime override.
@@ -9,11 +9,12 @@ const PROVIDER_URL = "https://api.resend.com/emails";
 export const send = internalAction({
   args: { eventId: v.id("emailConfirmations"), generation: v.number() }, returns: v.null(),
   handler: async (ctx, args): Promise<null> => {
-    const config = emailConfiguration();
     const claim = await ctx.runMutation(internal.emailConfirmations.authorize, args);
     if (!claim) return null;
-    if (!config) {
-      await ctx.runMutation(internal.emailConfirmations.finish, { ...args, outcome: "permanent", error: "configuration_unavailable" });
+    const config = emailConfiguration();
+    const error = confirmationDispatchError(config, claim.payloadJson);
+    if (!config || error) {
+      await ctx.runMutation(internal.emailConfirmations.finish, { ...args, outcome: "permanent", error: error ?? "configuration_unavailable" });
       return null;
     }
     const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 15_000);

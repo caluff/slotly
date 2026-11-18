@@ -27,12 +27,10 @@ export function WeeklySchedulePanel({ schedule, timeZone, onSave }: WeeklySchedu
     <div className="max-w-3xl">
       <h1 id="schedule-heading" tabIndex={-1} className="workspace-title">Horario de atención</h1>
       <p className="workspace-description">Define tu semana habitual. Los cambios se aplican cuando guardas la semana completa.</p>
-      <p className="mt-3 text-sm text-muted">Hora local · <span className="wrap-anywhere">{timeZone}</span></p>
-      <div className="mt-8">
-        {schedule === undefined
-          ? <FormSkeleton compact label="Cargando horario de atención" />
-          : <WeeklyScheduleForm schedule={schedule} onSave={onSave} />}
-      </div>
+      <p className="mb-3 text-xs text-muted">Hora local · <span className="wrap-anywhere">{timeZone}</span></p>
+      {schedule === undefined
+        ? <FormSkeleton compact label="Cargando horario de atención" />
+        : <WeeklyScheduleForm schedule={schedule} onSave={onSave} />}
     </div>
   );
 }

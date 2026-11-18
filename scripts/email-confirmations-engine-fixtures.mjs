@@ -34,5 +34,6 @@ export const mailPhase=internalMutation({args:{eventId:v.id("emailConfirmations"
  else await ctx.db.patch("emailConfirmations",e._id,{firstAttemptAt:now-86400000,nextAttemptAt:now-1});return null;
 }});
 export const mailLegacyFlag=internalMutation({args:{enabled:v.boolean()},returns:v.null(),handler:async(ctx,args)=>{const b=await requireMyBusiness(ctx);await ctx.db.patch("businesses",b._id,{emailConfirmationsEnabled:args.enabled});return null;}});
+export const mailDeploymentUrl=internalQuery({args:{},returns:v.string(),handler:async ctx=>{await requireMyBusiness(ctx);return process.env.CONVEX_CLOUD_URL!;}});
 export const mailRenameBusiness=internalMutation({args:{name:v.string()},returns:v.null(),handler:async(ctx,args)=>{const b=await requireMyBusiness(ctx);await ctx.db.patch("businesses",b._id,{name:args.name});return null;}});
 `;

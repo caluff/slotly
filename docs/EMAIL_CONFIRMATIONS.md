@@ -38,9 +38,24 @@ La clave estable es `slotly/appointment-confirmation/<appointmentId>` y el cuerp
 
 Solo el propietario consulta ajustes y estado puntual por cita. No se lista una bandeja global. Las funciones públicas no aceptan remitente, propietario, payload o destinatario arbitrario para enviar; el worker y sus transiciones son internos y validados. Recibos/DTO públicos mantienen sus allowlists originales sin contactos, eventos, IDs de clientes o estados privados.
 
-## Configuración pendiente
+## Configuración del envío con dominio propio
 
 Las tres variables son **exclusivas del backend Convex**: `SLOTLY_EMAIL_FROM`, `SLOTLY_EMAIL_RESEND_API_KEY`, `SLOTLY_EMAIL_READY`. En `.env.example` están vacías y no son variables públicas. No se cambiaron `.env.local` ni secretos existentes. El remitente debe tener formato `Slotly <dirección del dominio propio verificado>`; placeholders y dominios reservados se rechazan. La puerta READY solo se establece tras verificar remitente/credencial y contar con la autorización específica de envío. Después sigue siendo necesaria la activación por negocio.
+
+## Prueba sin dominio propio
+
+En Convex, seleccioná **Development → `determined-poodle-377`** y abrí **Settings → Environment Variables**. Guardá estas variables en ese despliegue.
+
+| Variable | Valor |
+| --- | --- |
+| `SLOTLY_EMAIL_MODE` | `test` |
+| `SLOTLY_EMAIL_TEST_RECIPIENT` | La dirección asociada a tu cuenta de Resend |
+| `SLOTLY_EMAIL_RESEND_API_KEY` | Una clave de Resend con permiso **Sending access** |
+| `SLOTLY_EMAIL_READY` | `true` una vez cargadas las otras variables |
+
+El remitente de prueba es `Slotly <onboarding@resend.dev>`. Entrá en **Negocio → Confirmaciones por correo**, buscá la indicación **Modo de prueba** y encendé el interruptor. Creá una cita nueva con el correo de tu cuenta de Resend. Una cita con otro destinatario se reserva normalmente y su confirmación figura como **Omitida**.
+
+El backend comprueba la URL de sistema del despliegue de Convex y coteja el destinatario antes de poner la confirmación en cola y antes del envío. Las confirmaciones pendientes quedan ligadas al modo en que se crearon. El interruptor de prueba guarda una preferencia separada del ajuste de envío con dominio propio. Para salir del modo de prueba, apagá el interruptor y quitá `SLOTLY_EMAIL_MODE` y `SLOTLY_EMAIL_TEST_RECIPIENT` del despliegue de desarrollo.
 
 El destino HTTP del proveedor está fijado en el código de la acción; no hay URL configurable desde el navegador o el entorno. No se instala un SDK porque la API HTTP existente y `fetch` bastan para esta única operación. No se han creado dominios, DNS, credenciales, buzones, permisos o infraestructura. El correo continúa siendo contacto no verificado, nunca autenticación.
 

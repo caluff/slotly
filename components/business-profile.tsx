@@ -13,7 +13,6 @@ import { BusinessServices } from "@/components/business-services";
 import { BusinessClients } from "@/components/business-clients";
 import { BusinessWeeklySchedule } from "@/components/business-weekly-schedule";
 import { BusinessAvailability } from "@/components/business-availability";
-import { WorkspaceLink, navigateWorkspace } from "@/components/dashboard-workspace";
 import { useRetryConvexAuth } from "@/components/convex-client-provider";
 import { Button } from "@/components/ui/button";
 import { dashboardHref, readDashboardView } from "@/lib/dashboard-navigation";
@@ -64,17 +63,24 @@ function AuthenticatedBusinessProfile({ timeZones, enabled }: { timeZones: strin
     {/* Keep each view mounted: back/forward and navigation preserve unsaved work. */}
     <section className="workspace-agenda" aria-label="Agenda" hidden={active === "personalizar"}><BusinessAvailability businessId={business._id} businessName={business.name} timeZone={business.timeZone} enabled={enabled} /></section>
     {customizationOpened && <div className="workspace-customization" hidden={active !== "personalizar"}><PublicAppearanceEditor businessName={business.name} timeZone={business.timeZone} enabled={enabled && active === "personalizar"} /></div>}
-    <WorkspacePanels clients={<BusinessClients businessId={business._id} timeZone={business.timeZone} enabled={enabled && active === "clientes"} />} services={<BusinessServices enabled={enabled} />} schedule={<BusinessWeeklySchedule timeZone={business.timeZone} enabled={enabled} />} business={<>
-      <h1 id="business-heading" tabIndex={-1} className="workspace-title">Negocio</h1>
-      <p className="workspace-description">Los datos que definen tu espacio de trabajo.</p>
-      <dl className="mt-8 max-w-2xl divide-y divide-line border-y border-line">
-        <div className="py-5"><dt className="text-sm text-muted">Nombre del negocio o profesional</dt><dd className="mt-1 font-semibold wrap-anywhere">{business.name}</dd></div>
-        <div className="py-5"><dt className="text-sm text-muted">Zona horaria</dt><dd className="mt-1 wrap-anywhere">{business.timeZone}</dd></div>
-      </dl>
-      <BusinessBookingLink enabled={enabled && active === "negocio"} />
-      <div className="mt-6"><Button variant="outline" render={<a href={dashboardHref("personalizar", params.get("fecha"), params)} onClick={navigateWorkspace} />}>Personalizar vista pública</Button></div>
-      <BusinessEmailConfirmations enabled={enabled && active === "negocio"} />
-      <p className="mt-6 max-w-prose text-sm leading-6 text-muted">Las fechas y horas de tu <WorkspaceLink view="agenda">agenda</WorkspaceLink> y tu <WorkspaceLink view="horario">horario de atención</WorkspaceLink> se muestran en esta zona.</p>
-    </>} />
+    <WorkspacePanels clients={<BusinessClients businessId={business._id} timeZone={business.timeZone} enabled={enabled && active === "clientes"} />} services={<BusinessServices enabled={enabled} />} schedule={<BusinessWeeklySchedule timeZone={business.timeZone} enabled={enabled} />} business={
+      <div className="grid gap-5">
+        <BusinessBookingLink enabled={enabled && active === "negocio"} appearanceHref={dashboardHref("personalizar", params.get("fecha"), params)} />
+        <BusinessEmailConfirmations enabled={enabled && active === "negocio"} />
+        <section aria-labelledby="business-details-heading" className="border-t border-line pt-5">
+          <h3 id="business-details-heading" className="font-semibold">Datos del negocio</h3>
+          <dl className="mt-3 grid gap-2 text-sm">
+            <div className="grid grid-cols-[6rem_minmax(0,1fr)] gap-3">
+              <dt className="text-muted">Nombre</dt>
+              <dd className="wrap-anywhere">{business.name}</dd>
+            </div>
+            <div className="grid grid-cols-[6rem_minmax(0,1fr)] gap-3">
+              <dt className="text-muted">Zona horaria</dt>
+              <dd className="wrap-anywhere">{business.timeZone}</dd>
+            </div>
+          </dl>
+        </section>
+      </div>
+    } />
   </div>;
 }

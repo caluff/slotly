@@ -3,6 +3,7 @@ import { v } from "convex/values";
 export const emailState = v.union(v.literal("disabled"), v.literal("no_recipient"), v.literal("not_configured"),
   v.literal("queued"), v.literal("sending"), v.literal("sent"), v.literal("failed"), v.literal("review"), v.literal("suppressed"));
 export const emailError = v.union(v.literal("configuration_unavailable"), v.literal("preference_disabled"), v.literal("appointment_changed"),
+  v.literal("test_recipient_mismatch"),
   v.literal("idempotency_window_elapsed"), v.literal("attempts_exhausted"), v.literal("provider_rejected"),
   v.literal("provider_quota"), v.literal("provider_transient"), v.literal("provider_uncertain"));
 export const emailSnapshot = v.object({ businessName: v.string(), serviceName: v.string(), clientName: v.string(),

@@ -32,7 +32,7 @@ export async function startControlledEmailProvider() {
   };
 }
 
-export async function confirmationEmailScenarios({ setup, date, start, makeClient, race, report, provider, setEmailEnvironment, restart }) {
+export async function confirmationEmailScenarios({ setup, date, start, makeClient, race, report, provider, setEmailEnvironment, allowIsolatedEmailTestMode, restart }) {
   const serial = [], raw = who => who.client.query("engineFixtures:emailRaw", {}), events = who => who.client.query("engineFixtures:mailRaw", {});
   const client = who => makeClient(who?.identity, undefined, false);
   const context = { name: "Synthetic 30", durationMinutes: 30, version: 0 };
@@ -66,6 +66,72 @@ export async function confirmationEmailScenarios({ setup, date, start, makeClien
   function samePayload(e) { const sent = calls(e); assert(sent.length > 0); assert(sent.every(r => r.body === e.payloadJson && r.key === e.providerKey && r.userAgentPresent)); }
   function contextSame(a, b) { for (const key of ["services", "weeklySchedules", "specialDates", "timeBlocks", "notices"]) assert.deepEqual(b[key], a[key]); }
   async function record(name, who, details = {}) { serial.push({ name, fullDocumentsVerified: true, ...details, documents: { context: await raw(who), events: await events(who) } }); }
+
+  if (process.argv.includes("--confirmation-test-mode-only")) {
+    const allowed = "resend-owner@example.test";
+    const who = await owner(false);
+    const settings = () => client(who).query("emailConfirmations:getMySettings", {});
+    const toggle = args => client(who).mutation("emailConfirmations:setMySettings", args);
+    const testEnv = { SLOTLY_EMAIL_MODE: "test", SLOTLY_EMAIL_TEST_RECIPIENT: allowed };
+    const enableTest = { enabled: true, expectedVersion: 0, expectedTestMode: true };
+    await setEmailEnvironment(true, testEnv);
+    assert.deepEqual(await settings(), { enabled: false, configured: false, version: 0, testMode: true });
+    await assert.rejects(toggle(enableTest), /EMAIL_NOT_CONFIGURED/);
+    assert.equal(provider.requests.length, 0);
+
+    await allowIsolatedEmailTestMode(who);
+    await setEmailEnvironment(true, { SLOTLY_EMAIL_TEST_RECIPIENT: "invalid" });
+    assert.equal((await settings()).configured, false);
+    await setEmailEnvironment(false, testEnv);
+    assert.equal((await settings()).configured, false);
+    await setEmailEnvironment(true, { ...testEnv, SLOTLY_EMAIL_TEST_RECIPIENT: ` ${allowed.toUpperCase()} ` });
+    assert.deepEqual(await settings(), { enabled: false, configured: true, version: 0, testMode: true });
+    await assert.rejects(toggle({ enabled: true, expectedVersion: 0 }), /EMAIL_SETTINGS_CHANGED/);
+    assert.equal((await toggle(enableTest)).settings.enabled, true);
+
+    const disallowed = publicCommand(who, privateCommand(who, "resend-owner+other@example.test", 30 * 60_000));
+    assert.equal((await makeClient().mutation("publicBooking:confirm", disallowed)).ok, true);
+    const privateResult = await client(who).mutation("appointments:createMyAppointment", privateCommand(who, allowed.toUpperCase()));
+    assert.ok(privateResult);
+    const rows = await until(() => events(who), records => records.some(e => e.state === "sent"), "Allowed test email sent");
+    const sent = rows.find(e => e.state === "sent");
+    const skipped = rows.find(e => e.state === "suppressed");
+    assert.equal(skipped.lastError, "test_recipient_mismatch");
+    assert.equal(skipped.attempts, 0);
+    assert.equal(skipped.payloadJson, undefined);
+    assert.equal(provider.requests.length, 1);
+    assert.equal(JSON.parse(provider.requests[0].body).from, "Slotly <onboarding@resend.dev>");
+    assert.deepEqual(JSON.parse(provider.requests[0].body).to, [allowed]);
+    samePayload(sent);
+
+    const queued = await deferred(who, allowed, 60 * 60_000);
+    const claimed = await deferred(who, allowed, 90 * 60_000);
+    await client(who).mutation("engineFixtures:mailPhase", { eventId: claimed.eventId, phase: "claimed" });
+    await setEmailEnvironment(true, { SLOTLY_EMAIL_TEST_RECIPIENT: "different-owner@example.test" });
+    assert.equal(await run(who, queued.eventId), null);
+    assert.equal(await client(who).action("emailDispatch:send", { eventId: claimed.eventId, generation: 1 }), null);
+    for (const seed of [queued, claimed]) {
+      assert.equal((await settled(who, seed.eventId, "suppressed")).lastError, "test_recipient_mismatch");
+    }
+
+    await setEmailEnvironment(true, testEnv);
+    const beforeNormalMode = await deferred(who, allowed, 120 * 60_000);
+    await setEmailEnvironment(true, { SLOTLY_EMAIL_MODE: "" });
+    assert.deepEqual(await settings(), { enabled: false, configured: true, version: 1 });
+    await assert.rejects(toggle({ enabled: true, expectedVersion: 1, expectedTestMode: true }), /EMAIL_SETTINGS_CHANGED/);
+    await toggle({ enabled: true, expectedVersion: 1 });
+    assert.equal(await run(who, beforeNormalMode.eventId), null);
+    assert.equal((await settled(who, beforeNormalMode.eventId, "not_configured")).lastError, "configuration_unavailable");
+    const beforeTestMode = await deferred(who, allowed, 150 * 60_000);
+    await setEmailEnvironment(true, testEnv);
+    assert.equal((await settings()).enabled, true);
+    assert.equal(await run(who, beforeTestMode.eventId), null);
+    assert.equal((await settled(who, beforeTestMode.eventId, "not_configured")).lastError, "configuration_unavailable");
+    assert.equal(provider.requests.length, 1);
+    await record("development-test-mail-single-recipient-and-mode-fencing", who);
+    report.emailConfirmations = { serial, providerRequests: provider.requests.length };
+    return;
+  }
 
   await setEmailEnvironment(true);
   if (process.argv.includes("--confirmation-orders-only")) {
